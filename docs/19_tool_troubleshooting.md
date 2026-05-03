@@ -81,3 +81,23 @@ uv sync
 uv run pre-commit clean
 uv run pre-commit run --all-files
 ```
+
+## 4. Ruff 또는 pip-audit 실행 실패
+
+`ruff` 또는 `pip-audit` 명령을 찾지 못하면 dev 그룹 의존성이 설치되지 않은 상태일 수 있음.
+
+```powershell
+uv sync --group dev
+uv run ruff --version
+uv run pip-audit --version
+```
+
+`pip-audit`는 Python 의존성 취약점 데이터와 lock 파일을 확인하므로 네트워크 상태에 따라 느릴 수
+있음. 캐시 문제로 실패하면 캐시를 지우고 다시 실행함.
+
+```powershell
+Remove-Item -Recurse -Force .audit_cache
+uv run pre-commit run pip-audit --hook-stage pre-push --all-files
+```
+
+현재 저장소에 Python 파일이 없으면 Ruff hook은 `no files to check`로 skip되는 것이 정상임.

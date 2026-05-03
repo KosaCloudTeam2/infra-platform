@@ -27,8 +27,8 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        name: "Prettier (Markdown/YAML/JSON)"
-        types_or: [markdown, yaml, json]
+        name: "Prettier (Markdown/YAML/JSON/JS)"
+        types_or: [markdown, yaml, json, javascript]
         exclude: |
           (?x)^(
             pnpm-lock\.yaml|
@@ -48,6 +48,18 @@ repos:
 
   - repo: local
     hooks:
+      - id: ruff-format
+        name: "Python format: ruff format"
+        entry: uv run ruff format --check
+        language: system
+        types_or: [python, pyi]
+
+      - id: ruff-check
+        name: "Python lint: ruff check"
+        entry: uv run ruff check
+        language: system
+        types_or: [python, pyi]
+
       - id: terraform-fmt
         name: "Terraform fmt"
         entry: terraform fmt -check -recursive
@@ -60,5 +72,13 @@ repos:
         entry: pnpm audit
         language: system
         files: pnpm-lock.yaml
+        pass_filenames: false
+        stages: [pre-push, manual]
+
+      - id: pip-audit
+        name: "SCA Security: pip-audit"
+        entry: uv run pip-audit --local --cache-dir .audit_cache
+        language: system
+        files: ^uv\.lock$
         pass_filenames: false
         stages: [pre-push, manual]

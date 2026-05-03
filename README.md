@@ -84,8 +84,9 @@ terraform -chdir=infra/terraform plan -var-file=env/dev.tfvars
 
 ## 7. 팀 환경 구축
 
-팀원 초기 환경 설정은 [Environment Setup](docs/ENVIRONMENT_SETUP.md)을 기준으로 함. 품질 검증과 도구
-문제 해결은 [Docs Index](docs/index.md)의 팀 운영 문서를 따름.
+팀원 초기 환경 설정은 [Environment Setup](docs/ENVIRONMENT_SETUP.md)을 기준으로 함. 개발/검증 도구는
+`uv sync --group dev`로 설치하며, 여기에는 pre-commit, MkDocs, Ruff, pip-audit가 포함됨. 품질 검증과
+도구 문제 해결은 [Docs Index](docs/index.md)의 팀 운영 문서를 따름.
 
 ## 8. 문서 홈
 

@@ -21,15 +21,15 @@
 
 모든 팀원은 Day 1에 아래 도구 설치와 버전 확인을 완료함.
 
-| 도구           | 용도                         | 확인 명령           |
-| :------------- | :--------------------------- | :------------------ |
-| Git            | 형상 관리                    | `git --version`     |
-| Node.js LTS    | Prettier, Marp, Husky 실행   | `node --version`    |
-| pnpm           | Node 패키지 관리             | `pnpm --version`    |
-| Python/uv      | pre-commit, MkDocs 실행 환경 | `uv --version`      |
-| Docker Desktop | 앱 이미지 빌드/로컬 실행     | `docker --version`  |
-| AWS CLI v2     | AWS 리소스 확인              | `aws --version`     |
-| Terraform      | IaC 실행                     | `terraform version` |
+| 도구           | 용도                                          | 확인 명령           |
+| :------------- | :-------------------------------------------- | :------------------ |
+| Git            | 형상 관리                                     | `git --version`     |
+| Node.js LTS    | Prettier, Marp, Husky 실행                    | `node --version`    |
+| pnpm           | Node 패키지 관리                              | `pnpm --version`    |
+| Python/uv      | pre-commit, MkDocs, Ruff, pip-audit 실행 환경 | `uv --version`      |
+| Docker Desktop | 앱 이미지 빌드/로컬 실행                      | `docker --version`  |
+| AWS CLI v2     | AWS 리소스 확인                               | `aws --version`     |
+| Terraform      | IaC 실행                                      | `terraform version` |
 
 ## 3. 최초 설치
 
@@ -69,10 +69,11 @@ terraform version
 git clone <repository_url>
 cd infra-platform
 pnpm install
-uv sync
+uv sync --group dev
 ```
 
-`pnpm install`은 Husky Git Hook을 활성화함. 이후 커밋/푸시 시 품질 검사가 자동 실행됨.
+`pnpm install`은 Husky Git Hook을 활성화함. `uv sync --group dev`는 pre-commit, MkDocs, Ruff,
+pip-audit 같은 개발/검증 도구를 설치함. 이후 커밋/푸시 시 품질 검사가 자동 실행됨.
 
 ## 5. 온보딩 확인
 
@@ -80,6 +81,8 @@ uv sync
 git status
 pnpm --version
 uv --version
+uv run ruff --version
+uv run pip-audit --version
 terraform version
 docker --version
 aws --version
@@ -92,6 +95,16 @@ aws sts get-caller-identity
 ```
 
 인증 전에도 가능한 검증은 [Quality Checks](./18_quality_checks.md)를 따름.
+
+Python 파일이 아직 없어도 Ruff hook은 정상적으로 skip됨. Python 코드가 추가되면 commit 단계에서
+`ruff format --check`와 `ruff check`가 staged Python 파일을 검사함.
+
+Python 의존성 취약점 검사는 `pip-audit`로 수행하며, commit 단계가 아니라 pre-push 또는 manual
+단계에서 실행함.
+
+```powershell
+uv run pre-commit run pip-audit --hook-stage pre-push --all-files
+```
 
 ## 6. 팀 운영 규칙
 
