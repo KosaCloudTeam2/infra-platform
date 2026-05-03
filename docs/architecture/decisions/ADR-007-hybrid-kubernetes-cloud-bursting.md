@@ -1,0 +1,102 @@
+# ADR-007: 비용 우선 하이브리드 Kubernetes와 AWS EC2 버스팅
+
+## 상태
+
+Accepted
+
+## 날짜
+
+2026-05-04
+
+## 배경
+
+프로젝트 목표가 온프레미스 Proxmox에서 Kubernetes를 직접 운영하고, 부하가 높아질 때 AWS 클라우드
+자원을 일시적으로 늘린 뒤 부하가 줄면 다시 release하는 구조로 조정됨.
+
+처음 검토한 EKS Hybrid Nodes 구조는 온프레미스와 AWS 노드를 하나의 EKS 관리형 Kubernetes 운영 모델로
+묶을 수 있다는 장점이 있음. 그러나 비용을 최대한 줄이는 것이 우선 조건이므로 EKS control plane 상시
+비용과 EKS Hybrid Nodes 비용을 피하는 방향을 우선함.
+
+## 결정
+
+MVP 방향은 **EKS를 사용하지 않는 비용 우선 하이브리드 구조**로 잡음.
+
+권장 목표 구조:
+
+- 온프레미스 Proxmox VM 위에 Kubernetes 직접 구성
+- 기본 트래픽은 온프레미스 Kubernetes에서 처리
+- AWS는 별도 burst 영역으로 구성
+- AWS burst 영역은 EC2 Auto Scaling Group, Launch Template, ALB Target Group, CloudWatch Alarm을
+  사용
+- 부하 증가 시 AWS EC2 인스턴스를 자동 생성하고 ALB Target Group에 등록
+- 부하 감소 시 AWS EC2 인스턴스를 scale-in으로 종료
+- Ceph RBD/CephFS는 온프레미스 Kubernetes와 Proxmox 볼륨 용도로 사용
+- Ceph RGW는 DB 백업 또는 앱 파일 저장용 S3 호환 객체 저장소로 사용
+
+이 구조는 **단일 Kubernetes 클러스터의 node autoscaling**이 아니라, **온프레미스 Kubernetes + AWS
+EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
+
+## 대안
+
+1. **EKS Hybrid Nodes + AWS cloud nodes**
+   - 가장 정석적인 managed hybrid Kubernetes 구조
+   - EKS control plane과 hybrid node 비용이 추가됨
+   - AWS 관리형 기능을 쓰는 대신 비용 우선 조건과 맞지 않음
+
+2. **직접 구축 Kubernetes에 AWS EC2 worker node 자동 join**
+   - EKS 없이 단일 Kubernetes 클러스터 cloud bursting 구현 가능
+   - 인증서, CNI, VPN, node bootstrap, Cluster Autoscaler 연동을 직접 책임져야 함
+   - 학습 효과는 높지만 13일 MVP에는 위험함
+
+3. **기존 ECS Fargate MVP 유지**
+   - AWS 안에서 ECS Task Auto Scaling을 빠르게 검증 가능
+   - 온프레미스 Kubernetes 운영 경험과는 맞지 않음
+   - 기존 Terraform과 CI/CD를 재사용하기 쉬운 fallback 또는 비교안으로 유지 가능
+
+4. **온프레미스 Kubernetes + AWS EC2 ASG/ALB burst**
+   - EKS 비용 없이 구현 가능
+   - AWS 실습 경험인 CloudWatch, Auto Scaling Group, Launch Template, ALB 흐름을 재사용 가능
+   - 단일 Kubernetes 클러스터 확장은 아니지만 발표 가능한 비용 우선 하이브리드 구조로 적합함
+
+## 영향
+
+장점:
+
+- EKS control plane 상시 비용을 피할 수 있음
+- Proxmox와 Kubernetes 직접 운영 경험을 프로젝트 핵심으로 가져갈 수 있음
+- AWS burst 영역은 EC2 Auto Scaling과 ALB로 단순하게 설명 가능함
+- 부하 증가 시 클라우드 자원을 일시적으로 사용하고 줄어들면 release한다는 메시지가 명확함
+
+감수할 점:
+
+- 온프레미스 Kubernetes와 AWS EC2 ASG는 같은 Kubernetes cluster가 아님
+- 앱 배포 방식이 온프레미스 Kubernetes와 AWS EC2 burst 영역으로 나뉠 수 있음
+- 세션, 파일 업로드, DB 연결, 배포 버전 동기화 기준을 별도로 정해야 함
+- 기존 ECS 중심 Terraform, GitHub Actions, Runbook은 새 MVP와 일부 맞지 않으므로 단계적으로
+  재정렬해야 함
+
+## 권장 적용 방식
+
+13일 일정에서는 아래처럼 범위를 나눔.
+
+### MVP
+
+- Proxmox VM 기반 온프레미스 Kubernetes 구성
+- 임시 앱 또는 실제 앱을 Kubernetes Deployment/Service/Ingress로 배포
+- AWS에는 EC2 Auto Scaling Group과 ALB 기반 burst 영역 구성
+- CloudWatch Alarm으로 AWS EC2 scale-out/scale-in 기준 정의
+- DB는 기존 원칙대로 RDS를 제외하고 PXC/ProxySQL 또는 비용상 단순화한 DB 운영안을 별도 결정
+- Ceph는 온프레미스 Kubernetes PV와 RGW 백업 저장소로 역할 분리
+
+### 선택 확장
+
+- AWS EC2 인스턴스를 직접 구축 Kubernetes worker node로 자동 join
+- Cluster Autoscaler 기반 AWS node 증감
+- VPN/WireGuard 기반 온프레미스-AWS 사설 통신
+- EKS Hybrid Nodes 전환 검토
+
+## 관련 문서
+
+- [Architecture](../../01_architecture.md)
+- [Implementation Scope](../../04_implementation_scope.md)
+- [Structure Review](../../15_structure_review.md)

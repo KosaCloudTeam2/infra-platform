@@ -1,0 +1,64 @@
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+        name: "Gitleaks (Secret Scanning)"
+        stages: [pre-commit, pre-push]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+        stages: [pre-commit, pre-push]
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+        stages: [pre-commit, pre-push]
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        name: "Prettier (Markdown/YAML/JSON)"
+        types_or: [markdown, yaml, json]
+        exclude: |
+          (?x)^(
+            pnpm-lock\.yaml|
+            package-lock\.json|
+            uv\.lock|
+            \.github/task-definition\.json
+          )$
+        additional_dependencies:
+          - prettier@3.7.4
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        name: "ShellCheck"
+        files: \.sh$
+
+  - repo: local
+    hooks:
+      - id: terraform-fmt
+        name: "Terraform fmt"
+        entry: terraform fmt -check -recursive
+        language: system
+        files: ^infra/terraform/.*\.tf$
+        pass_filenames: false
+
+      - id: pnpm-audit
+        name: "SCA Security: pnpm audit"
+        entry: pnpm audit
+        language: system
+        files: pnpm-lock.yaml
+        pass_filenames: false
+        stages: [pre-push, manual]

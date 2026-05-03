@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-infra-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloud-infra-app
+  template:
+    metadata:
+      labels:
+        app: cloud-infra-app
+    spec:
+      containers:
+        - name: app
+          image: example.com/cloud-infra-app:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080

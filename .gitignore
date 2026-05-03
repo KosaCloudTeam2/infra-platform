@@ -1,0 +1,49 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars.local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ansible local inventory/secrets
+infra/ansible/inventory.ini
+infra/ansible/inventory.*.ini
+!infra/ansible/inventory.example.ini
+infra/ansible/host_vars/
+infra/ansible/group_vars/
+*.retry
+*.vault.yml
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.*
+
+# Build/cache
+node_modules/
+dist/
+build/
+site/
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Local installer artifacts
+*.msixbundle
+winget.msixbundle
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*.local.json

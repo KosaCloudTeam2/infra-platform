@@ -1,0 +1,14 @@
+[project]
+name = "cloud-infra-platform"
+version = "0.1.0"
+description = "Team cloud infrastructure deployment platform"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mkdocs>=1.6.1,<2.0",
+    "mkdocs-material>=9.6.0",
+    "pymdown-extensions>=10.14",
+    "pre-commit>=4.3.0"
+]

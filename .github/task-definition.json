@@ -1,0 +1,31 @@
+{
+  "family": "cloud-infra-dev-app",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::__AWS_ACCOUNT_ID__:role/cloud-infra-dev-ecs-task-execution-role",
+  "taskRoleArn": "arn:aws:iam::__AWS_ACCOUNT_ID__:role/cloud-infra-dev-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "__AWS_ACCOUNT_ID__.dkr.ecr.ap-northeast-2.amazonaws.com/cloud-infra-dev-app:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cloud-infra-dev-app",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

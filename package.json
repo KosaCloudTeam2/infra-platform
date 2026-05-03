@@ -1,0 +1,20 @@
+{
+  "name": "cloud-infra-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "format": "prettier --write \"**/*.{md,yml,yaml,json}\"",
+    "format:check": "prettier --check \"**/*.{md,yml,yaml,json}\"",
+    "slides:pdf": "marp docs/presentation/presentation.md --pdf --allow-local-files",
+    "slides:html": "marp docs/presentation/presentation.md --html --allow-local-files",
+    "precommit": "uv run pre-commit run --all-files",
+    "tf:fmt": "terraform -chdir=infra/terraform fmt -recursive",
+    "tf:validate": "terraform -chdir=infra/terraform validate"
+  },
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.2.3",
+    "husky": "^9.1.7",
+    "prettier": "3.7.4"
+  }
+}

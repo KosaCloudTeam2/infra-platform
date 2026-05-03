@@ -1,0 +1,60 @@
+# 04 Observability / Demo 상세 구현
+
+담당: 팀원 1 겸임, 팀원 4 보조
+
+## 1. 목표
+
+서비스 상태를 확인할 수 있는 최소 관측 체계를 구성하고, 발표에서 보여줄 장애 대응 시나리오를
+안정적으로 준비함.
+
+## 2. 구현 범위
+
+- CloudWatch Logs
+- ALB 5xx Alarm
+- Unhealthy Host Alarm
+- ECS CPU/Memory Alarm
+- PXC/ProxySQL/Ceph 상태 확인 Runbook
+- 장애 시나리오 통합
+- 시연 순서 작성
+
+## 3. 관측 지표
+
+| 대상     | 지표               | 목적                  |
+| :------- | :----------------- | :-------------------- |
+| ALB      | Target 5xx         | 앱 오류 감지          |
+| ALB      | UnHealthyHostCount | Task 장애 감지        |
+| ECS      | CPU/Memory         | 스케일링 판단         |
+| ProxySQL | backend status     | DB 노드 장애 확인     |
+| PXC      | wsrep status       | 클러스터 정합성 확인  |
+| Ceph     | health status      | 백업 저장소 상태 확인 |
+
+## 4. 시연 시나리오
+
+### 4.1 배포 시연
+
+1. GitHub Actions 실행
+2. ECR 이미지 확인
+3. ECS Service 배포 확인
+4. ALB URL 접속
+
+### 4.2 앱 장애 시연
+
+1. 잘못된 이미지 또는 Health Check 실패 유도
+2. ALB Target 상태 확인
+3. ECS Event 확인
+4. 롤백 수행
+
+### 4.3 DB/백업 시연
+
+1. ProxySQL endpoint 접속 확인
+2. PXC 상태 확인
+3. XtraBackup 산출물 확인
+4. Ceph RGW 업로드 파일 확인
+
+## 5. 완료 기준
+
+- [ ] CloudWatch Logs에서 앱 로그 확인
+- [ ] ALB/ECS 기본 알람 생성
+- [ ] DB/Ceph 상태 확인 명령 정리
+- [ ] 시연 스크립트와 캡처 준비
+- [ ] 발표 리허설에서 15분 내 설명 가능

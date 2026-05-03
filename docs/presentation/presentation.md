@@ -1,0 +1,176 @@
+---
+marp: true
+theme: default
+paginate: true
+size: 16:9
+---
+
+# Cloud Infra Deployment Platform
+
+13일 구축 + 3일 발표 준비
+
+AWS ECS Fargate 기반 안전한 컨테이너 배포 플랫폼
+
+---
+
+# 1. 프로젝트 목표
+
+- 기존 애플리케이션을 클라우드 환경에 배포
+- 배포 자동화, 보안, 관측성, 장애 대응까지 포함
+- 4인 팀이 역할을 나누어 13일 안에 구현 가능한 MVP 완성
+- 마지막 3일 동안 시연과 발표 자료 안정화
+
+---
+
+# 2. 구현 범위
+
+| 영역          | 구현 내용                                  |
+| :------------ | :----------------------------------------- |
+| Network       | VPC, Public/Private Subnet, ALB, SG        |
+| Runtime       | ECS Fargate, Task Definition, Auto Scaling |
+| CI/CD         | GitHub Actions, OIDC, ECR, ECS Deploy      |
+| Security      | IAM Role, WAF, Secrets Manager             |
+| Data          | Percona XtraDB Cluster, ProxySQL           |
+| Storage       | Ceph RGW 백업, RBD/PVC 확장                |
+| Observability | CloudWatch Logs, Metrics, Alarm            |
+| Demo          | 장애 유도, 롤백, DB 백업 시연              |
+
+---
+
+# 3. 전체 아키텍처
+
+```mermaid
+flowchart TD
+    User["User"] --> WAF["AWS WAF"]
+    WAF --> ALB["ALB"]
+    ALB --> ECS["ECS Fargate Service"]
+    GitHub["GitHub"] --> Actions["GitHub Actions OIDC"]
+    Actions --> ECR["ECR"]
+    ECR --> ECS
+    ECS --> Proxy["ProxySQL"]
+    Proxy --> PXC["Percona XtraDB Cluster"]
+    PXC --> Backup["XtraBackup"]
+    Backup --> Ceph["Ceph RGW"]
+    ECS --> Logs["CloudWatch Logs"]
+    ECS --> Metrics["CloudWatch Metrics / Alarm"]
+```
+
+---
+
+# 4. 네트워크 설계
+
+- Public Subnet: ALB, NAT Gateway
+- Private Subnet: ECS Task
+- ALB Security Group: 80/443 from Internet
+- ECS Security Group: App Port from ALB SG only
+- NAT Gateway: Private Task의 ECR/외부 API 접근 경로
+
+---
+
+# 5. 배포 흐름
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant GH as GitHub
+    participant GA as GitHub Actions
+    participant ECR as ECR
+    participant ECS as ECS
+
+    Dev->>GH: Merge to main
+    GH->>GA: Workflow Trigger
+    GA->>ECR: Docker Build & Push
+    GA->>ECS: Register Task Definition
+    GA->>ECS: Update Service
+    ECS->>ECS: Rolling Deployment
+```
+
+---
+
+# 6. 보안 설계
+
+- GitHub Actions OIDC 기반 배포
+- 장기 AWS Access Key 미사용
+- IAM Role 최소 권한 분리
+- WAF Managed Rule과 Rate Limit 적용
+- Secrets Manager로 민감 값 주입
+- Public/Private Subnet 분리
+
+---
+
+# 7. 관측성 설계
+
+| 대상         | 지표                                     |
+| :----------- | :--------------------------------------- |
+| ALB          | Request Count, 5xx, Target Response Time |
+| Target Group | UnHealthyHostCount                       |
+| ECS          | CPU, Memory, Running Task                |
+| Logs         | Application stdout/stderr                |
+
+---
+
+# 8. 데이터/스토리지 설계
+
+- AWS RDS 제외
+- EC2 기반 Percona XtraDB Cluster 3노드
+- ProxySQL로 DB 접근 단일화
+- Single Writer 중심 운영
+- Percona XtraBackup으로 백업 수행
+- 백업 결과는 Ceph RGW에 저장
+- 중요 백업은 AWS S3 2차 복제 가능
+
+---
+
+# 9. 장애 대응 시나리오
+
+1. 잘못된 이미지 또는 환경 변수 배포
+2. ALB Health Check 실패
+3. ECS Service Event 확인
+4. CloudWatch Logs로 원인 확인
+5. Deployment Circuit Breaker 또는 수동 롤백
+6. 정상 응답 복구 확인
+
+---
+
+# 10. 비용 최적화
+
+- Fargate 256 CPU / 512 MiB 기준 시작
+- Desired Count 2, Max Count 4
+- CloudWatch Log 보존 7일
+- NAT Gateway 수는 비용과 가용성 균형 기준으로 결정
+- 발표 후 비용 발생 리소스 정리
+
+---
+
+# 11. 팀 역할
+
+| 역할                   | 책임                                    |
+| :--------------------- | :-------------------------------------- |
+| Lead / Architecture    | 일정, 설계, 통합 검수, 발표             |
+| Network / IaC          | VPC, Subnet, ALB, SG, Terraform         |
+| Platform / Runtime     | ECS, ECR, Task Definition, Auto Scaling |
+| Data / Storage         | PXC, ProxySQL, Ceph RGW 백업            |
+| CI/CD / Security / Ops | GitHub Actions, OIDC, WAF, CloudWatch   |
+
+---
+
+# 12. 성과
+
+- 수동 배포를 자동 배포로 전환
+- 외부 진입점과 실행 영역 분리
+- 키 없는 배포 체계 구성
+- Health Check와 롤백 기반 장애 대응 가능
+- RDS 없이 직접 운영 DB와 백업 저장소 구성
+- 발표 가능한 시연 시나리오 확보
+
+---
+
+# 13. 향후 확장
+
+- Route 53 + ACM 기반 HTTPS
+- Blue/Green 배포
+- S3 + CloudFront 정적 자산 오프로딩
+- ProxySQL 이중화와 Internal NLB
+- AWS S3 2차 백업 복제
+- Ceph CSI 기반 Kubernetes PVC
+- EKS와 GitOps 기반 고급 확장

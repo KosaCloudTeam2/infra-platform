@@ -1,0 +1,24 @@
+# Package manager files
+pnpm-lock.yaml
+package-lock.json
+uv.lock
+
+# Generated and dependency folders
+node_modules/
+.venv/
+.audit_cache/
+.terraform/
+site/
+dist/
+build/
+
+# Terraform generated files
+*.tfstate
+*.tfstate.*
+
+# Presentation outputs
+*.pdf
+*.pptx
+
+# Local installer artifacts
+*.msixbundle
