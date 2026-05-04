@@ -44,14 +44,24 @@
 
 ## 3. 발표자 분담
 
-| 구간            | 발표자 | 내용                        |
-| :-------------- | :----- | :-------------------------- |
-| 도입/목표       | 팀원 1 | 문제 정의, 목표, 전체 일정  |
-| 아키텍처        | 팀원 2 | VPC, Subnet, ALB, SG        |
-| 배포/런타임     | 팀원 4 | GitHub Actions, Argo CD, ECR, Kubernetes |
-| 데이터/스토리지 | 팀원 3 | PXC, ProxySQL, Ceph 백업    |
-| 보안/운영       | 팀원 4 | OIDC, WAF, CloudWatch, 롤백 |
-| 마무리          | 팀원 1 | 성과, 한계, 확장 계획       |
+발표는 전원이 참여함. 각 담당자는 자기 영역의 설명, 캡처, 시연, 예상 질문 답변을 책임짐.
+
+| 구간                | 발표자 | 내용                                               |
+| :------------------ | :----- | :------------------------------------------------- |
+| 도입/목표           | 팀원 1 | 문제 정의, 목표, 전체 일정                         |
+| Cloud / IaC         | 팀원 2 | VPC, Subnet, ALB, SG, WAF, EC2 ASG, 비용 포인트    |
+| CI/CD / App Runtime | 팀원 4 | GitHub Actions, ECR, Argo CD, Kubernetes 배포      |
+| DB / Storage        | 팀원 3 | PXC, ProxySQL, XtraBackup, Ceph RGW 백업           |
+| Observability       | 팀원 1 | Prometheus/Grafana 또는 CloudWatch, 장애 판단 지표 |
+| 장애 복구           | 전원   | 각자 담당 영역의 장애 상황과 복구 절차 설명        |
+| 마무리              | 전원   | 성과, 한계, 확장 계획, 담당 영역별 Q&A 대응        |
+
+영역별 시연 책임:
+
+- 팀원 1: 관측성 대시보드, 알람, 통합 시연 흐름, 발표 캡처 품질
+- 팀원 2: Terraform plan/apply, 네트워크/보안그룹, ALB/WAF/EC2 ASG 캡처
+- 팀원 3: PXC/ProxySQL 상태, 백업 산출물, Ceph RGW 업로드 캡처
+- 팀원 4: GitHub Actions, ECR 이미지, Argo CD sync, Kubernetes rollout 캡처
 
 ## 4. 발표 자료 체크리스트
 
