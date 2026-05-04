@@ -20,7 +20,7 @@
 
 ## 3. 팀원 AWS 접근 원칙
 
-팀원 3명에게 AWS 콘솔 또는 CLI 접근을 줄 때는 **하나의 계정을 공유하지 않고 개인별 접근 주체를
+팀원 4명에게 AWS 콘솔 또는 CLI 접근을 줄 때는 **하나의 계정을 공유하지 않고 개인별 접근 주체를
 분리**함. 공유 계정은 누가 어떤 리소스를 만들었는지 추적하기 어렵고, 비밀번호/MFA/세션 관리와 퇴장
 처리가 불명확해짐.
 
@@ -56,11 +56,45 @@
 | 팀원 4 CI/CD/App Runtime | ECR/ECS/GitHub Actions 확인                  | 배포와 앱 런타임 책임          |
 | Terraform apply 담당자   | 별도 관리자 승인 또는 임시 상승 권한         | 팀 apply는 1명으로 제한        |
 
-### 3.2 실무 적용 기준
+### 3.2 실습용 단일 그룹 예외
+
+현업 기준은 역할별 최소 권한 분리임. 단, 이번 프로젝트는 13일 실습과 Terraform 학습이 목적이므로
+팀원 전원이 동일한 실습 그룹에 속해 인프라 생성과 `terraform apply`를 수행할 수 있음.
+
+권장 구성:
+
+- 그룹명: `infra-platform-lab-admin`
+- 대상: 팀원 4명 개인 IAM User 또는 IAM Identity Center 사용자
+- 권한: 실습 계정 한정 `AdministratorAccess`
+- 비용 권한: 별도 부여하지 않음
+- MFA: 전원 필수
+- 공유 계정: 금지
+- Access Key: 기본 미발급, 로컬 CLI 실습 필요 시 개인별 발급 후 프로젝트 종료 시 삭제
+
+IAM User 생성 기준:
+
+- `Provide user access to the AWS Management Console`: 체크
+- 사용자 유형: `IAM user`
+- 콘솔 비밀번호: 임시 비밀번호 또는 자동 생성
+- `User must create a new password at next sign-in`: 체크
+- 권한 부여: 사용자 직접 정책 연결보다 `infra-platform-lab-admin` 그룹 추가
+- Access Key: 최초 생성 시 만들지 않음
+
+운영 제한:
+
+- `terraform apply` 동시 실행 금지
+- apply 전 팀 채널 승인 또는 구두 합의
+- apply 담당자와 시간 기록
+- `terraform plan` 결과 공유 후 apply
+- 실습 종료 후 그룹 권한 제거 또는 사용자 비활성화
+- 발표 후 비용 리소스 정리
+
+### 3.3 실무 적용 기준
 
 - 루트 계정은 사용하지 않고 MFA를 반드시 활성화함
 - 팀원별 콘솔 로그인은 개인 계정 또는 개인 IAM Identity Center 사용자로 수행함
-- Terraform apply 권한은 상시 권한보다 필요한 시점에만 부여하는 방식을 우선함
+- Terraform apply 권한은 현업 기준으로 필요한 시점에만 부여하는 방식을 우선함
+- 실습 예외 적용 시에도 실제 apply는 한 번에 1명만 수행함
 - GitHub Actions 배포는 개인 Access Key가 아니라 OIDC Role을 사용함
 - 개인 IAM User를 만들더라도 장기 Access Key는 기본 발급하지 않음
 - 프로젝트 종료 또는 팀원 변경 시 해당 사용자만 비활성화함
@@ -102,6 +136,7 @@ DB 관련 포트는 인터넷 전체(`0.0.0.0/0`)에 열지 않음. 운영 접�
 - [ ] 팀원별 AWS 접근 주체가 분리되어 있음
 - [ ] 공유 IAM User를 사용하지 않음
 - [ ] 콘솔 접근 사용자에 MFA가 활성화되어 있음
+- [ ] 실습용 단일 그룹 사용 시 apply 담당자와 실행 시간이 기록됨
 - [ ] WAF가 ALB에 연결됨
 - [ ] CloudWatch 로그 보존 기간이 설정됨
 - [ ] ProxySQL Admin 포트 `6032`가 인터넷에 노출되지 않음
