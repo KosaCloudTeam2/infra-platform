@@ -14,35 +14,36 @@
 ## 1.2 설계 원칙
 
 - **반복 가능성:** 콘솔 수작업보다 Terraform과 GitHub Actions 기반 자동화를 우선함
-- **최소 노출:** 외부 진입점은 ALB(Application Load Balancer)로 제한하고 애플리케이션 Task는 Private
-  Subnet에 배치함
-- **DB 내부망 고정:** ProxySQL과 PXC 노드는 Data Private Subnet에만 배치하고 Public IP를 부여하지
-  않음
-- **키 없는 배포:** 장기 Access Key 대신 GitHub Actions OIDC(OpenID Connect) 기반 임시 권한 사용
+- **최소 노출:** 외부 진입점은 애플리케이션 로드 밸런서(Application Load Balancer, ALB)로 제한하고
+  애플리케이션 Task는 Private Subnet에 배치함
+- **DB 내부망 고정:** ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 Data Private Subnet에만 배치하고
+  Public IP를 부여하지 않음
+- **키 없는 배포:** 장기 Access Key 대신 GitHub Actions OpenID Connect(OIDC) 기반 임시 권한 사용
 - **운영 가시성:** CloudWatch Logs/Metrics/Alarm을 기본 관측 체계로 구성함
-- **관리형 DB 제외:** AWS RDS는 사용하지 않고 EC2 기반 Percona XtraDB Cluster와 ProxySQL로 DB 운영
-  경험을 확보함
+- **관리형 DB 제외:** AWS Relational Database Service(RDS)는 사용하지 않고 Elastic Compute Cloud(EC2)
+  기반 Percona XtraDB Cluster와 ProxySQL로 DB 운영 경험을 확보함
 - **스토리지 역할 분리:** Ceph는 Proxmox 기반 온프레미스 분산 스토리지로 두고, 백업·파일·온프레미스
   VM/Kubernetes 볼륨 용도를 구분해 활용함
-- **비용 우선 하이브리드:** EKS 상시 비용을 피하고, 온프레미스 Kubernetes와 AWS EC2 Auto Scaling
-  burst 영역을 분리해 사용함
+- **비용 우선 하이브리드:** Elastic Kubernetes Service(EKS) 상시 비용을 피하고, 온프레미스 Kubernetes와
+  AWS EC2 Auto Scaling burst 영역을 분리해 사용함
 - **발표 가능성:** 장애 유도, 롤백, 보안 설계, 비용 선택 기준을 시연 가능한 형태로 남김
 
 ## 1.3 MVP 범위
 
 - 온프레미스 Proxmox VM 기반 Kubernetes 직접 구성
 - Kubernetes Deployment/Service/Ingress 기반 앱 실행
-- AWS EC2 Auto Scaling Group + Launch Template 기반 burst 영역
+- AWS EC2 Auto Scaling Group(ASG) + Launch Template 기반 burst 영역
 - AWS ALB + Target Group 기반 burst 트래픽 분산
 - CloudWatch Alarm 기반 AWS EC2 scale-out/scale-in
-- AWS VPC 기반 burst 네트워크
+- AWS 가상 사설 클라우드(Virtual Private Cloud, VPC) 기반 burst 네트워크
 - GitHub Actions 기반 이미지 빌드/배포 자동화
-- IAM OIDC, Security Group, WAF 기반 보안
+- Identity and Access Management(IAM) OIDC, Security Group(SG), 웹 방화벽(Web Application Firewall, WAF)
+  기반 보안
 - CloudWatch 기반 로그/지표/알람
 - EC2 기반 Percona XtraDB Cluster(PXC) 3노드
 - ProxySQL 1대 기본, 변수 변경 시 2대 + Internal NLB 전환
 - Percona XtraBackup 기반 DB 백업
-- 온프레미스 Ceph RGW/RBD/CephFS 활용 전략
+- 온프레미스 Ceph RADOS Gateway(RGW)/RADOS Block Device(RBD)/CephFS 활용 전략
 
 기존 ECS Fargate 구성은 AWS-only 배포 플랫폼을 빠르게 검증하기 위한 대안 또는 fallback으로 유지함.
 최종 MVP를 비용 우선 하이브리드 구조로 확정하면 ECS 관련 Terraform, CI/CD, Runbook은 온프레미스

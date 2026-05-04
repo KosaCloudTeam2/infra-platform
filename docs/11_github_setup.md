@@ -6,8 +6,8 @@
 | :-------------------- | :---------------------------------------- |
 | `AWS_DEPLOY_ROLE_ARN` | Terraform output `github_deploy_role_arn` |
 
-GitHub Actions 배포는 개인 AWS Access Key가 아니라 OIDC Role을 사용함. 팀원 개인 AWS 접근 계정과
-GitHub Actions 배포 Role은 분리해서 관리함.
+GitHub Actions 배포는 개인 AWS Access Key가 아니라 OpenID Connect(OIDC) Role을 사용함. 팀원 개인
+AWS 접근 계정과 GitHub Actions 배포 Role은 분리해서 관리함.
 
 ## 2. 수정이 필요한 플레이스홀더
 
@@ -25,7 +25,7 @@ github_repository = "OWNER/REPO"
 github_repository = "team-name/cloud-infra-platform"
 ```
 
-### ECS Task Definition
+### Elastic Container Service(ECS) Task Definition
 
 `.github/task-definition.json`은 `__AWS_ACCOUNT_ID__` 플레이스홀더를 사용함. `Deploy to ECS`
 workflow가 `aws sts get-caller-identity` 결과로 배포 시점에 치환하므로 저장소에 실제 AWS 계정 ID를

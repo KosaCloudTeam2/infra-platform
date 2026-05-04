@@ -7,10 +7,10 @@
 기존에 준비된 간단한 애플리케이션을 대상으로 클라우드 기반 배포 플랫폼을 구축함.
 
 - AWS 기반 네트워크, 컴퓨팅, 배포, 보안, 관측성 체계 구성
-- GitHub Actions와 OIDC(OpenID Connect)를 이용한 키 없는 배포 자동화
-- ALB(Application Load Balancer), ECS Fargate, ECR(Elastic Container Registry)을 이용한 컨테이너
-  배포
-- CloudWatch, WAF(Web Application Firewall), Secrets Manager 기반 운영 가드레일 구성
+- GitHub Actions와 OpenID Connect(OIDC)를 이용한 키 없는 배포 자동화
+- 애플리케이션 로드 밸런서(Application Load Balancer, ALB), Elastic Container Service(ECS) Fargate,
+  Elastic Container Registry(ECR)를 이용한 컨테이너 배포
+- CloudWatch, 웹 방화벽(Web Application Firewall, WAF), Secrets Manager 기반 운영 가드레일 구성
 - 장애 상황과 롤백 시나리오를 포함한 발표 데모 준비
 
 현재 `app/` 디렉터리의 애플리케이션은 인프라 배포 파이프라인 검증을 위한 임시 샘플 앱임. 실제 서비스
@@ -21,7 +21,7 @@
 
 | 영역        | 구현 내용                                                      | 담당 문서                                                             |
 | :---------- | :------------------------------------------------------------- | :-------------------------------------------------------------------- |
-| 네트워크    | VPC, Public/Private Subnet, IGW, NAT 선택 기준, Security Group | [Architecture](docs/01_architecture.md)                               |
+| 네트워크    | 가상 사설 클라우드(VPC), Public/Private Subnet, IGW, NAT 선택 기준, Security Group | [Architecture](docs/01_architecture.md)                               |
 | 컴퓨팅      | ECS Fargate Service, Task Definition, ALB Target Group         | [Implementation Scope](docs/04_implementation_scope.md)               |
 | CI/CD       | GitHub Actions, Docker Build, ECR Push, ECS Deploy             | [Deployment Runbook](docs/runbooks/deployment.md)                     |
 | 보안        | IAM OIDC Role, 최소 권한, WAF, Secrets Manager, HTTPS          | [Security Policy](docs/05_security_policy.md)                         |
@@ -37,6 +37,7 @@
 | 구조 점검   | 현재 구조의 주의 사항과 보완 후보                              | [Structure Review](docs/15_structure_review.md)                       |
 | 변경 이력   | 주요 설계 변경과 보완 이력                                     | [Change Log](docs/16_change_log.md)                                   |
 | AI 협업     | Codex/ChatGPT 작업 요청 기준                                   | [AI Collaboration Guide](docs/17_ai_collaboration_guide.md)           |
+| 용어집      | AWS와 인프라 약어 설명                                         | [Glossary](docs/22_glossary.md)                                       |
 
 ## 3. 선택 확장 범위
 

@@ -2,10 +2,10 @@
 
 ## 1. 사전 조건
 
-- AWS CLI 인증 완료
+- AWS Command Line Interface(CLI) 인증 완료
 - Terraform plan/apply 완료
-- ECR Repository 생성 완료
-- GitHub Actions OIDC Role 생성 완료
+- Elastic Container Registry(ECR) Repository 생성 완료
+- GitHub Actions OpenID Connect(OIDC) Role 생성 완료
 - 기존 앱 Dockerfile 준비 완료
 
 ## 2. 로컬 이미지 검증
@@ -23,8 +23,8 @@ curl http://localhost:8080/health
 
 ## 3. GitHub Actions 배포
 
-현재 `Deploy to ECS` workflow는 AWS OIDC Role과 GitHub Secret 준비 전 push 실패를 막기 위해 수동 실행만
-허용함.
+현재 `Deploy to ECS` workflow는 AWS OIDC Role과 GitHub Secret 준비 전 push 실패를 막기 위해 수동
+실행만 허용함.
 
 1. Terraform apply와 GitHub Secret 설정 완료 확인
 2. GitHub Actions에서 `Deploy to ECS` workflow 수동 실행
@@ -38,7 +38,7 @@ curl http://localhost:8080/health
 
 - Terraform apply 완료
 - ECR Repository 생성 확인
-- ECS Cluster, Service, Task Execution Role 생성 확인
+- Elastic Container Service(ECS) Cluster, Service, Task Execution Role 생성 확인
 - GitHub OIDC Provider와 `GitHubDeployRole` 생성 확인
 - `infra/terraform/env/dev.tfvars`의 `github_repository`가 실제 저장소명으로 설정됨
 - GitHub Repository Secret `AWS_DEPLOY_ROLE_ARN` 등록 완료

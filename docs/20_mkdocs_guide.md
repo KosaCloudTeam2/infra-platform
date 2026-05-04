@@ -11,7 +11,7 @@ MkDocs는 `docs/` 아래 Markdown 문서를 웹 문서 사이트로 확인하기
 Navigation 기준:
 
 - 루트 문서 파일명 번호 흐름 우선
-- `00~21` 순서와 MkDocs 좌측 메뉴 순서 일치
+- `00~22` 순서와 MkDocs 좌측 메뉴 순서 일치
 - 문서 파일 대규모 이동보다 `mkdocs.yml`의 `nav` 조정 우선
 
 발표 PDF는 기존 Marp 절차를 계속 사용함.

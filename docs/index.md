@@ -31,6 +31,7 @@
 | [Tool Troubleshooting](./19_tool_troubleshooting.md)           | winget, Terraform, Git Hook 문제 해결  |
 | [MkDocs Guide](./20_mkdocs_guide.md)                           | 문서 사이트 로컬 미리보기              |
 | [Team Decision Checklist](./21_team_decision_checklist.md)      | 팀 회의에서 결정해야 할 선택지와 용어 확인 |
+| [Glossary](./22_glossary.md)                                    | AWS와 인프라 약어 확인                 |
 
 ## 3. 설계 보완 문서
 

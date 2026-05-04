@@ -3,24 +3,25 @@
 ## 1. 기본 원칙
 
 - 장기 Access Key를 GitHub Secrets에 저장하지 않음
-- GitHub Actions는 OIDC 기반 IAM Role Assume 방식 사용
+- GitHub Actions는 OpenID Connect(OIDC) 기반 Identity and Access Management(IAM) Role Assume 방식 사용
 - Public Subnet에는 ALB만 배치함
 - 애플리케이션 Task는 Private Subnet 배치를 기본값으로 함
-- ProxySQL과 PXC 노드는 Private Data Subnet에만 배치하고 Public IP를 부여하지 않음
-- Security Group은 출발지 SG 기준으로 최소 허용함
+- ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 Private Data Subnet에만 배치하고 Public IP를 부여하지
+  않음
+- Security Group(SG)은 출발지 SG 기준으로 최소 허용함
 - Secret 값은 Terraform 변수 또는 코드에 직접 저장하지 않음
 
 ## 2. IAM 역할
 
 | Role                 | 용도       | 주요 권한                                   |
 | :------------------- | :--------- | :------------------------------------------ |
-| GitHubDeployRole     | CI/CD 배포 | ECR Push, ECS Deploy, iam:PassRole 제한     |
-| ECSTaskExecutionRole | ECS 실행   | ECR Pull, CloudWatch Logs Write             |
-| ECSTaskRole          | 앱 런타임  | Secrets Manager Read, 필요 시 S3 Read/Write |
+| GitHubDeployRole     | CI/CD 배포 | Elastic Container Registry(ECR) Push, Elastic Container Service(ECS) Deploy, iam:PassRole 제한 |
+| ECSTaskExecutionRole | ECS 실행   | ECR Pull, CloudWatch Logs Write                                                                    |
+| ECSTaskRole          | 앱 런타임  | Secrets Manager Read, 필요 시 Simple Storage Service(S3) Read/Write                               |
 
 ## 3. 팀원 AWS 접근 원칙
 
-팀원 4명에게 AWS 콘솔 또는 CLI 접근을 줄 때는 **하나의 계정을 공유하지 않고 개인별 접근 주체를
+팀원 4명에게 AWS 콘솔 또는 Command Line Interface(CLI) 접근을 줄 때는 **하나의 계정을 공유하지 않고 개인별 접근 주체를
 분리**함. 공유 계정은 누가 어떤 리소스를 만들었는지 추적하기 어렵고, 비밀번호/MFA/세션 관리와 퇴장
 처리가 불명확해짐.
 
@@ -52,7 +53,7 @@
 | :----------------------- | :------------------------------------------- | :----------------------------- |
 | 팀원 1 Project Lead      | ReadOnly + 제한된 운영 확인 권한             | 발표/검수/CloudWatch 확인 중심 |
 | 팀원 2 Network/IaC       | Terraform plan 중심, apply는 합의된 담당자만 | VPC, ALB, SG 변경 책임         |
-| 팀원 3 DB/Storage        | EC2 SSM 접속, CloudWatch/EC2 확인            | PXC/ProxySQL/Ceph 구성 책임    |
+| 팀원 3 DB/Storage        | EC2 Systems Manager(SSM) 접속, CloudWatch/EC2 확인 | PXC/ProxySQL/Ceph 구성 책임    |
 | 팀원 4 CI/CD/App Runtime | ECR/ECS/GitHub Actions 확인                  | 배포와 앱 런타임 책임          |
 | Terraform apply 담당자   | 별도 관리자 승인 또는 임시 상승 권한         | 팀 apply는 1명으로 제한        |
 
@@ -109,8 +110,8 @@ IAM User 생성 기준:
 | PXC SG      | 3306 from ProxySQL SG, 4567/4568/4444 from PXC SG | 제한               |
 | Ceph RGW    | HTTPS from allowed CIDR/VPN only                  | 제한               |
 
-DB 관련 포트는 인터넷 전체(`0.0.0.0/0`)에 열지 않음. 운영 접속은 SSH 공개보다 SSM Session Manager
-또는 제한된 Bastion 접근을 우선함.
+DB 관련 포트는 인터넷 전체(`0.0.0.0/0`)에 열지 않음. 운영 접속은 Secure Shell(SSH) 공개보다 SSM
+Session Manager 또는 제한된 Bastion 접근을 우선함.
 
 ## 5. WAF 정책
 
