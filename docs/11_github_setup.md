@@ -38,7 +38,20 @@ workflow가 `aws sts get-caller-identity` 결과로 배포 시점에 치환하�
 - Terraform Check workflow 통과 필수
 - 발표 기간 Day 14 이후에는 hotfix 외 변경 제한
 
-## 4. Repository Description 예시
+## 4. Deploy Workflow 활성화 기준
+
+현재 `Deploy to ECS` workflow는 push 실패 방지를 위해 수동 실행만 허용함. 자동 배포는 아래 조건 확인 후
+활성화함.
+
+- Terraform apply 완료
+- `AWS_DEPLOY_ROLE_ARN` Secret 등록 완료
+- OIDC Trust Policy의 `github_repository` 값이 실제 저장소와 일치
+- 수동 `Deploy to ECS` workflow 1회 성공
+- ECR/ECS/ALB 리소스 생성 확인
+
+자동 배포가 필요하면 `.github/workflows/deploy.yml`의 `push` 트리거 주석을 복원함.
+
+## 5. Repository Description 예시
 
 ```text
 13+3 day cloud infrastructure project: AWS ECS Fargate, ALB, ECR, GitHub Actions OIDC, CloudWatch, WAF

@@ -1,9 +1,10 @@
 name: Deploy to ECS
 
 on:
-  push:
-    branches:
-      - main
+  # Enable push trigger after Terraform apply, OIDC trust policy, and AWS_DEPLOY_ROLE_ARN secret are ready.
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
 
 permissions:
