@@ -20,12 +20,12 @@
   Public IP를 부여하지 않음
 - **키 없는 배포:** 장기 Access Key 대신 GitHub Actions OpenID Connect(OIDC) 기반 임시 권한 사용
 - **운영 가시성:** CloudWatch Logs/Metrics/Alarm을 기본 관측 체계로 구성함
-- **관리형 DB 제외:** AWS Relational Database Service(RDS)는 사용하지 않고 Elastic Compute Cloud(EC2)
-  기반 Percona XtraDB Cluster와 ProxySQL로 DB 운영 경험을 확보함
+- **관리형 DB 제외:** AWS Relational Database Service(RDS)는 사용하지 않고 Elastic Compute
+  Cloud(EC2) 기반 Percona XtraDB Cluster와 ProxySQL로 DB 운영 경험을 확보함
 - **스토리지 역할 분리:** Ceph는 Proxmox 기반 온프레미스 분산 스토리지로 두고, 백업·파일·온프레미스
   VM/Kubernetes 볼륨 용도를 구분해 활용함
-- **비용 우선 하이브리드:** Elastic Kubernetes Service(EKS) 상시 비용을 피하고, 온프레미스 Kubernetes와
-  AWS EC2 Auto Scaling burst 영역을 분리해 사용함
+- **비용 우선 하이브리드:** Elastic Kubernetes Service(EKS) 상시 비용을 피하고, 온프레미스
+  Kubernetes와 AWS EC2 Auto Scaling burst 영역을 분리해 사용함
 - **발표 가능성:** 장애 유도, 롤백, 보안 설계, 비용 선택 기준을 시연 가능한 형태로 남김
 
 ## 1.3 MVP 범위
@@ -38,8 +38,8 @@
 - CloudWatch Alarm 기반 AWS EC2 scale-out/scale-in
 - AWS 가상 사설 클라우드(Virtual Private Cloud, VPC) 기반 burst 네트워크
 - GitHub Actions 기반 이미지 빌드/배포 자동화
-- Identity and Access Management(IAM) OIDC, Security Group(SG), 웹 방화벽(Web Application Firewall, WAF)
-  기반 보안
+- Identity and Access Management(IAM) OIDC, Security Group(SG), 웹 방화벽(Web Application Firewall,
+  WAF) 기반 보안
 - CloudWatch 기반 로그/지표/알람
 - EC2 기반 Percona XtraDB Cluster(PXC) 3노드
 - ProxySQL 1대 기본, 변수 변경 시 2대 + Internal NLB 전환

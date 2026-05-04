@@ -15,7 +15,7 @@ Change Log가 “무엇이 바뀌었는가”를 기록한다면, ADR은 “왜 
 | ADR-005 | [GitHub Actions OIDC 기반 배포](./ADR-005-github-actions-oidc.md)                                 | Accepted   | 2026-05-03 | 장기 AWS Access Key 없이 GitHub Actions가 임시 권한으로 ECR/ECS 배포 수행                 |
 | ADR-006 | [MkDocs navigation 기반 문서 사이트](./ADR-006-mkdocs-docs-navigation.md)                         | Accepted   | 2026-05-03 | 문서 파일 대이동보다 `docs/index.md`와 `mkdocs.yml` nav로 탐색성 확보                     |
 | ADR-007 | [비용 우선 하이브리드 Kubernetes와 AWS EC2 버스팅](./ADR-007-hybrid-kubernetes-cloud-bursting.md) | Accepted   | 2026-05-04 | EKS 비용을 피하고 온프레미스 Kubernetes + AWS EC2 Auto Scaling/ALB burst 구조를 우선 채택 |
-| ADR-008 | [Argo CD 기반 GitOps 배포 MVP 포함](./ADR-008-argocd-gitops-mvp.md)                              | Accepted   | 2026-05-04 | GitHub Actions는 이미지 빌드, Argo CD는 온프레미스 Kubernetes manifest 동기화 담당        |
+| ADR-008 | [Argo CD 기반 GitOps 배포 MVP 포함](./ADR-008-argocd-gitops-mvp.md)                               | Accepted   | 2026-05-04 | GitHub Actions는 이미지 빌드, Argo CD는 온프레미스 Kubernetes manifest 동기화 담당        |
 
 ## ADR 작성 템플릿
 

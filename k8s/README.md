@@ -1,7 +1,7 @@
 # Kubernetes MVP Area
 
-본 프로젝트의 MVP 기본 런타임은 온프레미스 Kubernetes임. 이 디렉터리는 Kubernetes manifest,
-Argo CD Application, 향후 Helm chart를 관리하는 영역임.
+본 프로젝트의 MVP 기본 런타임은 온프레미스 Kubernetes임. 이 디렉터리는 Kubernetes manifest, Argo CD
+Application, 향후 Helm chart를 관리하는 영역임.
 
 ## 활용 시점
 

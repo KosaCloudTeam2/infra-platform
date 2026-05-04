@@ -20,25 +20,25 @@
 
 ## 2. 권장 MVP 범위
 
-| 영역        | 구현 내용                                                      | 담당 문서                                                             |
-| :---------- | :------------------------------------------------------------- | :-------------------------------------------------------------------- |
+| 영역        | 구현 내용                                                                          | 담당 문서                                                             |
+| :---------- | :--------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
 | 네트워크    | 가상 사설 클라우드(VPC), Public/Private Subnet, IGW, NAT 선택 기준, Security Group | [Architecture](docs/01_architecture.md)                               |
-| 컴퓨팅      | 온프레미스 Kubernetes, AWS EC2 burst, ALB Target Group         | [Implementation Scope](docs/04_implementation_scope.md)               |
-| CI/CD       | GitHub Actions, Docker Build, ECR Push, Argo CD GitOps Deploy  | [Deployment Runbook](docs/runbooks/deployment.md)                     |
-| 보안        | IAM OIDC Role, 최소 권한, WAF, Secrets Manager, HTTPS          | [Security Policy](docs/05_security_policy.md)                         |
-| 데이터      | Percona XtraDB Cluster, ProxySQL, Ceph 백업                    | [Architecture](docs/01_architecture.md)                               |
-| 스토리지    | Ceph RGW/RBD/CephFS 활용 전략                                  | [Ceph Usage Strategy](docs/13_ceph_usage_strategy.md)                 |
-| DB 운영     | PXC, ProxySQL, Ceph 백업 점검 절차                             | [DB & Ceph Runbook](docs/runbooks/database_storage.md)                |
-| 역할별 구축 | 팀원별 상세 구현 가이드                                        | [Build-up Guide](docs/architecture/build-up/README.md)                |
-| 관측성      | CloudWatch Logs/Metrics/Alarm, 배포 상태 추적                  | [Monitoring Runbook](docs/runbooks/monitoring.md)                     |
-| 발표        | 장애 복구, 롤백, 보안 설계, 비용 최적화 설명                   | [Presentation Plan](docs/06_demo_presentation_plan.md)                |
-| GitHub 설정 | OIDC Secret, Branch Protection, 플레이스홀더 교체              | [GitHub Setup](docs/11_github_setup.md)                               |
-| 공유 정책   | GitHub에 올릴 자료와 제외할 자료                               | [Repository Sharing Policy](docs/12_repository_sharing_policy.md)     |
-| 비교/채택   | 기존 프로젝트 대비 신규 프로젝트 적용 범위                     | [Existing Project Comparison](docs/14_existing_project_comparison.md) |
-| 구조 점검   | 현재 구조의 주의 사항과 보완 후보                              | [Structure Review](docs/15_structure_review.md)                       |
-| 변경 이력   | 주요 설계 변경과 보완 이력                                     | [Change Log](docs/16_change_log.md)                                   |
-| AI 협업     | Codex/ChatGPT 작업 요청 기준                                   | [AI Collaboration Guide](docs/17_ai_collaboration_guide.md)           |
-| 용어집      | AWS와 인프라 약어 설명                                         | [Glossary](docs/22_glossary.md)                                       |
+| 컴퓨팅      | 온프레미스 Kubernetes, AWS EC2 burst, ALB Target Group                             | [Implementation Scope](docs/04_implementation_scope.md)               |
+| CI/CD       | GitHub Actions, Docker Build, ECR Push, Argo CD GitOps Deploy                      | [Deployment Runbook](docs/runbooks/deployment.md)                     |
+| 보안        | IAM OIDC Role, 최소 권한, WAF, Secrets Manager, HTTPS                              | [Security Policy](docs/05_security_policy.md)                         |
+| 데이터      | Percona XtraDB Cluster, ProxySQL, Ceph 백업                                        | [Architecture](docs/01_architecture.md)                               |
+| 스토리지    | Ceph RGW/RBD/CephFS 활용 전략                                                      | [Ceph Usage Strategy](docs/13_ceph_usage_strategy.md)                 |
+| DB 운영     | PXC, ProxySQL, Ceph 백업 점검 절차                                                 | [DB & Ceph Runbook](docs/runbooks/database_storage.md)                |
+| 역할별 구축 | 팀원별 상세 구현 가이드                                                            | [Build-up Guide](docs/architecture/build-up/README.md)                |
+| 관측성      | CloudWatch Logs/Metrics/Alarm, 배포 상태 추적                                      | [Monitoring Runbook](docs/runbooks/monitoring.md)                     |
+| 발표        | 장애 복구, 롤백, 보안 설계, 비용 최적화 설명                                       | [Presentation Plan](docs/06_demo_presentation_plan.md)                |
+| GitHub 설정 | OIDC Secret, Branch Protection, 플레이스홀더 교체                                  | [GitHub Setup](docs/11_github_setup.md)                               |
+| 공유 정책   | GitHub에 올릴 자료와 제외할 자료                                                   | [Repository Sharing Policy](docs/12_repository_sharing_policy.md)     |
+| 비교/채택   | 기존 프로젝트 대비 신규 프로젝트 적용 범위                                         | [Existing Project Comparison](docs/14_existing_project_comparison.md) |
+| 구조 점검   | 현재 구조의 주의 사항과 보완 후보                                                  | [Structure Review](docs/15_structure_review.md)                       |
+| 변경 이력   | 주요 설계 변경과 보완 이력                                                         | [Change Log](docs/16_change_log.md)                                   |
+| AI 협업     | Codex/ChatGPT 작업 요청 기준                                                       | [AI Collaboration Guide](docs/17_ai_collaboration_guide.md)           |
+| 용어집      | AWS와 인프라 약어 설명                                                             | [Glossary](docs/22_glossary.md)                                       |
 
 ## 3. 선택 확장 범위
 

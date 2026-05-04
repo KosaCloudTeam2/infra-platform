@@ -6,8 +6,8 @@
 | :-------------------- | :---------------------------------------- |
 | `AWS_DEPLOY_ROLE_ARN` | Terraform output `github_deploy_role_arn` |
 
-GitHub Actions 배포는 개인 AWS Access Key가 아니라 OpenID Connect(OIDC) Role을 사용함. 팀원 개인
-AWS 접근 계정과 GitHub Actions 배포 Role은 분리해서 관리함.
+GitHub Actions 배포는 개인 AWS Access Key가 아니라 OpenID Connect(OIDC) Role을 사용함. 팀원 개인 AWS
+접근 계정과 GitHub Actions 배포 Role은 분리해서 관리함.
 
 ## 2. 수정이 필요한 플레이스홀더
 
@@ -40,8 +40,8 @@ workflow가 `aws sts get-caller-identity` 결과로 배포 시점에 치환하�
 
 ## 4. Deploy Workflow 활성화 기준
 
-현재 `Deploy to ECS` workflow는 push 실패 방지를 위해 수동 실행만 허용함. 자동 배포는 아래 조건 확인 후
-활성화함.
+현재 `Deploy to ECS` workflow는 push 실패 방지를 위해 수동 실행만 허용함. 자동 배포는 아래 조건 확인
+후 활성화함.
 
 - Terraform apply 완료
 - `AWS_DEPLOY_ROLE_ARN` Secret 등록 완료

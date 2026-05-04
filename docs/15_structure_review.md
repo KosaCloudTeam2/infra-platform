@@ -107,8 +107,8 @@ VM/LXC와 Ceph 운영 계층이고, AWS ECS Fargate 앱의 런타임 또는 블�
 
 ### 3.6 Argo CD MVP 편입
 
-Argo CD를 MVP 배포 경로에 포함함. 이 결정으로 Kubernetes 배포 설명력은 높아지지만, 설치와 sync
-검증 시간이 추가됨.
+Argo CD를 MVP 배포 경로에 포함함. 이 결정으로 Kubernetes 배포 설명력은 높아지지만, 설치와 sync 검증
+시간이 추가됨.
 
 주의:
 
