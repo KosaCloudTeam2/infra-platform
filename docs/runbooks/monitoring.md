@@ -49,7 +49,24 @@ Terraform 기준:
 6. PXC `wsrep_cluster_status`, `wsrep_cluster_size` 확인
 7. Ceph `ceph health`, OSD, RGW 로그 확인
 
-## 4. 발표용 관측 포인트
+## 4. 로그 보존 기준
+
+| 로그 유형      | 기본 위치                            | MVP 보존 기준  | 목적                   |
+| :------------- | :----------------------------------- | :------------- | :--------------------- |
+| 앱 로그        | CloudWatch Logs 또는 Kubernetes      | 7일            | 장애 분석, 발표 캡처   |
+| ALB/WAF 지표   | CloudWatch Metrics                   | 발표 기간 유지 | 트래픽과 차단 근거     |
+| DB 로그        | EC2 local + 필요 시 CloudWatch Agent | 발표 기간 유지 | PXC/ProxySQL 장애 분석 |
+| Ceph RGW 로그  | 온프레미스 로그 또는 Grafana         | 발표 기간 유지 | 백업 업로드 실패 분석  |
+| 보안 감사 로그 | SSM/audit 로그 또는 GitHub Actions   | 필요 시 캡처   | 접근 추적              |
+
+운영 기준:
+
+- Secret, Access Key, 계정 ID가 로그에 노출되지 않도록 마스킹
+- 앱 오류 로그는 `ERROR`, `WARN`, HTTP status 기준으로 검색 가능하게 유지
+- 장기 보관은 MVP 필수 아님. 필요 시 Ceph RGW 또는 별도 로그 저장소로 아카이브
+- 로그 파일 직접 수정 또는 삭제는 장애 분석 근거 훼손으로 간주
+
+## 5. 발표용 관측 포인트
 
 - 배포 전후 로그가 같은 Log Group에 쌓이는지 확인
 - 장애 Pod 또는 AWS burst app이 비정상 Target으로 표시되는지 확인

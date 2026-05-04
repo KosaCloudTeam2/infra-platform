@@ -21,15 +21,20 @@
 
 모든 팀원은 Day 1에 아래 도구 설치와 버전 확인을 완료함.
 
-| 도구           | 용도                                          | 확인 명령           |
-| :------------- | :-------------------------------------------- | :------------------ |
-| Git            | 형상 관리                                     | `git --version`     |
-| Node.js LTS    | Prettier, Marp, Husky 실행                    | `node --version`    |
-| pnpm           | Node 패키지 관리                              | `pnpm --version`    |
-| Python/uv      | pre-commit, MkDocs, Ruff, pip-audit 실행 환경 | `uv --version`      |
-| Docker Desktop | 앱 이미지 빌드/로컬 실행                      | `docker --version`  |
-| AWS CLI v2     | AWS 리소스 확인                               | `aws --version`     |
-| Terraform      | IaC 실행                                      | `terraform version` |
+| 도구        | 용도                                          | 확인 명령           |
+| :---------- | :-------------------------------------------- | :------------------ |
+| Git         | 형상 관리                                     | `git --version`     |
+| Node.js LTS | Prettier, Marp, Husky 실행                    | `node --version`    |
+| pnpm        | Node 패키지 관리                              | `pnpm --version`    |
+| Python/uv   | pre-commit, MkDocs, Ruff, pip-audit 실행 환경 | `uv --version`      |
+| AWS CLI v2  | AWS 리소스 확인                               | `aws --version`     |
+| Terraform   | IaC 실행                                      | `terraform version` |
+
+선택 도구:
+
+| 도구           | 용도                     | 기준                                      |
+| :------------- | :----------------------- | :---------------------------------------- |
+| Docker Desktop | 앱 이미지 로컬 빌드/실행 | Windows 로컬 필수 아님. CI/CD 담당만 권장 |
 
 ## 3. 최초 설치
 
@@ -65,10 +70,54 @@ npm --version
 pnpm --version
 ```
 
+macOS에서 `nvm` 설치:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+```
+
+설치 후 새 터미널을 열거나 shell 설정을 다시 불러옴.
+
+```bash
+source ~/.zshrc
+nvm --version
+```
+
+Node.js LTS와 pnpm 설치:
+
+```bash
+nvm install --lts
+nvm use --lts
+npm install -g pnpm
+```
+
+설치 확인:
+
+```bash
+node --version
+npm --version
+pnpm --version
+```
+
 ### 3.2 uv
+
+Windows:
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+macOS:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+설치 후 새 터미널을 열거나 shell 설정을 다시 불러옴.
+
+```bash
+source ~/.zshrc
+uv --version
 ```
 
 ### 3.3 Terraform
@@ -106,9 +155,11 @@ uv --version
 uv run ruff --version
 uv run pip-audit --version
 terraform version
-docker --version
 aws --version
 ```
+
+Docker Desktop은 Windows 로컬 필수 설치 대상이 아님. 앱 이미지는 GitHub Actions에서 빌드하는 것을
+기본 경로로 두고, 로컬에서 Dockerfile을 직접 검증해야 하는 팀원만 설치함.
 
 AWS 인증은 Terraform `plan` 또는 실제 리소스 확인을 시작하기 전 설정함.
 

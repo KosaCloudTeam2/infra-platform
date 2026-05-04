@@ -56,3 +56,5 @@ uv run mkdocs build
 - `site/` 출력물은 커밋하지 않음
 - 원본 Markdown은 계속 `docs/` 아래에서 관리함
 - 루트 문서 추가 시 파일명 번호와 `mkdocs.yml`의 `nav` 순서를 함께 확인함
+- 다른 프로젝트에서 가져온 `docs/engineering`, `docs/operations`는 참고 자료이므로 MkDocs 빌드
+  대상에서 제외함

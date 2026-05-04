@@ -85,6 +85,14 @@ kubectl delete secret argocd-initial-admin-secret -n argocd
 
 Application은 `k8s/` manifest 또는 Helm chart 경로를 추적함. 실제 경로는 앱 manifest 확정 후 조정함.
 
+GitOps 운영 기준:
+
+- Git 저장소를 Kubernetes 배포 상태의 기준으로 둠
+- 클러스터에서 직접 `kubectl edit`로 수정한 내용은 임시 조치로만 기록
+- 환경별 설정은 `values-dev.yaml`, `values-onprem.yaml`, `values-cloud.yaml`처럼 분리 가능
+- ConfigMap/Secret 변경 후 Pod 재시작이 필요하면 rollout restart 또는 Helm checksum 방식을 검토
+- Reloader Operator, Argo Rollouts, Blue/Green, Canary는 선택 확장
+
 예시:
 
 ```yaml
@@ -219,6 +227,12 @@ kubectl delete namespace argocd
 
 - Application 삭제 전 Argo CD가 관리하던 앱 리소스 삭제 여부 확인
 - `prune` 활성화 상태에서는 Git에서 삭제한 리소스가 클러스터에서도 삭제됨
+
+설정 변경 검증:
+
+- ConfigMap 또는 Secret 변경 후 새 Pod가 최신 설정을 읽는지 확인
+- `kubectl rollout status`로 rolling update 완료 여부 확인
+- Git에 없는 수동 변경은 Argo CD에서 `OutOfSync` 또는 drift로 감지되는지 확인
 
 ## 9. ECS 수동 배포 확인 명령
 

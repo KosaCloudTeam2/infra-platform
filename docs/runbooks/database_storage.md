@@ -60,6 +60,14 @@ SELECT * FROM monitor.mysql_server_connect_log ORDER BY time_start_us DESC LIMIT
 
 ## 4. 백업 절차
 
+백업 기준:
+
+- MVP RPO: 1일 이내 복구 지점 확보
+- MVP RTO: 발표 시연 기준 1시간 이내 복구 절차 설명 가능
+- 보관 기준: 로컬 임시 백업 최근 3일, Ceph RGW 최근 7일 이상
+- 중요 백업: 발표 안정화 이후 AWS S3 2차 복제 검토
+- 검증 기준: 파일 크기, 체크섬, bucket 목록, 복구 리허설 중 최소 1개 확인
+
 1. 백업 대상 PXC 노드 상태 확인
 2. Percona XtraBackup 실행
 3. 백업 파일 압축 및 체크섬 생성
@@ -80,6 +88,13 @@ aws --endpoint-url "$CEPH_RGW_ENDPOINT" s3 cp full-backup.xbstream.gz \
 aws --endpoint-url "$CEPH_RGW_ENDPOINT" s3 cp full-backup.sha256 \
   "s3://pxc-backup/cloud-infra-dev/$(date +%F)/full-backup.sha256"
 ```
+
+복구 검증 기준:
+
+- 체크섬 파일로 백업 무결성 확인
+- 임시 복구 노드 또는 로컬 테스트 환경에서 복구 절차 1회 리허설
+- 복구 리허설이 어렵다면 백업 목록, 체크섬, 복구 명령을 발표 캡처로 확보
+- Proxmox VM 백업은 PXC 논리 백업 대체 수단으로 설명하지 않음
 
 ---
 

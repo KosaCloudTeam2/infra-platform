@@ -3,6 +3,9 @@ site_description: 13+3 day cost-first hybrid cloud infrastructure project docume
 repo_name: infra-platform
 docs_dir: docs
 use_directory_urls: true
+exclude_docs: |
+  engineering/**
+  operations/**
 
 theme:
   name: material

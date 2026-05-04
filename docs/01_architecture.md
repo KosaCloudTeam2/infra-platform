@@ -15,7 +15,7 @@
 
 - **반복 가능성:** 콘솔 수작업보다 Terraform과 GitHub Actions 기반 자동화를 우선함
 - **최소 노출:** 외부 진입점은 애플리케이션 로드 밸런서(Application Load Balancer, ALB)로 제한하고
-  애플리케이션 Task는 Private Subnet에 배치함
+  AWS burst 앱은 Private Subnet에 배치함
 - **DB 내부망 고정:** ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 Data Private Subnet에만 배치하고
   Public IP를 부여하지 않음
 - **키 없는 배포:** 장기 Access Key 대신 GitHub Actions OpenID Connect(OIDC) 기반 임시 권한 사용
@@ -213,27 +213,33 @@ flowchart TD
 
 ### 구성 요소
 
-| 구성 요소           | 역할                             | MVP 구현                    |
-| :------------------ | :------------------------------- | :-------------------------- |
-| VPC                 | 전체 네트워크 격리 단위          | `10.20.0.0/16`              |
-| Public Subnet       | 인터넷 진입점 배치               | 2개 AZ                      |
-| Private App Subnet  | 애플리케이션 Task 실행           | 2개 AZ                      |
-| Private Data Subnet | ProxySQL, Percona DB 노드 배치   | 3개 AZ 권장                 |
-| Internet Gateway    | Public Subnet 인터넷 연결        | 필수                        |
-| NAT Gateway         | Private Task의 ECR/외부 API 접근 | MVP 포함, 비용 이슈 시 논의 |
-| Route Table         | Public/Private 라우팅 분리       | 필수                        |
+| 구성 요소           | 역할                               | MVP 구현                    |
+| :------------------ | :--------------------------------- | :-------------------------- |
+| VPC                 | 전체 네트워크 격리 단위            | `10.20.0.0/16`              |
+| Public Subnet       | 인터넷 진입점 배치                 | 2개 AZ                      |
+| Private App Subnet  | AWS burst 앱 EC2 실행              | 2개 AZ                      |
+| Private Data Subnet | ProxySQL, Percona DB 노드 배치     | 3개 AZ 권장                 |
+| Internet Gateway    | Public Subnet 인터넷 연결          | 필수                        |
+| NAT Gateway         | Private 리소스의 ECR/외부 API 접근 | MVP 포함, 비용 이슈 시 논의 |
+| Route Table         | Public/Private 라우팅 분리         | 필수                        |
 
 ### 설계 설명
 
-Public Subnet에는 ALB와 NAT Gateway만 배치함. 애플리케이션 Task는 Private App Subnet에 두고,
+Public Subnet에는 ALB와 NAT Gateway만 배치함. AWS burst 앱 EC2는 Private App Subnet에 두고,
 ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는 “외부 진입점, 애플리케이션 실행
 영역, 데이터 영역을 분리했다”는 메시지를 명확하게 보여줌.
+
+온프레미스와 AWS 연결은 MVP에서 VPN, WireGuard, 제한된 HTTPS 중 하나로 정함. 어떤 방식을 택하더라도
+온프레미스 CIDR과 AWS VPC CIDR은 겹치지 않아야 하며, ProxySQL `6033`, Ceph RGW HTTPS, 관리 접속
+경로만 최소 허용함.
 
 ### 토론 포인트
 
 - NAT Gateway 1개로 비용을 줄일지, AZ별 NAT Gateway로 가용성을 높일지 결정 필요
 - 발표용 MVP에서는 단일 NAT Gateway를 사용해도 되지만, 운영 설계 설명에서는 AZ별 NAT Gateway가 더
   안전함
+- VPN 또는 WireGuard 터널을 사용할 경우 터널 상태와 라우팅 장애 감지 기준 필요
+- 제한된 HTTPS를 사용할 경우 허용 IP, 인증서, RGW endpoint 공개 범위 관리 필요
 - HTTPS까지 구현할 경우 Route 53과 ACM 인증서 작업을 Day 10 이전에 끝내야 함
 - PXC 3노드를 3개 AZ에 둘지, 비용 절감을 위해 2개 AZ + garbd 또는 3 EC2 최소 사양으로 둘지 결정 필요
 - Proxmox 기반 Ceph RGW와 AWS VPC 간 백업 전송을 VPN으로 할지, 제한된 IP 기반 HTTPS(S3 호환
@@ -246,7 +252,7 @@ ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는
 - DB EC2와 ProxySQL EC2는 Public IP를 부여하지 않음
 - DB 포트 `3306`, ProxySQL Client 포트 `6033`, Galera 포트 `4567/4568/4444`는 `0.0.0.0/0`에 열지
   않음
-- ECS는 PXC 노드에 직접 접근하지 않고 ProxySQL `6033`으로만 접근함
+- 앱은 PXC 노드에 직접 접근하지 않고 ProxySQL `6033`으로만 접근함
 - PXC 노드는 ProxySQL SG와 PXC SG 자기 자신에서 오는 트래픽만 허용함
 - 운영 접속은 SSH 공개보다 SSM Session Manager 또는 제한된 Bastion 경유를 우선함
 

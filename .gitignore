@@ -48,3 +48,6 @@ winget.msixbundle
 Thumbs.db
 .idea/
 .vscode/*.local.json
+
+docs/engineering/
+docs/operations/

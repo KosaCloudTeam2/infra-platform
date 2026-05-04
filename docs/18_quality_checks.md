@@ -114,6 +114,22 @@ uv run pre-commit run --hook-stage pre-push --all-files
 Prettier는 commit 단계에 유지함. 다만 `git commit` 시에는 전체 저장소가 아니라 staged 파일 중
 Markdown/YAML/JSON/JavaScript 파일만 검사됨.
 
+## 3.1 보안 파이프라인 기준
+
+| 단계      | 검사 대상               | 권장 도구/명령                                 | 적용 기준                |
+| :-------- | :---------------------- | :--------------------------------------------- | :----------------------- |
+| commit    | Secret, 개인키, 포맷    | pre-commit, Gitleaks, Prettier, Ruff           | 기본 적용                |
+| pre-push  | 의존성 취약점           | `pnpm audit`, `uv run pip-audit`               | 시간이 허용될 때 적용    |
+| image     | 컨테이너 이미지 취약점  | Trivy                                          | 이미지 배포 전 선택 적용 |
+| CI/manual | Terraform, MkDocs, 전체 | Terraform validate/plan, `uv run mkdocs build` | PR 또는 발표 전 적용     |
+
+운영 기준:
+
+- `CRITICAL`, `HIGH` 취약점은 발표 전 수정 또는 제외 사유 기록
+- GitHub push protection이 민감 정보로 push를 막으면 값을 제거하고 history 정리 여부 검토
+- 보안 도구 실패를 무시하려면 담당자와 사유를 변경 이력 또는 PR에 남김
+- Slack/Webhook 알림은 MVP 필수 아님. GitHub Actions 로그 확인으로 대체 가능
+
 ## 4. Terraform 검증
 
 Terraform 검증은 AWS 인증이 없어도 가능한 단계와 AWS 인증 이후에만 가능한 단계로 나눔.
@@ -186,6 +202,19 @@ terraform -chdir=infra/terraform plan -var-file=env/dev.tfvars
 ```powershell
 terraform -chdir=infra/terraform apply -var-file=env/dev.tfvars
 ```
+
+## 4.4 최종 건강성 점검
+
+발표 전 아래 항목을 최소 1회 점검함.
+
+- ALB 외 인터넷 직접 노출 리소스 없음
+- DB/ProxySQL EC2 Public IP 없음
+- PXC 노드 3대 중 정상 참여 노드 수 확인
+- ProxySQL 1대 단일 장애점 설명 자료 준비
+- Ceph RGW 백업 파일과 체크섬 확인
+- Argo CD Application `Synced`/`Healthy` 확인
+- GitHub Actions OIDC 기반 배포 권한 확인
+- `.env`, `.tfstate`, 개인키, 인증서 파일 미추적 확인
 
 ## 5. 샘플 앱 로컬 검증
 
