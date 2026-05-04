@@ -12,6 +12,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - 빌드된 이미지가 Elastic Container Registry(ECR) 또는 팀 표준 컨테이너 레지스트리에 태그와 함께
   저장됨
 - 온프레미스 Kubernetes Deployment가 최신 이미지로 갱신됨
+- Argo CD 기반 GitOps 배포로 Kubernetes manifest 동기화 가능함
 - AWS burst 영역의 ALB Health Check가 정상이고 부하 증가 시 EC2 인스턴스가 Target Group에 등록됨
 - CloudWatch Logs에서 컨테이너 로그 확인 가능함
 - CloudWatch Alarm 또는 대시보드로 AWS EC2 CPU/Request/5xx/Unhealthy Host를 확인 가능함
@@ -28,6 +29,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - 가상 사설 클라우드(Virtual Private Cloud, VPC) 1개
 - Public Subnet 2개, Private Subnet 2개
 - Proxmox VM 기반 온프레미스 Kubernetes
+- Argo CD 기반 GitOps 배포
 - AWS burst ALB 1개
 - AWS EC2 Auto Scaling Group 1개
 - ECR Repository 또는 팀 표준 컨테이너 레지스트리 1개

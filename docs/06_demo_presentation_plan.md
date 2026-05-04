@@ -4,10 +4,10 @@
 
 1. 문제 정의: 수동 배포와 단일 서버 운영의 한계
 2. 목표: 안전하고 반복 가능한 클라우드 배포 플랫폼
-3. 아키텍처: VPC, ALB, ECS, ECR, GitHub Actions, CloudWatch, WAF
+3. 아키텍처: VPC, ALB, 온프레미스 Kubernetes, Argo CD, ECR, GitHub Actions, CloudWatch, WAF
 4. 구현 내용: IaC, CI/CD, 보안, 관측성
 5. 장애 대응: Task 장애, 배포 실패, Health Check 실패
-6. 비용 최적화: Fargate 리소스, NAT 선택, 로그 보존
+6. 비용 최적화: EKS 미사용, EC2 burst, NAT 선택, 로그 보존
 7. 데이터 계층: RDS 제외, Percona XtraDB Cluster, ProxySQL, Ceph 백업
 8. 한계와 확장: HTTPS, Blue/Green, CloudFront, EKS, S3 2차 백업
 
@@ -18,14 +18,15 @@
 - GitHub Actions workflow 실행
 - Docker 이미지 빌드
 - ECR 이미지 push 확인
-- ECS Service deployment 확인
-- ALB URL 접속 확인
+- Argo CD Application sync 확인
+- Kubernetes Deployment rollout 확인
+- Service 또는 Ingress URL 접속 확인
 
 ### 시연 2: 장애 복구
 
-- 잘못된 이미지 태그 또는 헬스체크 실패 Task 배포
-- ECS Deployment Circuit Breaker 또는 수동 롤백 실행
-- 정상 Task Definition으로 복구
+- 잘못된 이미지 태그 또는 헬스체크 실패 manifest 반영
+- Argo CD sync 실패 또는 Kubernetes rollout 실패 확인
+- 이전 정상 Git revision 또는 image tag로 복구
 - CloudWatch Logs와 Alarm 확인
 
 ### 시연 3: 보안 설명
@@ -47,7 +48,7 @@
 | :-------------- | :----- | :-------------------------- |
 | 도입/목표       | 팀원 1 | 문제 정의, 목표, 전체 일정  |
 | 아키텍처        | 팀원 2 | VPC, Subnet, ALB, SG        |
-| 배포/런타임     | 팀원 3 | ECS, ECR, Auto Scaling      |
+| 배포/런타임     | 팀원 4 | GitHub Actions, Argo CD, ECR, Kubernetes |
 | 데이터/스토리지 | 팀원 3 | PXC, ProxySQL, Ceph 백업    |
 | 보안/운영       | 팀원 4 | OIDC, WAF, CloudWatch, 롤백 |
 | 마무리          | 팀원 1 | 성과, 한계, 확장 계획       |

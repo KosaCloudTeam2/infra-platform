@@ -105,6 +105,19 @@ VM/LXC와 Ceph 운영 계층이고, AWS ECS Fargate 앱의 런타임 또는 블�
 `.github/task-definition.json`에는 `ACCOUNT_ID` 플레이스홀더가 있음. 실제 GitHub 저장소 생성 후
 반드시 교체해야 함.
 
+### 3.6 Argo CD MVP 편입
+
+Argo CD를 MVP 배포 경로에 포함함. 이 결정으로 Kubernetes 배포 설명력은 높아지지만, 설치와 sync
+검증 시간이 추가됨.
+
+주의:
+
+- Day 8까지 Application sync 성공 필요
+- Day 13 이전 auto-sync 활성화 여부 결정 필요
+- Argo CD admin 초기 비밀번호 저장소 커밋 금지
+- AWS ECS workflow는 fallback 검증용으로 분리
+- Argo CD HA 구성, SSO 연동, 고급 RBAC는 선택 확장
+
 ---
 
 ## 4. 추가 적용한 기존 프로젝트 요소
@@ -127,6 +140,7 @@ VM/LXC와 Ceph 운영 계층이고, AWS ECS Fargate 앱의 런타임 또는 블�
 | Ansible PXC 설치 Playbook        | 중       | DB 설치 반복성 확보                                                                                                           |
 | ProxySQL 2대 + Internal NLB      | 중       | Terraform 변수로 전환 가능, Day 9 이후 일정 여유 시                                                                           |
 | 비용 우선 하이브리드 구조 재정렬 | 높음     | 온프레미스 Kubernetes + AWS EC2 ASG/ALB burst로 결정했으므로 기존 ECS 중심 Terraform, CI/CD, Runbook을 단계적으로 재정렬 필요 |
+| Argo CD Application 구체화       | 높음     | MVP에 포함했으므로 설치 방법, Application manifest, sync 정책을 Day 8 전 확정 필요                                            |
 | Ceph RGW 연결 방식 확정          | 중       | VPN 또는 제한된 IP 기반 HTTPS 중 하나를 결정해야 백업 시연 안정화                                                             |
 | 실제 앱 교체 체크리스트          | 중       | 임시 앱과 실제 앱의 포트, health check, secret 조건 차이 흡수                                                                 |
 | MkDocs 문서 사이트               | 낮음     | 물리적 문서 이동보다 `docs/index.md`와 `mkdocs.yml` nav 기반 도입 권장                                                        |

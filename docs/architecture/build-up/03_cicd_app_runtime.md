@@ -4,16 +4,18 @@
 
 ## 1. 목표
 
-애플리케이션 이미지를 자동으로 빌드하고 ECR에 업로드한 뒤 ECS Fargate로 배포함. 앱은 ProxySQL
-endpoint를 통해 DB에 연결함.
+애플리케이션 이미지를 자동으로 빌드하고 ECR에 업로드한 뒤 Argo CD 기반 GitOps로 온프레미스
+Kubernetes에 배포함. 앱은 ProxySQL endpoint를 통해 DB에 연결함.
 
 ## 2. 구현 범위
 
 - Dockerfile 검증
 - ECR Repository 사용
 - GitHub Actions OIDC 인증
-- ECS Task Definition 갱신
-- ECS Service 배포
+- Kubernetes manifest 또는 Helm chart 관리
+- Argo CD Application 구성
+- Argo CD sync 기반 Kubernetes 배포
+- ECS 배포는 AWS-only fallback으로 분리
 - Secrets Manager 기반 앱 환경변수 주입
 - 앱-DB 연결 확인
 - 롤백 Runbook 작성
@@ -26,14 +28,17 @@ sequenceDiagram
     participant GH as GitHub
     participant GA as GitHub Actions
     participant ECR as ECR
-    participant ECS as ECS
+    participant Argo as Argo CD
+    participant K8s as Kubernetes
     participant DB as ProxySQL
 
     Dev->>GH: Merge
     GH->>GA: Workflow
     GA->>ECR: Build & Push
-    GA->>ECS: Update Service
-    ECS->>DB: DB Connection Check
+    GA->>GH: Update manifest image tag
+    Argo->>GH: Watch
+    Argo->>K8s: Sync
+    K8s->>DB: DB Connection Check
 ```
 
 ## 4. 세부 구현
@@ -43,9 +48,16 @@ sequenceDiagram
 - `AWS_DEPLOY_ROLE_ARN` Secret 사용
 - 장기 Access Key 미사용
 - 이미지 태그는 `github.sha`와 `latest` 병행
-- 배포 안정성 확인을 위해 `wait-for-service-stability` 사용
+- manifest image tag 갱신 PR 또는 commit 생성
 
-### 4.2 ECS
+### 4.2 Argo CD
+
+- 온프레미스 Kubernetes 클러스터에 설치
+- Application은 저장소의 `k8s/` 또는 Helm chart 경로 추적
+- MVP는 수동 sync 또는 auto-sync 중 하나 선택
+- 발표 안정화 기간에는 수동 sync 우선
+
+### 4.3 ECS fallback
 
 - App Private Subnet 배치
 - Public IP 비활성화
@@ -53,7 +65,7 @@ sequenceDiagram
 - Deployment Circuit Breaker 활성화
 - CloudWatch Logs 연결
 
-### 4.3 앱-DB 연결
+### 4.4 앱-DB 연결
 
 - `DB_HOST`: ProxySQL endpoint
 - `DB_PORT`: `6033`
@@ -64,7 +76,8 @@ sequenceDiagram
 ## 5. 완료 기준
 
 - [ ] GitHub Actions로 ECR Push 성공
-- [ ] ECS Service 배포 성공
+- [ ] Argo CD Application sync 성공
+- [ ] Kubernetes Deployment rollout 성공
 - [ ] ALB Health Check 정상
 - [ ] 앱 컨테이너에서 ProxySQL endpoint 접속 성공
 - [ ] 배포 실패 롤백 절차 문서화
@@ -73,6 +86,7 @@ sequenceDiagram
 
 - Workflow 실행 캡처
 - ECR 이미지 태그
-- ECS Service deployment 상태
+- Argo CD Application 상태
+- Kubernetes rollout 상태
 - 앱 환경변수/Secret 목록
 - 롤백 명령

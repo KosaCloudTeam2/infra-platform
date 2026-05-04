@@ -75,14 +75,16 @@ sequenceDiagram
     participant GH as GitHub
     participant GA as GitHub Actions
     participant ECR as ECR
-    participant ECS as ECS
+    participant Argo as Argo CD
+    participant K8s as Kubernetes
 
     Dev->>GH: Merge to main
     GH->>GA: Workflow Trigger
     GA->>ECR: Docker Build & Push
-    GA->>ECS: Register Task Definition
-    GA->>ECS: Update Service
-    ECS->>ECS: Rolling Deployment
+    GA->>GH: Update image tag
+    Argo->>GH: Watch manifest
+    Argo->>K8s: Sync
+    K8s->>K8s: Rolling Deployment
 ```
 
 ---

@@ -13,7 +13,7 @@
 | WP-07 | Ceph 백업           | XtraBackup, Ceph RGW 업로드, 체크섬/복구 절차                                  | 팀원 3  | 팀원 1 |
 | WP-08 | 컨테이너 레지스트리 | ECR Repository, 이미지 태그 정책                                               | 팀원 4  | 팀원 2 |
 | WP-09 | K8s/App 런타임      | Kubernetes Deployment/Service/Ingress, 앱-DB 연결                              | 팀원 4  | 팀원 3 |
-| WP-10 | CI/CD               | Docker Build, Image Push, Kubernetes Deploy, AWS EC2 bootstrap 버전 관리       | 팀원 4  | 팀원 1 |
+| WP-10 | CI/CD / GitOps      | Docker Build, Image Push, Argo CD GitOps 배포, AWS EC2 bootstrap 버전 관리     | 팀원 4  | 팀원 1 |
 | WP-11 | IAM/OIDC            | GitHub OIDC Provider, Deploy Role, 최소 권한                                   | 팀원 4  | 팀원 1 |
 | WP-12 | Secret 관리         | Kubernetes Secret 또는 External Secret, AWS Secret, DB 접속 Secret 주입        | 팀원 4  | 팀원 3 |
 | WP-13 | WAF/보안            | WAF Managed Rule, SG 최소 허용, DB 내부망 점검                                 | 팀원 4  | 팀원 2 |
@@ -33,14 +33,14 @@
 | DB용 EC2 네트워크/IaC  | 팀원 2      | 팀원 2      | 팀원 3     | 전원     |
 | PXC/ProxySQL/Ceph 백업 | 팀원 3      | 팀원 3      | 팀원 2,4   | 전원     |
 | K8s/App 런타임         | 팀원 4      | 팀원 4      | 팀원 2,3   | 전원     |
-| CI/CD 파이프라인       | 팀원 4      | 팀원 4      | 팀원 3     | 전원     |
+| CI/CD / GitOps 파이프라인 | 팀원 4      | 팀원 4      | 팀원 3     | 전원     |
 | 보안 정책              | 팀원 4      | 팀원 1      | 팀원 2,3   | 전원     |
 | 발표 자료              | 전원        | 팀원 1      | 전원       | 전원     |
 
 ## 3. 구현 우선순위
 
 1. 온프레미스 Kubernetes 첫 배포
-2. GitHub Actions 자동 배포
+2. GitHub Actions 이미지 빌드와 Argo CD GitOps 배포
 3. DB용 EC2 내부망 구성과 ProxySQL 경유 접속
 4. PXC 3노드 구성과 Ceph RGW 백업
 5. CloudWatch 로그와 기본 알람
@@ -54,7 +54,7 @@
 | :----------------- | :---------------------------------------------------------------------------------------------------- |
 | DB용 EC2 생성      | Network/IaC 담당이 Terraform 골격과 내부망 배치를 책임지고, DB 담당이 스펙과 디스크 요구사항을 제시함 |
 | DB 소프트웨어 구성 | DB/Storage 담당이 PXC, ProxySQL, 백업, 복구를 책임짐                                                  |
-| 앱 배포            | CI/CD/App Runtime 담당이 Kubernetes 배포와 AWS burst 앱 환경변수/Secret 주입을 책임짐                 |
+| 앱 배포            | CI/CD/App Runtime 담당이 Argo CD 기반 Kubernetes 배포와 AWS burst 앱 환경변수/Secret 주입을 책임짐     |
 | 앱-DB 연결         | CI/CD/App Runtime 담당과 DB/Storage 담당이 공동 검증함                                                |
 | DB 보안그룹        | Network/IaC 담당과 DB/Storage 담당이 공동 리뷰함                                                      |
 | 발표/시연          | Project Lead가 흐름을 통합하고 각 담당자가 자기 영역 캡처와 설명을 제공함                             |

@@ -46,8 +46,10 @@
 
 - ECR Repository 또는 팀이 선택한 컨테이너 레지스트리
 - GitHub Actions workflow
+- Argo CD 설치와 GitOps Application 구성
 - Docker image tag: `git-sha`, `latest`
 - Kubernetes manifest 또는 Helm chart 적용
+- Argo CD가 추적할 manifest 경로와 sync 정책 정의
 - AWS Launch Template의 앱 bootstrap 버전 갱신 절차
 
 ### 보안
@@ -85,6 +87,7 @@
 - Blue/Green 배포
 - Prometheus/Grafana 별도 운영
 - PMM(Percona Monitoring and Management)
+- Argo CD HA 구성과 SSO 연동
 - ProxySQL 2대 운영 시 설정 동기화 자동화
 - AWS S3 2차 백업 복제
 - Ceph CSI 기반 Kubernetes PVC

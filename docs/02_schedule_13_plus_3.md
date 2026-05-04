@@ -15,7 +15,7 @@
 | A. Project Lead / Architecture       | 팀원 1      | 일정 관리, 설계 의사결정, 발표 구조, 통합 검수                              |
 | B. Network / IaC Engineer            | 팀원 2      | VPC, Subnet, ALB, SG, DB용 EC2 Terraform 골격, 내부망 접근 경계             |
 | C. DB / Storage Engineer             | 팀원 3      | Percona Cluster, ProxySQL, DB 계정/권한, XtraBackup, Ceph 백업              |
-| D. CI/CD / App Runtime Engineer      | 팀원 4      | GitHub Actions, IAM OIDC, 이미지 배포, K8s/EC2 burst 배포, 앱-DB 연결, 롤백 |
+| D. CI/CD / App Runtime Engineer      | 팀원 4      | GitHub Actions, Argo CD, IAM OIDC, 이미지 배포, K8s/EC2 burst 배포, 앱-DB 연결, 롤백 |
 | E. Observability / Presentation Lead | 팀원 1 겸임 | CloudWatch, 장애 시나리오, Runbook, 발표 자료 통합                          |
 
 ## 3. 일자별 세부 계획
@@ -27,13 +27,13 @@
 | Day 3  | 네트워크 골격               | 설계 리뷰 및 리스크 점검                                          | VPC, Public/App Private/Data Private Subnet, IGW, Route Table 구현 | PXC 설치 절차와 ProxySQL 라우팅 초안 작성                                   | GitHub Actions 기본 workflow 작성                                          |
 | Day 4  | 외부 진입점                 | ALB/SG 설계 리뷰                                                  | AWS burst ALB, Target Group, Listener, EC2 SG 구현                 | DB 계정/권한 모델, PXC 노드 구성 계획 확정                                  | Docker build/push job 작성, 이미지 태그 전략 수립                          |
 | Day 5  | 첫 배포 준비                | MVP 범위 재점검, 일정 조정                                        | DB용 EC2 Terraform 골격, ProxySQL/PXC SG, SSM Role 구성            | PXC/ProxySQL 설치 준비, Ceph RGW 접근 방식 확정                             | GitHub OIDC Role, ECR push 권한 검증                                       |
-| Day 6  | 첫 배포 성공                | 첫 배포 체크리스트 운영                                           | ALB Health Check 경로와 SG 수정                                    | DB EC2 접속 경로(SSM/Bastion) 검증                                          | 온프레미스 K8s 첫 배포, GitHub Actions에서 이미지 배포 자동화              |
+| Day 6  | 첫 배포 성공                | 첫 배포 체크리스트 운영                                           | ALB Health Check 경로와 SG 수정                                    | DB EC2 접속 경로(SSM/Bastion) 검증                                          | 온프레미스 K8s 첫 배포, GitHub Actions 이미지 빌드, Argo CD 설치 착수       |
 | Day 7  | 보안 기본선                 | 보안 리뷰 회의 진행                                               | Private 라우팅, NAT 비용 선택안, DB 내부망 접근 확인               | PXC 3노드 구성 착수, ProxySQL 접속 정보 분리                                | Secrets Manager 주입, 앱 환경변수/Secret 연결                              |
-| Day 8  | 데이터 계층                 | DB/Ceph 시연 범위 확정                                            | DB Subnet/SG 규칙 검토, 0.0.0.0/0 DB 포트 차단 확인                | PXC 3노드, ProxySQL 1대 MVP 구성 완료 목표                                  | 앱에서 ProxySQL endpoint 접속 테스트                                       |
+| Day 8  | 데이터 계층                 | DB/Ceph 시연 범위 확정                                            | DB Subnet/SG 규칙 검토, 0.0.0.0/0 DB 포트 차단 확인                | PXC 3노드, ProxySQL 1대 MVP 구성 완료 목표                                  | Argo CD Application sync, 앱에서 ProxySQL endpoint 접속 테스트              |
 | Day 9  | 관측성/백업                 | 관측 지표 목록 확정                                               | ALB 4xx/5xx Metric 확인                                            | Percona XtraBackup → Ceph RGW 업로드 테스트, ProxySQL 이중화 적용 여부 결정 | CloudWatch Logs, Alarm, Dashboard 구성                                     |
 | Day 10 | Auto Scaling/복구           | 부하 시나리오 정의                                                | ALB Target Response Time 확인, 네트워크 장애 시나리오 정리         | PXC 노드 장애, ProxySQL backend 제외 시나리오 검토                          | AWS EC2 Auto Scaling, 부하 테스트 스크립트와 CloudWatch 알람 연동 확인     |
 | Day 11 | 롤백/복구                   | 장애 시나리오 표준화                                              | 네트워크 차단/SG 오설정 복구 절차 작성                             | DB 장애/백업 복구 시연 절차 작성                                            | Task 장애/헬스체크 실패/배포 실패 롤백 runbook 작성                        |
-| Day 12 | 통합 테스트                 | 전체 시연 흐름 1차 리허설                                         | Terraform 재현성 검증                                              | DB 백업, Ceph 업로드, ProxySQL 경유 접속 검증                               | GitHub Actions 재실행/실패 케이스, 앱-DB 연결 검증                         |
+| Day 12 | 통합 테스트                 | 전체 시연 흐름 1차 리허설                                         | Terraform 재현성 검증                                              | DB 백업, Ceph 업로드, ProxySQL 경유 접속 검증                               | GitHub Actions/Argo CD 재실행과 실패 케이스, 앱-DB 연결 검증               |
 | Day 13 | 비용/성능 정리 및 구축 마감 | 최종 산출물 점검, 발표 핵심 메시지 작성, 누락 항목 결정           | ALB, EC2 burst, EC2 DB 비용 추정 정리, IaC README 정리             | EC2 DB, ProxySQL, Ceph 운영 기준과 명령 정리                                | WAF/CloudWatch/CI/CD 비용과 보안 효과 정리, 로그 캡처 정리                 |
 | Day 14 | 발표 자료 초안              | 발표 목차, 스토리라인 작성                                        | 네트워크 다이어그램 슬라이드 작성                                  | DB/Storage 슬라이드 작성                                                    | CI/CD/App Runtime 슬라이드 작성                                            |
 | Day 15 | 시연 자료 준비              | 발표 스크립트 통합                                                | Terraform plan/apply, SG 캡처 준비                                 | PXC/ProxySQL/Ceph 백업 캡처 준비                                            | GitHub Actions, K8s 배포, AWS EC2 Auto Scaling, CloudWatch 캡처 준비       |
@@ -70,6 +70,7 @@
 ### 팀원 4: CI/CD / App Runtime
 
 - ECR 또는 팀 표준 이미지 레지스트리 구성
+- Argo CD 설치와 Application 구성
 - Kubernetes manifest 또는 Helm chart 배포 절차
 - AWS EC2 Launch Template 앱 bootstrap 절차
 - Docker 이미지 실행 조건 정리

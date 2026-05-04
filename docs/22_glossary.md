@@ -26,6 +26,7 @@
 
 | 약어 | Full name | 의미 |
 | :--- | :-------- | :--- |
+| Argo CD | Argo Continuous Delivery | Git 저장소의 Kubernetes manifest를 클러스터에 동기화하는 GitOps 배포 도구 |
 | CI/CD | Continuous Integration / Continuous Delivery | 코드 통합, 빌드, 테스트, 배포 자동화 흐름 |
 | ECR | Elastic Container Registry | Docker 이미지 저장소 |
 | ECS | Elastic Container Service | AWS 컨테이너 실행 서비스 |

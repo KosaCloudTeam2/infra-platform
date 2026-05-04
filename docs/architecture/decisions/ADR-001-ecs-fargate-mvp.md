@@ -2,7 +2,8 @@
 
 ## 상태
 
-Superseded by [ADR-007](./ADR-007-hybrid-kubernetes-cloud-bursting.md)
+Superseded by [ADR-007](./ADR-007-hybrid-kubernetes-cloud-bursting.md) and
+[ADR-008](./ADR-008-argocd-gitops-mvp.md)
 
 ## 날짜
 
@@ -17,9 +18,9 @@ Superseded by [ADR-007](./ADR-007-hybrid-kubernetes-cloud-bursting.md)
 
 MVP 애플리케이션 런타임은 AWS ECS Fargate로 구성함.
 
-2026-05-04에 비용 우선 요구가 확정되면서 이 결정은
-[ADR-007](./ADR-007-hybrid-kubernetes-cloud-bursting.md)로 대체됨. ECS Fargate는 AWS-only fallback
-또는 비교안으로 유지함.
+2026-05-04에 비용 우선 요구와 Argo CD GitOps MVP 포함이 확정되면서 이 결정은
+[ADR-007](./ADR-007-hybrid-kubernetes-cloud-bursting.md), [ADR-008](./ADR-008-argocd-gitops-mvp.md)로
+대체됨. ECS Fargate는 AWS-only fallback 또는 비교안으로 유지함.
 
 ## 대안
 
@@ -38,7 +39,8 @@ MVP 애플리케이션 런타임은 AWS ECS Fargate로 구성함.
 감수할 점:
 
 - Kubernetes 운영 경험을 직접 보여주기는 어려움
-- 복잡한 서비스 메시, Ingress, GitOps 시연은 선택 확장으로 남김
+- 복잡한 서비스 메시와 EKS Ingress 시연은 선택 확장으로 남김
+- GitOps 시연은 ADR-008 이후 Argo CD 기반 MVP로 이동
 
 ## 관련 문서
 

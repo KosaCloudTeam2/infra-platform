@@ -125,6 +125,7 @@ Session Manager 또는 제한된 Bastion 접근을 우선함.
 - `APP_SECRET`, `DB_PASSWORD`, `JWT_SECRET` 등은 Secrets Manager에 저장함
 - `PROXYSQL_PASSWORD`, `PXC_BACKUP_KEY`, `CEPH_RGW_ACCESS_KEY`, `CEPH_RGW_SECRET_KEY` 등도 Secrets
   Manager 또는 CI Secret에 저장함
+- Argo CD admin 초기 비밀번호, repository credential, deploy key는 저장소에 저장하지 않음
 - GitHub Secrets에는 AWS Role ARN, AWS Region 등 민감도가 낮은 설정만 저장함
 - `.env` 파일은 커밋 금지
 
@@ -143,3 +144,4 @@ Session Manager 또는 제한된 Bastion 접근을 우선함.
 - [ ] ProxySQL Admin 포트 `6032`가 인터넷에 노출되지 않음
 - [ ] PXC Galera 포트 `4567/4568/4444`는 PXC 노드 간에만 허용됨
 - [ ] Ceph RGW access/secret key가 저장소와 Terraform state에 노출되지 않음
+- [ ] Argo CD admin password와 repository credential이 저장소에 없음

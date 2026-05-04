@@ -32,6 +32,7 @@
 
 - 온프레미스 Proxmox VM 기반 Kubernetes 직접 구성
 - Kubernetes Deployment/Service/Ingress 기반 앱 실행
+- Argo CD 기반 GitOps 배포
 - AWS EC2 Auto Scaling Group(ASG) + Launch Template 기반 burst 영역
 - AWS ALB + Target Group 기반 burst 트래픽 분산
 - CloudWatch Alarm 기반 AWS EC2 scale-out/scale-in
@@ -464,6 +465,8 @@ sequenceDiagram
     participant GH as GitHub
     participant GA as GitHub Actions
     participant ECR as ECR
+    participant Argo as Argo CD
+    participant K8s as Kubernetes
     participant ECS as ECS
     participant ALB as ALB
 
@@ -471,22 +474,28 @@ sequenceDiagram
     GH->>GA: Workflow Trigger
     GA->>GA: Docker Build
     GA->>ECR: Push image: github.sha
-    GA->>ECS: Register Task Definition
-    GA->>ECS: Update Service
-    ECS->>ALB: Register new targets
-    ALB->>ECS: Health Check
-    ECS->>ECS: Replace old tasks
+    GA->>GH: Update manifest image tag
+    Argo->>GH: Watch manifest
+    Argo->>K8s: Sync Deployment
+    K8s->>ALB: App health check
+    GA-->>ECS: Optional AWS-only fallback deploy
+    ECS-->>ALB: Register fallback targets
 ```
 
 ### 설계 설명
 
-`main` 브랜치 병합 또는 수동 실행으로 배포를 시작함. GitHub Actions는 AWS Access Key를 저장하지 않고
-OIDC로 `GitHubDeployRole`을 Assume함. 이 구조는 보안 발표 포인트로 중요함.
+`main` 브랜치 병합 또는 수동 실행으로 이미지 빌드를 시작함. GitHub Actions는 이미지를 ECR에 push하고
+Kubernetes manifest의 이미지 태그를 갱신함. Argo CD는 Git 저장소 상태를 감시하고 온프레미스
+Kubernetes에 manifest를 동기화함.
+
+AWS burst 또는 AWS-only fallback 배포가 필요하면 GitHub Actions가 OIDC로 `GitHubDeployRole`을
+Assume함. 이 구조는 보안 발표 포인트로 중요함.
 
 ### 팀 논의 사항
 
 - PR 병합 시 자동 배포할지, `workflow_dispatch` 수동 배포만 허용할지 결정
 - 발표 안정성을 위해 Day 14 이후에는 수동 배포만 허용하는 방식 권장
+- Argo CD 자동 동기화는 Day 13 이전 검증 후 활성화
 - 실패 배포 시 자동 롤백과 수동 롤백 절차를 모두 준비
 
 ## 3.8 보안 영역
@@ -660,9 +669,8 @@ ProxySQL 2대와 Internal NLB를 추가하고, 백업은 Ceph RGW에 저장한 �
 
 ## 5.4 EKS 전환
 
-Kubernetes 포트폴리오를 강조하려면 EKS가 좋지만, 13일 일정에서 VPC/EKS/Ingress/GitOps/관측성까지
-모두 안정화하기 어렵기 때문에 ECS Fargate를 MVP로 선택함. EKS는 발표의 향후 확장안으로 두는 편이
-안정적임.
+Kubernetes 포트폴리오를 강조하기 위해 Argo CD 기반 GitOps는 MVP에 포함함. 단, EKS control plane은
+비용과 일정 부담 때문에 선택 확장으로 유지함.
 
 ## 5.5 비용 우선 하이브리드 Kubernetes와 AWS EC2 버스팅
 

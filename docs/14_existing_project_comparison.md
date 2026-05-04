@@ -28,7 +28,7 @@
 | 보안     | SSH 하드닝, auditd, pre-commit, Gitleaks | OIDC, SG 최소 허용, WAF, Gitleaks, DB 내부망      |
 | 데이터   | Galera/PXC, ProxySQL, Ceph/MinIO         | RDS 제외, PXC 3노드, ProxySQL, Ceph RGW 백업      |
 | 관측성   | Prometheus/Grafana/Thanos, APM           | CloudWatch 우선, DB/Ceph 상태 체크는 Runbook 중심 |
-| 자동화   | Terraform, Ansible, GitOps, Helm         | Terraform, GitHub Actions, pre-commit, Marp       |
+| 자동화   | Terraform, Ansible, GitOps, Helm         | Terraform, GitHub Actions, Argo CD GitOps, pre-commit, Marp |
 | 발표     | Marp 기반 발표 자료                      | Marp 원본과 PDF 변환 스크립트 적용                |
 
 ---
@@ -50,7 +50,7 @@
 
 | 항목              | 보류 이유                                              | 향후 적용 조건                        |
 | :---------------- | :----------------------------------------------------- | :------------------------------------ |
-| EKS 전면 구축     | 13일 안에 VPC/EKS/Ingress/GitOps/관측성 안정화 부담 큼 | ECS MVP 완료 후 확장                  |
+| EKS 전면 구축     | 13일 안에 VPC/EKS/Ingress/관측성 안정화 부담 큼 | Argo CD GitOps는 MVP 포함, EKS는 확장 |
 | Istio 서비스 메시 | mTLS와 트래픽 제어 설명은 좋지만 구현/디버깅 비용 큼   | EKS 도입 이후                         |
 | Thanos/Loki 통합  | CloudWatch만으로도 MVP 관측성 충분                     | 멀티 클러스터 또는 장기 로그 요구 시  |
 | AI/KEDA 예측 확장 | 발표 범위 대비 과도함                                  | 기본 Auto Scaling 검증 이후           |
