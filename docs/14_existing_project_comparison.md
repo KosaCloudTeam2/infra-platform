@@ -21,15 +21,15 @@
 
 ## 2. 영역별 비교
 
-| 영역     | 기존 `cloug_infra`                       | 신규 `new_project_root` 적용                                |
-| :------- | :--------------------------------------- | :---------------------------------------------------------- |
-| 목적     | Phase 1-7 문서화와 실습 로드맵           | 13+3 일정의 팀 실구축/발표                                  |
-| 네트워크 | 온프레미스, MacVLAN, VPN, AWS 연동       | AWS VPC, ALB, App/Data Private Subnet                       |
-| 보안     | SSH 하드닝, auditd, pre-commit, Gitleaks | OIDC, SG 최소 허용, WAF, Gitleaks, DB 내부망                |
-| 데이터   | Galera/PXC, ProxySQL, Ceph/MinIO         | RDS 제외, PXC 3노드, ProxySQL, Ceph RGW 백업                |
-| 관측성   | Prometheus/Grafana/Thanos, APM           | CloudWatch 우선, DB/Ceph 상태 체크는 Runbook 중심           |
-| 자동화   | Terraform, Ansible, GitOps, Helm         | Terraform, GitHub Actions, Argo CD GitOps, pre-commit, Marp |
-| 발표     | Marp 기반 발표 자료                      | Marp 원본과 PDF 변환 스크립트 적용                          |
+| 영역     | 기존 `cloug_infra`                       | 신규 `new_project_root` 적용                                                   |
+| :------- | :--------------------------------------- | :----------------------------------------------------------------------------- |
+| 목적     | Phase 1-7 문서화와 실습 로드맵           | 13+3 일정의 팀 실구축/발표                                                     |
+| 네트워크 | 온프레미스, MacVLAN, VPN, AWS 연동       | AWS VPC, ALB, App/Data Private Subnet                                          |
+| 보안     | SSH 하드닝, auditd, pre-commit, Gitleaks | OIDC, SG 최소 허용, WAF, Gitleaks, DB 내부망                                   |
+| 데이터   | Galera/PXC, ProxySQL, Ceph/MinIO         | RDS 제외, PXC 3노드, ProxySQL, Ceph RGW 백업                                   |
+| 관측성   | Prometheus/Grafana/Thanos, APM           | CloudWatch 또는 Prometheus/Grafana 최소 구성, DB/Ceph 상태 체크는 Runbook 중심 |
+| 자동화   | Terraform, Ansible, GitOps, Helm         | Terraform, GitHub Actions, Argo CD GitOps, pre-commit, Marp                    |
+| 발표     | Marp 기반 발표 자료                      | Marp 원본과 PDF 변환 스크립트 적용                                             |
 
 ---
 
@@ -80,7 +80,7 @@ DB EC2와 ProxySQL EC2는 SSH 포트를 열지 않고 SSM Session Manager로 접
 발표 전 다음 항목을 캡처 또는 명령 결과로 확보함.
 
 - DB EC2 Public IP 없음
-- ProxySQL `6033`은 ECS SG에서만 허용
+- ProxySQL `6033`은 앱 SG 또는 허용된 온프레미스 CIDR에서만 허용
 - PXC `3306`은 ProxySQL SG에서만 허용
 - Galera `4567/4568/4444`는 PXC SG self 참조만 허용
 - ProxySQL Admin `6032`는 SSM/Bastion 관리 경로로만 접근
@@ -91,12 +91,12 @@ DB EC2와 ProxySQL EC2는 SSH 포트를 열지 않고 SSM Session Manager로 접
 
 13+3 일정 기준 최종 범위는 다음으로 고정하는 것을 권장함.
 
-1. ALB + ECS Fargate 첫 배포
-2. GitHub Actions OIDC 자동 배포
+1. 온프레미스 Kubernetes + Argo CD 첫 배포
+2. GitHub Actions OIDC 이미지 빌드와 GitOps 배포
 3. App/Data Private Subnet 분리
 4. RDS 제외, PXC 3노드 + ProxySQL 1대 MVP
 5. 앱은 ProxySQL endpoint로만 DB 접근
 6. 일정 여유 시 ProxySQL 2대 + Internal NLB로 단일 장애점 보완
 7. XtraBackup → Ceph RGW 백업 업로드
-8. CloudWatch와 Runbook 기반 장애/복구 시연
+8. CloudWatch 또는 Prometheus/Grafana와 Runbook 기반 장애/복구 시연
 9. Marp 발표 자료와 PDF 산출

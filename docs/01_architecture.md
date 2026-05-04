@@ -50,7 +50,7 @@
 최종 MVP를 비용 우선 하이브리드 구조로 확정하면 ECS 관련 Terraform, CI/CD, Runbook은 온프레미스
 Kubernetes와 AWS EC2 Auto Scaling 기준으로 재정렬해야 함.
 
-### 비용 우선 목표 구조
+### MVP 하이브리드 목표 구조
 
 ```mermaid
 flowchart TD
@@ -60,11 +60,16 @@ flowchart TD
         K8s["Self-managed Kubernetes"]
         AppPod["App Pods"]
         Ingress["Ingress Controller"]
+        Prom["Prometheus<br/>optional"]
+        Grafana["Grafana<br/>optional"]
         CephRBD["Ceph RBD / CephFS<br/>K8s PV"]
         CephRGW["Ceph RGW<br/>S3-compatible Backup"]
         K8s --> AppPod
         Ingress --> AppPod
         AppPod --> CephRBD
+        Prom -. "scrape metrics" .-> K8s
+        Prom -. "scrape metrics" .-> AppPod
+        Grafana -. "dashboard" .-> Prom
     end
 
     subgraph AWS["AWS Burst Area"]
@@ -75,10 +80,13 @@ flowchart TD
         LT["Launch Template"]
         BurstEC2["Burst App EC2"]
         CW["CloudWatch Alarm"]
+        CWLogs["CloudWatch Logs / Metrics"]
         WAF --> ALB
         ALB --> TG
         TG --> BurstEC2
         CW --> ASG
+        CWLogs -. "logs / metrics" .-> BurstEC2
+        CWLogs -. "ALB metrics" .-> ALB
         ASG --> LT
         ASG --> BurstEC2
     end
@@ -96,7 +104,16 @@ flowchart TD
     Traffic --> WAF
     AppPod --> ProxySQL
     BurstEC2 --> ProxySQL
+    CephRGW -. "RGW / OSD status" .-> Prom
 ```
+
+설명:
+
+- 실선은 MVP 핵심 트래픽, 배포, DB 백업 경로임
+- 점선은 관측성 수집 또는 선택 확장 경로임
+- CloudWatch는 AWS ALB, EC2, 로그, 알람 중심 관측성임
+- Prometheus/Grafana는 온프레미스 Kubernetes, 앱, Ceph 지표를 보기 위한 선택 관측성임
+- PMM은 PXC/ProxySQL 상세 DB 관측성이 필요할 때 추가하는 선택 확장임
 
 ---
 
@@ -237,19 +254,19 @@ ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는
 
 ### 구성 요소
 
-| 구성 요소    | 역할                                  |
-| :----------- | :------------------------------------ |
-| ALB          | HTTP 요청 수신, Target Group으로 전달 |
-| Target Group | ECS Task IP 등록, Health Check 수행   |
-| Listener     | HTTP 80 또는 HTTPS 443 수신           |
-| Health Check | `/health` 기준 정상 Task 판별         |
+| 구성 요소    | 역할                                      |
+| :----------- | :---------------------------------------- |
+| ALB          | HTTP 요청 수신, Target Group으로 전달     |
+| Target Group | AWS burst app EC2 등록, Health Check 수행 |
+| Listener     | HTTP 80 또는 HTTPS 443 수신               |
+| Health Check | `/health` 기준 정상 앱 판별               |
 
 ### ALB를 선택한 이유
 
 - 프로젝트 대상이 HTTP/HTTPS 웹 앱임
 - 경로/호스트 기반 라우팅을 확장하기 쉬움
 - WAF 연결이 간단함
-- ECS Fargate와 Target Group 연동이 자연스러움
+- AWS EC2 Auto Scaling Group과 Target Group 연동이 자연스러움
 
 ### NLB/GWLB와 비교
 
@@ -264,8 +281,8 @@ ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는
 ProxySQL을 2대 이상 구성하는 경우 앱에서 접근할 단일 엔드포인트가 필요함. 이때 **Internal NLB**를
 ProxySQL 앞단에 둠.
 
-- **MVP:** ECS Task → ProxySQL 1대 → PXC 3노드
-- **안정성 보완:** ECS Task → Internal NLB → ProxySQL 2대 → PXC 3노드
+- **MVP:** 앱 런타임 → ProxySQL 1대 → PXC 3노드
+- **안정성 보완:** 앱 런타임 → Internal NLB → ProxySQL 2대 → PXC 3노드
 - **Terraform 전환값:** `proxysql_count = 2`, `enable_proxysql_internal_nlb = true`
 - **주의:** ProxySQL 1대는 DB 계층의 단일 장애점(SPoF)이므로 발표에서는 한계와 확장안을 함께 설명함
 
@@ -273,28 +290,28 @@ ProxySQL 앞단에 둠.
 
 ### 구성 요소
 
-| 구성 요소                  | 역할                                              |
-| :------------------------- | :------------------------------------------------ |
-| ECS Cluster                | Fargate Service의 논리 실행 그룹                  |
-| Task Definition            | 컨테이너 이미지, CPU/Memory, 포트, 로그 설정 정의 |
-| ECS Service                | 원하는 Task 수 유지, 배포 제어                    |
-| Fargate Task               | 실제 앱 컨테이너 실행 단위                        |
-| Deployment Circuit Breaker | 배포 실패 시 자동 롤백                            |
+| 구성 요소                  | 역할                                      |
+| :------------------------- | :---------------------------------------- |
+| 온프레미스 Kubernetes      | 기본 애플리케이션 실행 환경               |
+| Kubernetes Deployment      | 원하는 Pod 수 유지, rolling update 제어   |
+| Argo CD                    | Git 저장소 manifest를 Kubernetes에 동기화 |
+| AWS EC2 Auto Scaling Group | burst 앱 인스턴스 수 조정                 |
+| Launch Template            | AWS burst 앱 bootstrap과 이미지 태그 기준 |
 
 ### 설계 설명
 
-ECS Fargate는 EC2 서버를 직접 관리하지 않고 컨테이너 실행에 집중할 수 있음. 13일 일정에서는 EKS보다
-구현 부담이 낮고, CI/CD·ALB·CloudWatch·Auto Scaling까지 한 번에 연결하기 쉬움.
+MVP 기본 런타임은 온프레미스 Kubernetes임. Argo CD로 GitOps 배포 흐름을 보여주고, AWS는 ALB와 EC2
+Auto Scaling Group 기반 burst 영역으로 분리함. EKS control plane 비용은 제외하고, ECS Fargate는
+AWS-only fallback 또는 비교안으로 유지함.
 
 ### Task 기준값
 
-| 항목           | 기본값    | 이유                          |
-| :------------- | :-------- | :---------------------------- |
-| CPU            | 256       | 샘플/간단 앱 MVP 비용 절감    |
-| Memory         | 512 MiB   | 기본 안정성 확보              |
-| Desired Count  | 2         | 단일 Task 장애 시 가용성 확보 |
-| Container Port | 8080      | 샘플 앱 기준                  |
-| Health Check   | `/health` | ALB/ECS 복구 판단 기준        |
+| 항목                | 기본값             | 이유                          |
+| :------------------ | :----------------- | :---------------------------- |
+| Kubernetes replicas | 2                  | 단일 Pod 장애 시 가용성 확보  |
+| AWS burst min/max   | 0 또는 1 / 팀 결정 | 비용과 시연 범위 균형         |
+| Container Port      | 8080               | 샘플 앱 기준                  |
+| Health Check        | `/health`          | ALB/Kubernetes 복구 판단 기준 |
 
 ## 3.4 이미지 저장소 영역
 
@@ -333,7 +350,7 @@ AWS RDS는 관리형 서비스라 구축 속도와 안정성은 좋지만, 이�
 
 ```mermaid
 flowchart TB
-    App["ECS Fargate App<br/>Private App Subnet"] --> Proxy["ProxySQL<br/>6033"]
+    App["App Runtime<br/>K8s Pod or AWS burst EC2"] --> Proxy["ProxySQL<br/>6033"]
     App -. "HA option" .-> NLB["Internal NLB<br/>ProxySQL Endpoint"]
     NLB -. "TCP 6033" .-> Proxy
 
@@ -363,23 +380,23 @@ flowchart TB
 
 ### 역할 경계
 
-- Network/IaC 담당은 DB EC2가 배치될 Data Private Subnet, Security Group, SSM Role, EC2 Terraform
-  골격을 책임짐
+- Cloud/Network/IaC 담당은 DB EC2가 배치될 Data Private Subnet, Security Group, SSM Role, EC2
+  Terraform 골격을 책임짐
 - DB/Storage 담당은 EC2 위의 PXC, ProxySQL, DB 계정/권한, 백업/복구를 책임짐
-- CI/CD/App Runtime 담당은 ECS Task의 환경변수와 Secret을 통해 ProxySQL endpoint에 접속하는 부분을
-  책임짐
-- DB Security Group과 포트 정책은 Network/IaC 담당과 DB/Storage 담당이 공동 리뷰함
+- CI/CD/App Runtime 담당은 Kubernetes Secret, 환경변수, AWS burst bootstrap을 통해 ProxySQL
+  endpoint에 접속하는 부분을 책임짐
+- DB Security Group과 포트 정책은 Cloud/Network/IaC 담당과 DB/Storage 담당이 공동 리뷰함
 
 ### 필수 포트
 
-| 포트 | 용도                            | 허용 범위              |
-| ---: | :------------------------------ | :--------------------- |
-| 3306 | MySQL Client                    | ProxySQL SG → PXC SG   |
-| 6033 | ProxySQL Client                 | ECS SG → ProxySQL SG   |
-| 6032 | ProxySQL Admin                  | 관리 SG 또는 Bastion만 |
-| 4567 | Galera Replication              | PXC 노드 간            |
-| 4568 | IST(Incremental State Transfer) | PXC 노드 간            |
-| 4444 | SST(State Snapshot Transfer)    | PXC 노드 간            |
+| 포트 | 용도                            | 허용 범위                          |
+| ---: | :------------------------------ | :--------------------------------- |
+| 3306 | MySQL Client                    | ProxySQL SG → PXC SG               |
+| 6033 | ProxySQL Client                 | App SG 또는 K8s CIDR → ProxySQL SG |
+| 6032 | ProxySQL Admin                  | 관리 SG 또는 Bastion만             |
+| 4567 | Galera Replication              | PXC 노드 간                        |
+| 4568 | IST(Incremental State Transfer) | PXC 노드 간                        |
+| 4444 | SST(State Snapshot Transfer)    | PXC 노드 간                        |
 
 ### ProxySQL 1대 MVP 판단 기준
 
@@ -419,8 +436,8 @@ Proxmox를 온프레미스 플랫폼으로 사용할 경우 역할은 다음처�
 - **Ceph RGW:** AWS PXC 백업과 앱 파일 업로드용 S3 호환 객체 저장소
 - **CephFS:** 공유 파일 실험 또는 로그/모델 파일 저장
 
-AWS ECS Fargate Task는 Proxmox/Ceph RBD를 직접 마운트하지 않음. AWS 앱은 RGW의 S3 호환 API로만
-온프레미스 스토리지에 접근하는 구조를 우선함.
+AWS burst 앱 또는 ECS fallback은 Proxmox/Ceph RBD를 직접 마운트하지 않음. AWS 앱은 RGW의 S3 호환
+API로만 온프레미스 스토리지에 접근하는 구조를 우선함.
 
 ### 권장 활용 순서
 
@@ -438,7 +455,7 @@ AWS ECS Fargate Task는 Proxmox/Ceph RBD를 직접 마운트하지 않음. AWS �
 flowchart LR
     subgraph AWS["AWS"]
         XtraBackup["Percona XtraBackup"]
-        App["ECS Application<br/>S3 SDK"]
+        App["AWS burst App<br/>S3 SDK"]
     end
 
     subgraph ProxmoxCluster["On-prem Proxmox Cluster"]
@@ -506,32 +523,33 @@ Assume함. 이 구조는 보안 발표 포인트로 중요함.
 flowchart LR
     Internet["Internet"] --> WAF["WAF"]
     WAF --> ALBSG["ALB SG<br/>80/443 from Internet"]
-    ALBSG --> ECSSG["ECS SG<br/>App Port from ALB SG only"]
-    ECSSG --> ProxySG["ProxySQL SG<br/>6033 from ECS SG"]
-    ECSSG -. "HA option" .-> ProxyNlbSG["ProxySQL NLB SG<br/>6033 from ECS SG"]
+    ALBSG --> AppSG["AWS burst app SG<br/>App Port from ALB SG only"]
+    K8sCIDR["On-prem K8s CIDR<br/>restricted"] --> ProxySG
+    AppSG --> ProxySG["ProxySQL SG<br/>6033 from app SG or K8s CIDR"]
+    AppSG -. "HA option" .-> ProxyNlbSG["ProxySQL NLB SG<br/>6033 from app SG or K8s CIDR"]
     ProxyNlbSG -. "6033 to ProxySQL SG" .-> ProxySG
     ProxySG --> PXCSG["PXC SG<br/>3306 from ProxySQL SG"]
     Actions["GitHub Actions"] --> OIDC["OIDC"]
     OIDC --> Role["GitHubDeployRole"]
-    ECS["ECS Task"] --> Secret["Secrets Manager"]
+    App["App Runtime"] --> Secret["Secrets Manager / Kubernetes Secret"]
     PXCSG --> PxcSelf["PXC SG Self<br/>4567/4568/4444"]
 ```
 
 ### 주요 정책
 
-| 영역    | 정책                                                                        |
-| :------ | :-------------------------------------------------------------------------- |
-| IAM     | GitHubDeployRole, ECSTaskExecutionRole, ECSTaskRole 분리                    |
-| GitHub  | 장기 AWS Access Key 저장 금지                                               |
-| Network | ALB만 인터넷 노출, ECS는 ALB SG에서만 접근                                  |
-| DB      | ECS는 ProxySQL에만 접근, PXC 노드는 ProxySQL과 클러스터 노드 간 통신만 허용 |
-| Secret  | Secrets Manager 사용, `.env` 커밋 금지                                      |
-| WAF     | Managed Rule + Rate Limit 적용                                              |
+| 영역    | 정책                                                                       |
+| :------ | :------------------------------------------------------------------------- |
+| IAM     | GitHubDeployRole, EC2 Instance Role, 필요 시 ECS fallback Role 분리        |
+| GitHub  | 장기 AWS Access Key 저장 금지                                              |
+| Network | ALB만 인터넷 노출, AWS burst 앱은 ALB SG에서만 접근                        |
+| DB      | 앱은 ProxySQL에만 접근, PXC 노드는 ProxySQL과 클러스터 노드 간 통신만 허용 |
+| Secret  | Secrets Manager 사용, `.env` 커밋 금지                                     |
+| WAF     | Managed Rule + Rate Limit 적용                                             |
 
 ### 토론 포인트
 
 - WAF는 처음부터 Block 모드로 둘지, Count 모드로 관찰 후 Block 전환할지 결정
-- `iam:PassRole` 범위를 ECS Task Execution Role로 제한해야 함
+- `iam:PassRole` 범위를 배포에 필요한 Role로 제한해야 함
 - GitHub OIDC Trust Policy는 Terraform 변수 `github_repository`를 실제 저장소명으로 설정해 제한해야
   함
 - ProxySQL Admin 포트 `6032`를 운영자 전체에 열지 않고 Bastion 또는 SSM 접근으로 제한해야 함
@@ -544,7 +562,8 @@ flowchart LR
 
 | 대상             | 지표/로그                                 | 활용                                  |
 | :--------------- | :---------------------------------------- | :------------------------------------ |
-| ECS              | CPU, Memory, Running Task                 | 스케일링과 장애 판단                  |
+| Kubernetes       | Pod Ready, rollout, replica 상태          | 온프레미스 앱 배포와 장애 판단        |
+| EC2 ASG          | CPU, 인스턴스 수, Target Health           | AWS burst 스케일링과 장애 판단        |
 | ProxySQL         | 연결 수, 쿼리 라우팅, backend 상태        | DB 접근 병목과 장애 노드 확인         |
 | PXC              | wsrep 상태, replication delay, disk usage | 클러스터 정합성과 장애 판단           |
 | Ceph             | OSD 상태, pool 사용량, RGW 오류           | 백업 저장소와 분산 스토리지 상태 확인 |
@@ -557,8 +576,8 @@ flowchart LR
 
 - ALB Target 5xx 5분 합계 5회 이상
 - Unhealthy Host 1개 이상
-- ECS CPU 70-80% 이상 지속
-- ECS Memory 80% 이상 지속
+- AWS burst EC2 CPU 70-80% 이상 지속
+- Kubernetes Pod Ready 실패 또는 rollout timeout
 - PXC `wsrep_cluster_status`가 `Primary`가 아님
 - Ceph `HEALTH_WARN` 또는 `HEALTH_ERR` 발생
 
@@ -571,21 +590,21 @@ flowchart LR
 
 ### 구성 요소
 
-| 구성 요소                       | 역할                        |
-| :------------------------------ | :-------------------------- |
-| Application Auto Scaling Target | ECS Desired Count 조절 대상 |
-| Target Tracking Policy          | CPU 기준 자동 확장          |
-| Desired/Min/Max Count           | 최소/최대 Task 수 제한      |
+| 구성 요소              | 역할                            |
+| :--------------------- | :------------------------------ |
+| EC2 Auto Scaling Group | AWS burst app EC2 수 조절 대상  |
+| Scaling Policy         | CPU 또는 요청 수 기준 자동 확장 |
+| Desired/Min/Max Size   | 최소/희망/최대 EC2 수 제한      |
 
 ### 기본 정책
 
-- Min: 2
-- Max: 4
+- Min: 0 또는 1
+- Max: 팀 비용 한도 기준
 - CPU Target: 70%
 
 ### 토론 포인트
 
-- 13일 일정에서는 CPU Target Tracking만 구현해도 충분함
+- 13일 일정에서는 AWS EC2 CPU 기준 scale-out과 scale-in 확인만 구현해도 충분함
 - 발표용 부하 테스트는 과도한 비용을 막기 위해 짧게 수행함
 - Memory 기반 정책은 선택 확장으로 분리 가능함
 - DB 노드는 자동 증설보다 장애 복구와 백업 검증을 우선함
@@ -623,19 +642,19 @@ flowchart LR
 2. GitHub Actions 실행
 3. Docker 이미지 빌드
 4. ECR Push
-5. ECS Task Definition 등록
-6. ECS Service 업데이트
-7. ALB Health Check 통과
-8. 기존 Task 교체
+5. Kubernetes manifest image tag 갱신
+6. Argo CD Application sync
+7. Kubernetes rollout과 ALB Health Check 통과
+8. 기존 Pod 또는 burst app 교체
 9. 앱에서 ProxySQL을 통한 DB 연결 확인
 10. DB 백업 작업 또는 백업 업로드 상태 확인
 
 ## 4.2 장애 발생
 
 1. ALB Health Check 실패 또는 5xx 증가
-2. CloudWatch Alarm/Service Event 확인
-3. 신규 Task Definition 문제 여부 확인
-4. 자동 롤백 또는 수동 롤백
+2. CloudWatch Alarm 또는 Argo CD/Kubernetes 상태 확인
+3. 신규 image tag 또는 manifest 문제 여부 확인
+4. 이전 Git revision 또는 image tag로 롤백
 5. 정상 응답 복구 확인
 6. 원인과 복구 시간 기록
 
@@ -723,8 +742,7 @@ flowchart LR
 
 - 비용이 최우선이면 EKS Hybrid가 아니라 온프레미스 Kubernetes + AWS EC2 ASG/ALB burst를 우선함
 - AWS EC2가 Kubernetes worker로 자동 join하는 구조는 선택 확장으로 둠
-- 기존 ECS Fargate 구성은 AWS-only fallback 또는 비교안으로 유지하고, 최종 구현 범위가 확정되면
-  Terraform과 CI/CD를 재정렬함
+- 기존 ECS Fargate 구성은 AWS-only fallback 또는 비교안으로 유지함
 - Proxmox/Ceph는 온프레미스 노드와 스토리지 계층으로 유지하고, AWS burst 인스턴스는 상태 없는 앱
   실행 영역으로 먼저 설계함
 
@@ -746,7 +764,7 @@ flowchart LR
 - [ ] 온프레미스에 웹앱과 DB를 모두 둘지, DB는 AWS EC2에 둘지 결정
 - [ ] AWS burst EC2를 Kubernetes worker node로 붙일지, 일반 앱 서버로 둘지 결정
 - [ ] 파일/백업 저장소를 Ceph RGW로 둘지, AWS S3로 둘지 결정
-- [ ] EKS/ECS/Fargate는 MVP에서 제외하고 비교안으로 둘지 결정
+- [ ] EKS와 ECS/Fargate를 선택 확장 또는 비교안으로 유지할지 결정
 - [ ] NAT Gateway를 단일 구성으로 둘지, AZ별로 둘지 결정
 - [ ] HTTPS/Route 53을 MVP에 포함할지 결정
 - [ ] 자동 배포 트리거를 `main push`로 둘지, 수동 실행으로 제한할지 결정

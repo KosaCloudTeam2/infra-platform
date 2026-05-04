@@ -6,7 +6,7 @@
 2. 목표: 안전하고 반복 가능한 클라우드 배포 플랫폼
 3. 아키텍처: VPC, ALB, 온프레미스 Kubernetes, Argo CD, ECR, GitHub Actions, CloudWatch, WAF
 4. 구현 내용: IaC, CI/CD, 보안, 관측성
-5. 장애 대응: Task 장애, 배포 실패, Health Check 실패
+5. 장애 대응: Pod 장애, 배포 실패, Health Check 실패
 6. 비용 최적화: EKS 미사용, EC2 burst, NAT 선택, 로그 보존
 7. 데이터 계층: RDS 제외, Percona XtraDB Cluster, ProxySQL, Ceph 백업
 8. 한계와 확장: HTTPS, Blue/Green, CloudFront, EKS, S3 2차 백업
@@ -32,7 +32,7 @@
 ### 시연 3: 보안 설명
 
 - GitHub Actions가 Access Key 없이 OIDC Role 사용
-- ALB SG와 ECS SG의 참조 기반 접근 제어 설명
+- ALB SG와 AWS burst app SG의 참조 기반 접근 제어 설명
 - WAF Managed Rule 적용 화면 설명
 
 ### 시연 4: DB 백업과 Ceph 활용

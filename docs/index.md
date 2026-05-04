@@ -5,18 +5,18 @@
 
 ## 1. 처음 읽는 순서
 
-| 순서 | 문서                                                       | 목적                                 |
-| :--- | :--------------------------------------------------------- | :----------------------------------- |
-| 1    | [Project Overview](./00_project_overview.md)               | 프로젝트 목표와 성공 기준 확인       |
-| 2    | [Architecture](./01_architecture.md)                       | 전체 AWS 아키텍처와 설계 고정점 확인 |
-| 3    | [Schedule 13+3](./02_schedule_13_plus_3.md)                | 13일 구축 + 3일 발표 일정 확인       |
-| 4    | [Roles and Work Packages](./03_roles_and_work_packages.md) | 팀원별 책임과 작업 패키지 확인       |
-| 5    | [Implementation Scope](./04_implementation_scope.md)       | MVP와 선택 확장 범위 확인            |
-| 6    | [Security Policy](./05_security_policy.md)                 | OIDC, SG, WAF, Secret 기준 확인      |
-| 7    | [Demo Presentation Plan](./06_demo_presentation_plan.md)   | 발표/시연 흐름 확인                  |
-| 8    | [Definition of Done](./07_definition_of_done.md)           | 완료 기준 확인                       |
-| 9    | [Risk Register](./08_risk_register.md)                     | 주요 리스크와 대응 확인              |
-| 10   | [Cleanup Plan](./09_cleanup_plan.md)                       | 발표 후 비용 정리 계획 확인          |
+| 순서 | 문서                                                       | 목적                                        |
+| :--- | :--------------------------------------------------------- | :------------------------------------------ |
+| 1    | [Project Overview](./00_project_overview.md)               | 프로젝트 목표와 성공 기준 확인              |
+| 2    | [Architecture](./01_architecture.md)                       | 전체 하이브리드 아키텍처와 설계 고정점 확인 |
+| 3    | [Schedule 13+3](./02_schedule_13_plus_3.md)                | 13일 구축 + 3일 발표 일정 확인              |
+| 4    | [Roles and Work Packages](./03_roles_and_work_packages.md) | 팀원별 책임과 작업 패키지 확인              |
+| 5    | [Implementation Scope](./04_implementation_scope.md)       | MVP와 선택 확장 범위 확인                   |
+| 6    | [Security Policy](./05_security_policy.md)                 | OIDC, SG, WAF, Secret 기준 확인             |
+| 7    | [Demo Presentation Plan](./06_demo_presentation_plan.md)   | 발표/시연 흐름 확인                         |
+| 8    | [Definition of Done](./07_definition_of_done.md)           | 완료 기준 확인                              |
+| 9    | [Risk Register](./08_risk_register.md)                     | 주요 리스크와 대응 확인                     |
+| 10   | [Cleanup Plan](./09_cleanup_plan.md)                       | 발표 후 비용 정리 계획 확인                 |
 
 ## 2. 팀 운영 문서
 
@@ -48,23 +48,23 @@
 역할별 설계/범위 문서와 실제 구현 절차 문서는 [Build-up Guide](./architecture/build-up/README.md)를
 기준으로 확인함.
 
-| 담당                    | 핵심 문서                                                                                                                                                               |
-| :---------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Network / IaC           | [01 Network / IaC](./architecture/build-up/01_network_iac.md), [Implementation](./architecture/build-up/01_network_iac_implementation.md)                               |
-| DB / Storage            | [02 DB / Storage](./architecture/build-up/02_db_storage.md), [Implementation](./architecture/build-up/02_db_storage_implementation.md)                                  |
-| CI/CD / App Runtime     | [03 CI/CD / App Runtime](./architecture/build-up/03_cicd_app_runtime.md), [Implementation](./architecture/build-up/03_cicd_app_runtime_implementation.md)               |
-| Observability / Demo    | [04 Observability / Demo](./architecture/build-up/04_observability_demo.md), [Implementation](./architecture/build-up/04_observability_demo_implementation.md)          |
-| Presentation / Handover | [05 Presentation / Handover](./architecture/build-up/05_presentation_handover.md), [Implementation](./architecture/build-up/05_presentation_handover_implementation.md) |
+| 담당                               | 핵심 문서                                                                                                                                                                    |
+| :--------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloud / Network / IaC              | [01 Cloud / Network / IaC](./architecture/build-up/01_network_iac.md), [Implementation](./architecture/build-up/01_network_iac_implementation.md)                            |
+| DB / Storage                       | [02 DB / Storage](./architecture/build-up/02_db_storage.md), [Implementation](./architecture/build-up/02_db_storage_implementation.md)                                       |
+| CI/CD / App Runtime                | [03 CI/CD / App Runtime](./architecture/build-up/03_cicd_app_runtime.md), [Implementation](./architecture/build-up/03_cicd_app_runtime_implementation.md)                    |
+| Observability / Integration / Demo | [04 Observability / Integration / Demo](./architecture/build-up/04_observability_demo.md), [Implementation](./architecture/build-up/04_observability_demo_implementation.md) |
+| Presentation / Handover            | [05 Presentation / Handover](./architecture/build-up/05_presentation_handover.md), [Implementation](./architecture/build-up/05_presentation_handover_implementation.md)      |
 
 ## 5. 운영 Runbook
 
-| Runbook                                                | 목적                          |
-| :----------------------------------------------------- | :---------------------------- |
-| [Deployment](./runbooks/deployment.md)                 | ECS 배포 확인                 |
-| [Rollback](./runbooks/rollback.md)                     | 배포 실패/서비스 장애 롤백    |
-| [Monitoring](./runbooks/monitoring.md)                 | CloudWatch 기반 관측          |
-| [Database Storage](./runbooks/database_storage.md)     | PXC, ProxySQL, Ceph 백업 점검 |
-| [Incident Scenarios](./runbooks/incident_scenarios.md) | 장애 시나리오                 |
+| Runbook                                                | 목적                                         |
+| :----------------------------------------------------- | :------------------------------------------- |
+| [Deployment](./runbooks/deployment.md)                 | Argo CD GitOps 배포 확인                     |
+| [Rollback](./runbooks/rollback.md)                     | 배포 실패/서비스 장애 롤백                   |
+| [Monitoring](./runbooks/monitoring.md)                 | CloudWatch 또는 Prometheus/Grafana 기반 관측 |
+| [Database Storage](./runbooks/database_storage.md)     | PXC, ProxySQL, Ceph 백업 점검                |
+| [Incident Scenarios](./runbooks/incident_scenarios.md) | 장애 시나리오                                |
 
 ## 6. 발표 자료
 

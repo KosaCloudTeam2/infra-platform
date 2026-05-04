@@ -1,6 +1,6 @@
-# 04 Observability / Demo 상세 구현
+# 04 Observability / Integration / Demo 상세 구현
 
-담당: 팀원 1 겸임, 팀원 4 보조
+담당: 팀원 1, 전원 보조
 
 ## 1. 목표
 
@@ -9,24 +9,28 @@
 
 ## 2. 구현 범위
 
-- CloudWatch Logs
+- Prometheus/Grafana 또는 CloudWatch Logs
 - ALB 5xx Alarm
 - Unhealthy Host Alarm
-- ECS CPU/Memory Alarm
+- EC2 CPU/Request 기반 Alarm
+- Argo CD Application sync/health 상태
+- Kubernetes Deployment rollout 상태
 - PXC/ProxySQL/Ceph 상태 확인 Runbook
 - 장애 시나리오 통합
 - 시연 순서 작성
 
 ## 3. 관측 지표
 
-| 대상     | 지표               | 목적                  |
-| :------- | :----------------- | :-------------------- |
-| ALB      | Target 5xx         | 앱 오류 감지          |
-| ALB      | UnHealthyHostCount | Task 장애 감지        |
-| ECS      | CPU/Memory         | 스케일링 판단         |
-| ProxySQL | backend status     | DB 노드 장애 확인     |
-| PXC      | wsrep status       | 클러스터 정합성 확인  |
-| Ceph     | health status      | 백업 저장소 상태 확인 |
+| 대상       | 지표                      | 목적                   |
+| :--------- | :------------------------ | :--------------------- |
+| Argo CD    | Sync/Health               | GitOps 배포 상태 확인  |
+| Kubernetes | Pod ready, rollout status | 앱 배포 정상 여부      |
+| ALB        | Target 5xx                | AWS burst 앱 오류 감지 |
+| ALB        | UnHealthyHostCount        | Target 장애 감지       |
+| EC2 ASG    | CPU, Request              | 스케일링 판단          |
+| ProxySQL   | backend status            | DB 노드 장애 확인      |
+| PXC        | wsrep status              | 클러스터 정합성 확인   |
+| Ceph       | health status             | 백업 저장소 상태 확인  |
 
 ## 4. 시연 시나리오
 
@@ -34,15 +38,16 @@
 
 1. GitHub Actions 실행
 2. ECR 이미지 확인
-3. ECS Service 배포 확인
-4. ALB URL 접속
+3. Argo CD Application sync 확인
+4. Kubernetes Deployment rollout 확인
+5. Service 또는 Ingress URL 접속
 
 ### 4.2 앱 장애 시연
 
 1. 잘못된 이미지 또는 Health Check 실패 유도
-2. ALB Target 상태 확인
-3. ECS Event 확인
-4. 롤백 수행
+2. Argo CD sync 상태 또는 Kubernetes rollout 상태 확인
+3. CloudWatch 또는 Grafana 지표 확인
+4. 이전 Git revision 또는 image tag로 롤백 수행
 
 ### 4.3 DB/백업 시연
 
@@ -53,8 +58,9 @@
 
 ## 5. 완료 기준
 
-- [ ] CloudWatch Logs에서 앱 로그 확인
-- [ ] ALB/ECS 기본 알람 생성
+- [ ] Argo CD와 Kubernetes 배포 상태 확인
+- [ ] CloudWatch 또는 Grafana에서 앱 로그와 지표 확인
+- [ ] ALB/EC2 기본 알람 생성
 - [ ] DB/Ceph 상태 확인 명령 정리
 - [ ] 시연 스크립트와 캡처 준비
 - [ ] 발표 리허설에서 15분 내 설명 가능

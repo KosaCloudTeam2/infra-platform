@@ -169,16 +169,16 @@ terraform -chdir=infra/terraform plan -var-file=env/dev.tfvars
 - `infra/terraform/env/dev.tfvars`의 `github_repository = "OWNER/REPO"`가 실제 저장소명으로 바뀌어
   있음
 - AWS 리전이 팀 기준과 일치함
-- 비용 발생 리소스(ALB, NAT Gateway, Fargate, EC2, WAF)를 생성해도 되는 시점임
+- 비용 발생 리소스(ALB, NAT Gateway, EC2, WAF)를 생성해도 되는 시점임
 - 팀에서 정한 apply 담당자와 state 파일 보관 위치가 명확함
 
 `plan` 결과 검토 기준:
 
-- ECS Task는 App Private Subnet에 배치됨
+- AWS burst app EC2는 App Private Subnet에 배치됨
 - ProxySQL과 PXC EC2는 Data Private Subnet에 배치되고 Public IP가 없음
 - DB 관련 포트가 `0.0.0.0/0`에 열리지 않음
 - GitHub OIDC Role의 trust policy가 실제 저장소로 제한됨
-- WAF, CloudWatch Log Group, ECS Deployment Circuit Breaker가 포함됨
+- WAF, CloudWatch Log Group, AWS EC2 Auto Scaling 기준이 포함됨
 - 예기치 않은 고비용 리소스 또는 불필요한 공개 리소스가 없음
 
 `apply`는 팀 합의 후 담당자 1명만 실행함.

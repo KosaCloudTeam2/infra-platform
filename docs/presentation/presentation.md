@@ -9,7 +9,7 @@ size: 16:9
 
 13일 구축 + 3일 발표 준비
 
-AWS ECS Fargate 기반 안전한 컨테이너 배포 플랫폼
+온프레미스 Kubernetes + AWS EC2 burst 기반 하이브리드 배포 플랫폼
 
 ---
 
@@ -24,16 +24,16 @@ AWS ECS Fargate 기반 안전한 컨테이너 배포 플랫폼
 
 # 2. 구현 범위
 
-| 영역          | 구현 내용                                  |
-| :------------ | :----------------------------------------- |
-| Network       | VPC, Public/Private Subnet, ALB, SG        |
-| Runtime       | ECS Fargate, Task Definition, Auto Scaling |
-| CI/CD         | GitHub Actions, OIDC, ECR, ECS Deploy      |
-| Security      | IAM Role, WAF, Secrets Manager             |
-| Data          | Percona XtraDB Cluster, ProxySQL           |
-| Storage       | Ceph RGW 백업, RBD/PVC 확장                |
-| Observability | CloudWatch Logs, Metrics, Alarm            |
-| Demo          | 장애 유도, 롤백, DB 백업 시연              |
+| 영역          | 구현 내용                                     |
+| :------------ | :-------------------------------------------- |
+| Network       | VPC, Public/Private Subnet, ALB, SG           |
+| Runtime       | 온프레미스 Kubernetes, AWS EC2 burst, Argo CD |
+| CI/CD         | GitHub Actions, OIDC, ECR, GitOps Deploy      |
+| Security      | IAM Role, WAF, Secrets Manager                |
+| Data          | Percona XtraDB Cluster, ProxySQL              |
+| Storage       | Ceph RGW 백업, RBD/PVC 확장                   |
+| Observability | CloudWatch Logs, Metrics, Alarm               |
+| Demo          | 장애 유도, 롤백, DB 백업 시연                 |
 
 ---
 
@@ -41,29 +41,44 @@ AWS ECS Fargate 기반 안전한 컨테이너 배포 플랫폼
 
 ```mermaid
 flowchart TD
-    User["User"] --> WAF["AWS WAF"]
-    WAF --> ALB["ALB"]
-    ALB --> ECS["ECS Fargate Service"]
+    User["User"] --> Traffic["DNS / Manual endpoint"]
+    Traffic --> Ingress["On-prem K8s Ingress"]
+    Traffic --> WAF["AWS WAF"]
+    WAF --> ALB["AWS ALB"]
+    ALB --> Burst["AWS EC2 ASG Burst App"]
     GitHub["GitHub"] --> Actions["GitHub Actions OIDC"]
     Actions --> ECR["ECR"]
-    ECR --> ECS
-    ECS --> Proxy["ProxySQL"]
+    Actions --> Manifest["K8s Manifest"]
+    Manifest --> Argo["Argo CD"]
+    Argo --> K8s["On-prem Kubernetes App"]
+    K8s -. "metrics" .-> Prom["Prometheus optional"]
+    Prom -. "dashboard" .-> Grafana["Grafana optional"]
+    Ingress --> K8s
+    K8s --> Proxy["ProxySQL"]
+    Burst --> Proxy
     Proxy --> PXC["Percona XtraDB Cluster"]
     PXC --> Backup["XtraBackup"]
     Backup --> Ceph["Ceph RGW"]
-    ECS --> Logs["CloudWatch Logs"]
-    ECS --> Metrics["CloudWatch Metrics / Alarm"]
+    Ceph -. "OSD / pool / RGW status" .-> Prom
+    Burst --> Logs["CloudWatch Logs"]
+    ALB --> Metrics["CloudWatch Metrics / Alarm"]
 ```
+
+- 기본 앱 경로: User -> On-prem K8s Ingress -> Kubernetes App
+- AWS burst 경로: User -> WAF/ALB -> EC2 ASG Burst App
+- 배포 경로: GitHub Actions -> ECR/Manifest -> Argo CD -> Kubernetes
+- 데이터 경로: App -> ProxySQL -> PXC -> XtraBackup -> Ceph RGW
+- 관측 경로: CloudWatch는 AWS, Prometheus/Grafana는 온프레미스와 Ceph 중심
 
 ---
 
 # 4. 네트워크 설계
 
 - Public Subnet: ALB, NAT Gateway
-- Private Subnet: ECS Task
+- Private Subnet: AWS burst 앱 EC2, ProxySQL/PXC
 - ALB Security Group: 80/443 from Internet
-- ECS Security Group: App Port from ALB SG only
-- NAT Gateway: Private Task의 ECR/외부 API 접근 경로
+- AWS burst app Security Group: App Port from ALB SG only
+- NAT Gateway: Private 리소스의 ECR/외부 API 접근 경로
 
 ---
 
@@ -106,7 +121,9 @@ sequenceDiagram
 | :----------- | :--------------------------------------- |
 | ALB          | Request Count, 5xx, Target Response Time |
 | Target Group | UnHealthyHostCount                       |
-| ECS          | CPU, Memory, Running Task                |
+| Argo CD      | Sync, Health                             |
+| Kubernetes   | Pod Ready, Rollout                       |
+| EC2 ASG      | CPU, Request                             |
 | Logs         | Application stdout/stderr                |
 
 ---
@@ -127,17 +144,17 @@ sequenceDiagram
 
 1. 잘못된 이미지 또는 환경 변수 배포
 2. ALB Health Check 실패
-3. ECS Service Event 확인
-4. CloudWatch Logs로 원인 확인
-5. Deployment Circuit Breaker 또는 수동 롤백
+3. Argo CD와 Kubernetes rollout 상태 확인
+4. CloudWatch 또는 Grafana 지표로 원인 확인
+5. 이전 Git revision 또는 image tag로 롤백
 6. 정상 응답 복구 확인
 
 ---
 
 # 10. 비용 최적화
 
-- Fargate 256 CPU / 512 MiB 기준 시작
-- Desired Count 2, Max Count 4
+- EKS control plane 상시 비용 제외
+- AWS EC2 burst 최소/최대 용량 제한
 - CloudWatch Log 보존 7일
 - NAT Gateway 수는 비용과 가용성 균형 기준으로 결정
 - 발표 후 비용 발생 리소스 정리
@@ -146,13 +163,12 @@ sequenceDiagram
 
 # 11. 팀 역할
 
-| 역할                   | 책임                                    |
-| :--------------------- | :-------------------------------------- |
-| Lead / Architecture    | 일정, 설계, 통합 검수, 발표             |
-| Network / IaC          | VPC, Subnet, ALB, SG, Terraform         |
-| Platform / Runtime     | ECS, ECR, Task Definition, Auto Scaling |
-| Data / Storage         | PXC, ProxySQL, Ceph RGW 백업            |
-| CI/CD / Security / Ops | GitHub Actions, OIDC, WAF, CloudWatch   |
+| 역할                               | 책임                                          |
+| :--------------------------------- | :-------------------------------------------- |
+| Observability / Integration / Demo | 관측성, 통합 검증, 장애 시나리오, 발표 흐름   |
+| Cloud / Network / IaC              | VPC, Subnet, ALB, SG, WAF, EC2 ASG, Terraform |
+| DB / Storage                       | PXC, ProxySQL, Ceph RGW 백업                  |
+| CI/CD / App Runtime                | GitHub Actions, ECR, Argo CD, K8s 배포        |
 
 ---
 
@@ -175,4 +191,4 @@ sequenceDiagram
 - ProxySQL 이중화와 Internal NLB
 - AWS S3 2차 백업 복제
 - Ceph CSI 기반 Kubernetes PVC
-- EKS와 GitOps 기반 고급 확장
+- EKS 기반 하이브리드 Kubernetes 전환

@@ -6,7 +6,7 @@
 - GitHub Actions는 OpenID Connect(OIDC) 기반 Identity and Access Management(IAM) Role Assume 방식
   사용
 - Public Subnet에는 ALB만 배치함
-- 애플리케이션 Task는 Private Subnet 배치를 기본값으로 함
+- 애플리케이션 런타임은 Private Subnet 또는 온프레미스 Kubernetes 내부 배치를 기본값으로 함
 - ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 Private Data Subnet에만 배치하고 Public IP를
   부여하지 않음
 - Security Group(SG)은 출발지 SG 기준으로 최소 허용함
@@ -14,11 +14,11 @@
 
 ## 2. IAM 역할
 
-| Role                 | 용도       | 주요 권한                                                                                      |
-| :------------------- | :--------- | :--------------------------------------------------------------------------------------------- |
-| GitHubDeployRole     | CI/CD 배포 | Elastic Container Registry(ECR) Push, Elastic Container Service(ECS) Deploy, iam:PassRole 제한 |
-| ECSTaskExecutionRole | ECS 실행   | ECR Pull, CloudWatch Logs Write                                                                |
-| ECSTaskRole          | 앱 런타임  | Secrets Manager Read, 필요 시 Simple Storage Service(S3) Read/Write                            |
+| Role             | 용도           | 주요 권한                                                                                 |
+| :--------------- | :------------- | :---------------------------------------------------------------------------------------- |
+| GitHubDeployRole | CI/CD 배포     | Elastic Container Registry(ECR) Push, manifest 갱신, AWS fallback 배포, iam:PassRole 제한 |
+| EC2InstanceRole  | AWS burst 실행 | ECR Pull, CloudWatch Logs Write, 필요한 Secret Read                                       |
+| ECSTaskRole      | ECS fallback   | Secrets Manager Read, 필요 시 Simple Storage Service(S3) Read/Write                       |
 
 ## 3. 팀원 AWS 접근 원칙
 
@@ -50,13 +50,13 @@
 
 13일 MVP에서는 과도한 권한 분산보다 안전한 운영 경계를 우선함.
 
-| 대상                     | 권장 접근                                          | 설명                           |
-| :----------------------- | :------------------------------------------------- | :----------------------------- |
-| 팀원 1 Project Lead      | ReadOnly + 제한된 운영 확인 권한                   | 발표/검수/CloudWatch 확인 중심 |
-| 팀원 2 Network/IaC       | Terraform plan 중심, apply는 합의된 담당자만       | VPC, ALB, SG 변경 책임         |
-| 팀원 3 DB/Storage        | EC2 Systems Manager(SSM) 접속, CloudWatch/EC2 확인 | PXC/ProxySQL/Ceph 구성 책임    |
-| 팀원 4 CI/CD/App Runtime | ECR/ECS/GitHub Actions 확인                        | 배포와 앱 런타임 책임          |
-| Terraform apply 담당자   | 별도 관리자 승인 또는 임시 상승 권한               | 팀 apply는 1명으로 제한        |
+| 대상                             | 권장 접근                                          | 설명                                     |
+| :------------------------------- | :------------------------------------------------- | :--------------------------------------- |
+| 팀원 1 Observability/Integration | ReadOnly + 제한된 운영 확인 권한                   | 관측성, 통합 검증, 발표 캡처 확인 중심   |
+| 팀원 2 Cloud/Network/IaC         | Terraform plan 중심, apply는 합의된 담당자만       | VPC, ALB, SG, WAF, EC2 ASG 변경 책임     |
+| 팀원 3 DB/Storage                | EC2 Systems Manager(SSM) 접속, CloudWatch/EC2 확인 | PXC/ProxySQL/Ceph 구성 책임              |
+| 팀원 4 CI/CD/App Runtime         | ECR, Argo CD, GitHub Actions 확인                  | 이미지 빌드, GitOps 배포, 앱 런타임 책임 |
+| Terraform apply 담당자           | 별도 관리자 승인 또는 임시 상승 권한               | 팀 apply는 1명으로 제한                  |
 
 ### 3.2 실습용 단일 그룹 예외
 
@@ -103,13 +103,13 @@ IAM User 생성 기준:
 
 ## 4. 네트워크 보안
 
-| 대상        | Inbound                                           | Outbound           |
-| :---------- | :------------------------------------------------ | :----------------- |
-| ALB SG      | 80/443 from Internet                              | App Port to ECS SG |
-| ECS SG      | App Port from ALB SG                              | HTTPS 443          |
-| ProxySQL SG | 6033 from ECS SG                                  | 3306 to PXC SG     |
-| PXC SG      | 3306 from ProxySQL SG, 4567/4568/4444 from PXC SG | 제한               |
-| Ceph RGW    | HTTPS from allowed CIDR/VPN only                  | 제한               |
+| 대상             | Inbound                                                | Outbound                     |
+| :--------------- | :----------------------------------------------------- | :--------------------------- |
+| ALB SG           | 80/443 from Internet                                   | App Port to AWS burst app SG |
+| AWS burst app SG | App Port from ALB SG                                   | HTTPS 443, ProxySQL 6033     |
+| ProxySQL SG      | 6033 from AWS burst app SG 또는 허용된 온프레미스 CIDR | 3306 to PXC SG               |
+| PXC SG           | 3306 from ProxySQL SG, 4567/4568/4444 from PXC SG      | 제한                         |
+| Ceph RGW         | HTTPS from allowed CIDR/VPN only                       | 제한                         |
 
 DB 관련 포트는 인터넷 전체(`0.0.0.0/0`)에 열지 않음. 운영 접속은 Secure Shell(SSH) 공개보다 SSM
 Session Manager 또는 제한된 Bastion 접근을 우선함.
@@ -135,7 +135,7 @@ Session Manager 또는 제한된 Bastion 접근을 우선함.
 - [ ] Access Key가 저장소에 없음
 - [ ] `.tfstate`가 커밋되지 않음
 - [ ] ALB 외 리소스가 인터넷에 직접 노출되지 않음
-- [ ] ECS Task Role 권한이 와일드카드로 열려 있지 않음
+- [ ] 앱 런타임 Role 권한이 와일드카드로 열려 있지 않음
 - [ ] 팀원별 AWS 접근 주체가 분리되어 있음
 - [ ] 공유 IAM User를 사용하지 않음
 - [ ] 콘솔 접근 사용자에 MFA가 활성화되어 있음

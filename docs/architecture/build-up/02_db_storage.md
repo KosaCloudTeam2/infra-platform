@@ -22,7 +22,7 @@ XtraBackup으로 수행하고 Ceph RGW에 저장함.
 
 ```mermaid
 flowchart TB
-    App["ECS App"] --> Proxy["ProxySQL :6033"]
+    App["App Runtime<br/>K8s Pod or AWS burst EC2"] --> Proxy["ProxySQL :6033"]
     Proxy --> PXC1["PXC Node 1<br/>Writer"]
     Proxy --> PXC2["PXC Node 2<br/>Reader"]
     Proxy --> PXC3["PXC Node 3<br/>Reader"]

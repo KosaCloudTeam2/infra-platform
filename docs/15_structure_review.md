@@ -25,7 +25,7 @@
 
 | 신규 문서                                                | 목적                             |
 | :------------------------------------------------------- | :------------------------------- |
-| `docs/architecture/build-up/01_network_iac.md`           | Network/IaC 담당 상세 구현       |
+| `docs/architecture/build-up/01_network_iac.md`           | Cloud/Network/IaC 담당 상세 구현 |
 | `docs/architecture/build-up/02_db_storage.md`            | DB/Storage 담당 상세 구현        |
 | `docs/architecture/build-up/03_cicd_app_runtime.md`      | CI/CD/App Runtime 담당 상세 구현 |
 | `docs/architecture/build-up/04_observability_demo.md`    | 관측성/시연 담당 상세 구현       |
@@ -89,9 +89,9 @@ Ceph RGW를 AWS 앱 또는 DB 백업 경로에서 사용하려면 네트워크 �
 
 13일 일정에서는 “PXC 백업 산출물 → Ceph RGW 업로드 확인”을 우선함.
 
-Proxmox를 온프레미스 플랫폼으로 사용할 경우 현재 AWS 아키텍처와 직접 충돌하지 않음. 다만 Proxmox는
-VM/LXC와 Ceph 운영 계층이고, AWS ECS Fargate 앱의 런타임 또는 블록 스토리지 계층이 아님. 따라서 AWS
-앱은 Proxmox/Ceph RBD를 직접 사용하지 않고 Ceph RGW의 S3 호환 API만 사용하도록 경계를 분리해야 함.
+Proxmox를 온프레미스 플랫폼으로 사용할 경우 현재 하이브리드 아키텍처와 직접 충돌하지 않음. 다만
+Proxmox는 VM/LXC와 Ceph 운영 계층이고, AWS burst 앱의 블록 스토리지 계층이 아님. 따라서 AWS 앱은
+Proxmox/Ceph RBD를 직접 사용하지 않고 Ceph RGW의 S3 호환 API만 사용하도록 경계를 분리해야 함.
 
 추가 주의:
 
@@ -100,10 +100,10 @@ VM/LXC와 Ceph 운영 계층이고, AWS ECS Fargate 앱의 런타임 또는 블�
 - Ceph RGW endpoint는 VPN 또는 제한된 IP 기반 HTTPS로 보호함
 - 2노드 Proxmox/Ceph 구성을 고가용성처럼 과장하지 않음
 
-### 3.5 GitHub Actions Task Definition
+### 3.5 GitHub Actions fallback Task Definition
 
-`.github/task-definition.json`에는 `ACCOUNT_ID` 플레이스홀더가 있음. 실제 GitHub 저장소 생성 후
-반드시 교체해야 함.
+`.github/task-definition.json`은 AWS-only ECS fallback 검증용 파일임. `ACCOUNT_ID` 플레이스홀더는
+실제 계정 ID를 저장소에 커밋하지 않도록 배포 시점에 치환해야 함.
 
 ### 3.6 Argo CD MVP 편입
 

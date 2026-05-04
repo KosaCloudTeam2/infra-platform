@@ -25,11 +25,11 @@ github_repository = "OWNER/REPO"
 github_repository = "team-name/cloud-infra-platform"
 ```
 
-### Elastic Container Service(ECS) Task Definition
+### Elastic Container Service(ECS) fallback Task Definition
 
-`.github/task-definition.json`은 `__AWS_ACCOUNT_ID__` 플레이스홀더를 사용함. `Deploy to ECS`
-workflow가 `aws sts get-caller-identity` 결과로 배포 시점에 치환하므로 저장소에 실제 AWS 계정 ID를
-커밋하지 않음.
+`.github/task-definition.json`은 AWS-only fallback 검증용 파일임. `__AWS_ACCOUNT_ID__`
+플레이스홀더를 사용하며, `Deploy to ECS` workflow가 `aws sts get-caller-identity` 결과로 배포 시점에
+치환하므로 저장소에 실제 AWS 계정 ID를 커밋하지 않음.
 
 ## 3. Branch Protection 권장
 
@@ -40,19 +40,19 @@ workflow가 `aws sts get-caller-identity` 결과로 배포 시점에 치환하�
 
 ## 4. Deploy Workflow 활성화 기준
 
-현재 `Deploy to ECS` workflow는 push 실패 방지를 위해 수동 실행만 허용함. 자동 배포는 아래 조건 확인
-후 활성화함.
+현재 AWS deploy workflow는 push 실패 방지를 위해 수동 실행만 허용함. Argo CD 기반 GitOps 배포를 기본
+경로로 검증하고, AWS-only fallback 자동 배포는 아래 조건 확인 후 활성화함.
 
 - Terraform apply 완료
 - `AWS_DEPLOY_ROLE_ARN` Secret 등록 완료
 - OIDC Trust Policy의 `github_repository` 값이 실제 저장소와 일치
-- 수동 `Deploy to ECS` workflow 1회 성공
+- 수동 `Deploy to ECS` 또는 해당 fallback workflow 1회 성공
 - ECR/ECS/ALB 리소스 생성 확인
 
-자동 배포가 필요하면 `.github/workflows/deploy.yml`의 `push` 트리거 주석을 복원함.
+fallback 자동 배포가 필요하면 `.github/workflows/deploy.yml`의 `push` 트리거 주석을 복원함.
 
 ## 5. Repository Description 예시
 
 ```text
-13+3 day cloud infrastructure project: AWS ECS Fargate, ALB, ECR, GitHub Actions OIDC, CloudWatch, WAF
+13+3 day hybrid infrastructure project: Kubernetes, Argo CD, AWS EC2 burst, ALB, ECR, GitHub Actions OIDC
 ```

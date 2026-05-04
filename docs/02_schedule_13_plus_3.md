@@ -41,7 +41,7 @@
 | Day 8  | 데이터 계층                 | DB/Ceph 시연 범위 확정                                            | DB Subnet/SG 규칙 검토, 0.0.0.0/0 DB 포트 차단 확인                | PXC 3노드, ProxySQL 1대 MVP 구성 완료 목표                                  | Argo CD Application sync, 앱에서 ProxySQL endpoint 접속 테스트             |
 | Day 9  | 관측성/백업                 | 관측 지표 목록 확정                                               | ALB 4xx/5xx Metric 확인                                            | Percona XtraBackup → Ceph RGW 업로드 테스트, ProxySQL 이중화 적용 여부 결정 | CloudWatch Logs, Alarm, Dashboard 구성                                     |
 | Day 10 | Auto Scaling/복구           | 부하 시나리오 정의                                                | ALB Target Response Time 확인, 네트워크 장애 시나리오 정리         | PXC 노드 장애, ProxySQL backend 제외 시나리오 검토                          | AWS EC2 Auto Scaling, 부하 테스트 스크립트와 CloudWatch 알람 연동 확인     |
-| Day 11 | 롤백/복구                   | 장애 시나리오 표준화                                              | 네트워크 차단/SG 오설정 복구 절차 작성                             | DB 장애/백업 복구 시연 절차 작성                                            | Task 장애/헬스체크 실패/배포 실패 롤백 runbook 작성                        |
+| Day 11 | 롤백/복구                   | 장애 시나리오 표준화                                              | 네트워크 차단/SG 오설정 복구 절차 작성                             | DB 장애/백업 복구 시연 절차 작성                                            | Pod 장애/헬스체크 실패/배포 실패 롤백 runbook 작성                         |
 | Day 12 | 통합 테스트                 | 전체 시연 흐름 1차 리허설                                         | Terraform 재현성 검증                                              | DB 백업, Ceph 업로드, ProxySQL 경유 접속 검증                               | GitHub Actions/Argo CD 재실행과 실패 케이스, 앱-DB 연결 검증               |
 | Day 13 | 비용/성능 정리 및 구축 마감 | 최종 산출물 점검, 발표 핵심 메시지 작성, 누락 항목 결정           | ALB, EC2 burst, EC2 DB 비용 추정 정리, IaC README 정리             | EC2 DB, ProxySQL, Ceph 운영 기준과 명령 정리                                | WAF/CloudWatch/CI/CD 비용과 보안 효과 정리, 로그 캡처 정리                 |
 | Day 14 | 발표 자료 초안              | 발표 목차, 스토리라인 작성                                        | 네트워크 다이어그램 슬라이드 작성                                  | DB/Storage 슬라이드 작성                                                    | CI/CD/App Runtime 슬라이드 작성                                            |
@@ -87,7 +87,7 @@
 - Kubernetes manifest 또는 Helm chart 배포 절차
 - AWS EC2 Launch Template 앱 bootstrap 절차 정의 지원
 - Docker 이미지 실행 조건 정리
-- AWS EC2 Auto Scaling 정책은 Cloud/IaC 담당과 공동 검증
+- AWS EC2 Auto Scaling 정책은 Cloud/Network/IaC 담당과 공동 검증
 - Kubernetes/EC2 burst 장애 복구 runbook
 - GitHub Actions workflow
 - OIDC IAM Role 및 최소 권한 정책

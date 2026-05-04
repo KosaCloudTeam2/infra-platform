@@ -56,8 +56,8 @@
 
 - GitHub Actions OIDC Provider
 - Deploy Role
-- ECS Task Execution Role
-- ECS Task Role
+- GitHub Actions Deploy Role
+- EC2 Instance Role 또는 Kubernetes Secret 접근 Role
 - Secrets Manager
 - WAF Managed Rule
 - Security Group 최소 허용
@@ -115,6 +115,6 @@
 - 복잡한 권한 관리 UI
 - 멀티 리전 Active-Active
 - 운영 수준의 DR 자동화
-- AWS ECS Task에서 Proxmox/Ceph RBD 직접 마운트
+- AWS burst 앱에서 Proxmox/Ceph RBD 직접 마운트
 - Proxmox 관리 UI 인터넷 공개
 - EKS control plane 상시 운영

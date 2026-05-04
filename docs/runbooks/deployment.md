@@ -240,7 +240,7 @@ aws elbv2 describe-target-health `
 - Argo CD Application `Synced` 상태
 - Argo CD Application `Healthy` 상태
 - Kubernetes Deployment rollout 성공
-- ECS Service `runningCount`가 `desiredCount`와 동일함
+- AWS-only ECS fallback 사용 시 ECS Service `runningCount`가 `desiredCount`와 동일함
 - Target Health가 `healthy`임
 - ALB URL로 앱 응답 확인 가능함
 - CloudWatch Logs에 신규 컨테이너 로그가 기록됨

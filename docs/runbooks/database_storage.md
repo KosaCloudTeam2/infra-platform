@@ -17,14 +17,14 @@ Percona XtraDB Cluster, ProxySQL, Ceph RGW 백업 검증 절차
 
 ## 2. 책임 경계
 
-| 작업                    | 주 담당                        | 설명                                                    |
-| :---------------------- | :----------------------------- | :------------------------------------------------------ |
-| DB용 EC2 Terraform 골격 | Network/IaC                    | Data Private Subnet, SG, SSM Role, EC2 생성             |
-| PXC 설치/클러스터 구성  | DB/Storage                     | DB 패키지, Galera 설정, 계정/권한                       |
-| ProxySQL 구성           | DB/Storage                     | hostgroup, query rule, backend health                   |
-| 앱-DB 연결              | CI/CD/App Runtime + DB/Storage | ECS Secret/환경변수와 ProxySQL endpoint 접속 검증       |
-| DB 포트 정책            | Network/IaC + DB/Storage       | `6033`, `3306`, `4567/4568/4444`, `6032` 허용 범위 리뷰 |
-| Proxmox/Ceph 운영 경계  | DB/Storage + Project Lead      | Proxmox 관리 UI 비공개, RGW endpoint 접근 경로 결정     |
+| 작업                    | 주 담당                                | 설명                                                     |
+| :---------------------- | :------------------------------------- | :------------------------------------------------------- |
+| DB용 EC2 Terraform 골격 | Cloud/Network/IaC                      | Data Private Subnet, SG, SSM Role, EC2 생성              |
+| PXC 설치/클러스터 구성  | DB/Storage                             | DB 패키지, Galera 설정, 계정/권한                        |
+| ProxySQL 구성           | DB/Storage                             | hostgroup, query rule, backend health                    |
+| 앱-DB 연결              | CI/CD/App Runtime + DB/Storage         | Kubernetes Secret/환경변수와 ProxySQL endpoint 접속 검증 |
+| DB 포트 정책            | Cloud/Network/IaC + DB/Storage         | `6033`, `3306`, `4567/4568/4444`, `6032` 허용 범위 리뷰  |
+| Proxmox/Ceph 운영 경계  | DB/Storage + Observability/Integration | Proxmox 관리 UI 비공개, RGW endpoint 접근 경로 결정      |
 
 ---
 
@@ -123,7 +123,7 @@ SELECT rule_id, active, match_pattern, destination_hostgroup FROM runtime_mysql_
 - Proxmox 관리 UI 장애와 Ceph RGW 장애를 구분함
 - Proxmox VM 백업은 PXC 논리 백업을 대체하지 않음
 - Ceph RGW가 중단되면 DB 백업 산출물은 임시 로컬 경로에 보관한 뒤 복구 후 재업로드함
-- Proxmox/Ceph 관리망 장애는 AWS ECS 앱 실행에는 직접 영향을 주지 않아야 함
+- Proxmox/Ceph 관리망 장애는 AWS burst 앱 실행에는 직접 영향을 주지 않아야 함
 - AWS 앱이 Ceph RGW에 파일 업로드를 직접 수행하는 경우, RGW 장애 시 앱 기능 저하 범위를 별도로
   기록함
 

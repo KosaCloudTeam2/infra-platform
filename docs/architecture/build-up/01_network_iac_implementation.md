@@ -1,11 +1,11 @@
-# 01 Network / IaC Implementation
+# 01 Cloud / Network / IaC Implementation
 
 담당: 팀원 2
 
 ## 1. 목표
 
-Terraform으로 VPC, Subnet, ALB, Security Group, DB용 EC2 골격을 재현 가능하게 구성함. 외부 진입점은
-ALB로 제한하고, ECS와 DB 계층은 Private Subnet에 배치함.
+Terraform으로 VPC, Subnet, ALB, Security Group, EC2 Auto Scaling Group, DB용 EC2 골격을 재현
+가능하게 구성함. AWS burst 진입점은 ALB로 제한하고, 앱 EC2와 DB 계층은 Private Subnet에 배치함.
 
 ## 2. 사전 조건
 
@@ -19,7 +19,7 @@ ALB로 제한하고, ECS와 DB 계층은 Private Subnet에 배치함.
 1. VPC와 Public/App Private/Data Private Subnet CIDR 확인
 2. Internet Gateway, NAT Gateway, Route Table 구성 확인
 3. ALB, Target Group, Listener 구성 확인
-4. ALB SG, ECS SG, ProxySQL SG, PXC SG 규칙 확인
+4. ALB SG, AWS burst app SG, ProxySQL SG, PXC SG 규칙 확인
 5. DB용 EC2와 ProxySQL EC2가 Data Private Subnet에 생성되는지 확인
 6. SSM Session Manager용 IAM Role과 Instance Profile 연결 확인
 7. 선택 확장 시 ProxySQL Internal NLB 구성 확인
@@ -52,10 +52,10 @@ enable_proxysql_internal_nlb = true
 ## 5. 검증 절차
 
 - `plan`에서 ALB만 Public Subnet에 배치되는지 확인
-- ECS Service의 `assign_public_ip = false` 확인
+- AWS burst app EC2의 `associate_public_ip_address = false` 확인
 - ProxySQL/PXC EC2의 `associate_public_ip_address = false` 확인
 - DB 포트 `3306`, `6033`, `4567/4568/4444`가 `0.0.0.0/0`에 열리지 않는지 확인
-- ECS SG에서 ProxySQL SG 또는 ProxySQL NLB SG로만 `6033` 접근하는지 확인
+- AWS burst app SG 또는 허용된 온프레미스 CIDR에서 ProxySQL SG로만 `6033` 접근하는지 확인
 - ProxySQL SG에서 PXC SG로만 `3306` 접근하는지 확인
 - PXC Galera 포트는 PXC SG self traffic으로 제한되는지 확인
 
@@ -70,9 +70,9 @@ enable_proxysql_internal_nlb = true
 
 ## 7. 인계 기준
 
-- CI/CD 담당자에게 ALB DNS, ECS Cluster/Service 이름, ProxySQL endpoint 인계
+- CI/CD 담당자에게 ALB DNS, AWS burst Target Group, ProxySQL endpoint 인계
 - DB/Storage 담당자에게 PXC/ProxySQL EC2 private IP와 SSM 접속 방식 인계
-- Project Lead에게 네트워크 보안 경계와 비용 리스크 인계
+- Observability / Integration 담당자에게 네트워크 보안 경계와 비용 리스크 인계
 
 ## 8. 주의 사항
 

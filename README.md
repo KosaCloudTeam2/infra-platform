@@ -6,11 +6,11 @@
 
 기존에 준비된 간단한 애플리케이션을 대상으로 클라우드 기반 배포 플랫폼을 구축함.
 
-- AWS 기반 네트워크, 컴퓨팅, 배포, 보안, 관측성 체계 구성
+- AWS 기반 네트워크, EC2 burst, 배포, 보안, 관측성 체계 구성
 - GitHub Actions와 OpenID Connect(OIDC)를 이용한 키 없는 이미지 빌드 자동화
 - Argo CD 기반 GitOps 배포로 Kubernetes manifest 동기화
-- 애플리케이션 로드 밸런서(Application Load Balancer, ALB), Elastic Container Service(ECS) Fargate,
-  Elastic Container Registry(ECR)를 이용한 컨테이너 배포
+- 애플리케이션 로드 밸런서(Application Load Balancer, ALB), Elastic Container Registry(ECR), EC2
+  Auto Scaling Group 기반 burst 영역 구성
 - CloudWatch, 웹 방화벽(Web Application Firewall, WAF), Secrets Manager 기반 운영 가드레일 구성
 - 장애 상황과 롤백 시나리오를 포함한 발표 데모 준비
 
@@ -30,7 +30,7 @@
 | 스토리지    | Ceph RGW/RBD/CephFS 활용 전략                                                      | [Ceph Usage Strategy](docs/13_ceph_usage_strategy.md)                 |
 | DB 운영     | PXC, ProxySQL, Ceph 백업 점검 절차                                                 | [DB & Ceph Runbook](docs/runbooks/database_storage.md)                |
 | 역할별 구축 | 팀원별 상세 구현 가이드                                                            | [Build-up Guide](docs/architecture/build-up/README.md)                |
-| 관측성      | CloudWatch Logs/Metrics/Alarm, 배포 상태 추적                                      | [Monitoring Runbook](docs/runbooks/monitoring.md)                     |
+| 관측성      | CloudWatch 또는 Prometheus/Grafana, 배포 상태 추적                                 | [Monitoring Runbook](docs/runbooks/monitoring.md)                     |
 | 발표        | 장애 복구, 롤백, 보안 설계, 비용 최적화 설명                                       | [Presentation Plan](docs/06_demo_presentation_plan.md)                |
 | GitHub 설정 | OIDC Secret, Branch Protection, 플레이스홀더 교체                                  | [GitHub Setup](docs/11_github_setup.md)                               |
 | 공유 정책   | GitHub에 올릴 자료와 제외할 자료                                                   | [Repository Sharing Policy](docs/12_repository_sharing_policy.md)     |
@@ -44,7 +44,7 @@
 
 일정에 여유가 있을 때만 적용함.
 
-- Blue/Green 배포: CodeDeploy 또는 ECS Deployment Circuit Breaker 기반
+- Blue/Green 배포: Argo CD progressive sync 또는 CodeDeploy 기반
 - Route 53 + ACM 인증서 + HTTPS 도메인 연결
 - S3 + CloudFront 정적 자산 오프로딩
 - ProxySQL 이중화와 Internal NLB: `proxysql_count = 2`, `enable_proxysql_internal_nlb = true`

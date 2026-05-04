@@ -4,7 +4,7 @@
 
 - `main`: 발표 가능한 안정 상태
 - `feature/network-iac`: VPC/ALB/SG
-- `feature/ecs-runtime`: ECS/ECR/Task Definition
+- `feature/app-runtime`: Kubernetes/ECR/Argo CD
 - `feature/cicd-security`: GitHub Actions/IAM/WAF
 - `feature/observability`: CloudWatch/Alarm/Runbook
 - `docs/presentation`: 발표 자료
@@ -18,7 +18,7 @@ type(scope): summary
 예시
 
 - `feat(terraform): add vpc and alb baseline`
-- `feat(ecs): add fargate service definition`
+- `feat(k8s): add app deployment manifest`
 - `ci(github): add oidc based deploy workflow`
 - `docs(plan): add 13 plus 3 schedule`
 

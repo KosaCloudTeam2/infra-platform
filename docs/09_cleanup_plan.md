@@ -2,8 +2,9 @@
 
 ## 1. 정리 대상
 
-- ECS Service
-- ECS Cluster
+- AWS EC2 Auto Scaling Group
+- Launch Template
+- ECS fallback 리소스
 - ECR Repository 이미지
 - ALB / Target Group / Listener
 - WAF Web ACL

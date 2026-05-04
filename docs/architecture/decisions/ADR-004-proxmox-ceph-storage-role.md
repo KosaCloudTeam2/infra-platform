@@ -10,18 +10,18 @@ Accepted
 
 ## 배경
 
-온프레미스 장비는 Proxmox로 구성할 예정임. Proxmox는 VM/LXC와 Ceph 운영에 적합하지만, AWS ECS
-Fargate 앱의 런타임 또는 블록 스토리지 계층으로 직접 연결하면 네트워크 지연과 운영 복잡도가 커짐.
+온프레미스 장비는 Proxmox로 구성할 예정임. Proxmox는 VM/LXC와 Ceph 운영에 적합하지만, AWS burst 앱의
+블록 스토리지 계층으로 직접 연결하면 네트워크 지연과 운영 복잡도가 커짐.
 
 ## 결정
 
 Proxmox는 온프레미스 VM/LXC 및 Ceph 운영 플랫폼으로 사용함. AWS 앱과 PXC 백업은 Ceph RGW의 S3 호환
-API로만 연동함. Ceph RBD는 Proxmox VM 디스크 또는 온프레미스 Kubernetes 볼륨에 사용하고, AWS ECS
-Fargate에서는 직접 사용하지 않음.
+API로만 연동함. Ceph RBD는 Proxmox VM 디스크 또는 온프레미스 Kubernetes 볼륨에 사용하고, AWS burst
+앱 또는 ECS fallback에서는 직접 사용하지 않음.
 
 ## 대안
 
-- AWS ECS에서 Ceph RBD 직접 사용
+- AWS burst 앱에서 Ceph RBD 직접 사용
 - PXC 실시간 데이터 디스크를 온프레미스 Ceph에 배치
 - DB를 Proxmox VM으로 이동하고 AWS 앱과 VPN으로 연결
 - AWS S3만 백업 저장소로 사용

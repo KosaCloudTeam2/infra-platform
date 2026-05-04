@@ -10,10 +10,10 @@ Cloud Infra Deployment Platform: 안전하고 반복 가능한 컨테이너 배�
 2. 13+3 일정과 팀 역할
 3. 전체 아키텍처
 4. 네트워크 설계
-5. ECS Fargate 런타임
-6. GitHub Actions 기반 자동 배포
+5. 온프레미스 Kubernetes 런타임
+6. GitHub Actions와 Argo CD 기반 GitOps 배포
 7. IAM OIDC와 보안 정책
-8. CloudWatch 기반 관측성
+8. CloudWatch 또는 Prometheus/Grafana 기반 관측성
 9. 장애 대응 및 롤백 시연
 10. 비용 최적화와 한계
 11. 확장 계획
@@ -24,10 +24,11 @@ Cloud Infra Deployment Platform: 안전하고 반복 가능한 컨테이너 배�
 
 ## 3. 시연 순서
 
-1. GitHub Actions 배포 실행
+1. GitHub Actions 이미지 빌드 실행
 2. ECR 이미지 확인
-3. ECS Service Deployment 확인
-4. ALB URL 접속
-5. 장애 유도
-6. 롤백 또는 자동 복구 확인
-7. CloudWatch Logs/Alarm 확인
+3. Argo CD Application sync 확인
+4. Kubernetes rollout 확인
+5. Service 또는 Ingress URL 접속
+6. 장애 유도
+7. 롤백 또는 자동 복구 확인
+8. CloudWatch 또는 Grafana 지표 확인

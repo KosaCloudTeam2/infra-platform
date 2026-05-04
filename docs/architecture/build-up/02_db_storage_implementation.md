@@ -9,7 +9,7 @@ EC2 기반 Percona XtraDB Cluster(PXC), ProxySQL, Percona XtraBackup, Ceph RGW �
 
 ## 2. 사전 조건
 
-- Network/IaC 담당자로부터 PXC/ProxySQL EC2 private IP와 SSM 접속 방식 인계
+- Cloud/Network/IaC 담당자로부터 PXC/ProxySQL EC2 private IP와 SSM 접속 방식 인계
 - PXC SG, ProxySQL SG가 내부망 기준으로 제한되어 있음
 - Ceph RGW endpoint, bucket, access key 전달 방식 확정
 - DB 비밀번호와 Ceph key는 저장소에 기록하지 않음

@@ -11,7 +11,7 @@ flowchart TD
     A["01 Cloud / Network / IaC"] --> B["02 DB / Storage"]
     A --> C["03 CI/CD / App Runtime"]
     B --> C
-    C --> D["04 Observability / Demo"]
+    C --> D["04 Observability / Integration / Demo"]
     D --> E["05 Presentation / Handover"]
 ```
 

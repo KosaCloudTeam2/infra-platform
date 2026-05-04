@@ -19,7 +19,7 @@
 | WP-13 | WAF/보안            | WAF Managed Rule, SG 최소 허용, DB 내부망 점검                                 | 팀원 2  | 팀원 4 |
 | WP-14 | 관측성              | Prometheus/Grafana 또는 CloudWatch, Logs, Metrics, Alarm, DB/Ceph 상태 지표    | 팀원 1  | 팀원 4 |
 | WP-15 | Auto Scaling        | AWS EC2 Auto Scaling Group, CloudWatch Alarm, 부하 테스트 기준                 | 팀원 2  | 팀원 1 |
-| WP-16 | 장애 대응           | Task 장애, 배포 실패, SG 오설정, DB 노드 장애 복구 시나리오                    | 팀원 1  | 전원   |
+| WP-16 | 장애 대응           | Pod 장애, 배포 실패, SG 오설정, DB 노드 장애 복구 시나리오                     | 팀원 1  | 전원   |
 | WP-17 | 비용 최적화         | EKS 미사용, EC2 burst 최소/최대 용량, EC2 DB, 로그 보존                        | 팀원 1  | 팀원 2 |
 | WP-18 | 발표/시연           | 담당 영역별 슬라이드, 시연 스크립트, 캡처, Q&A                                 | 전원    | 팀원 1 |
 | WP-19 | 발표 PDF 자동화     | Marp 원본 관리, PDF 변환 스크립트, 발표 산출물 버전 관리                       | 팀원 1  | 전원   |
@@ -51,17 +51,17 @@
 
 ## 4. 책임 경계
 
-| 경계               | 담당 원칙                                                                                               |
-| :----------------- | :------------------------------------------------------------------------------------------------------ |
-| 클라우드 범위      | Cloud/IaC 담당은 AWS 전체가 아니라 VPC, ALB, SG, WAF, EC2 ASG, Launch Template, Terraform 경계를 책임짐 |
-| CI/CD 범위         | CI/CD 담당은 GitHub Actions, ECR, Argo CD, Kubernetes manifest, 앱 배포와 롤백을 책임짐                 |
-| DB용 EC2 생성      | Network/IaC 담당이 Terraform 골격과 내부망 배치를 책임지고, DB 담당이 스펙과 디스크 요구사항을 제시함   |
-| DB 소프트웨어 구성 | DB/Storage 담당이 PXC, ProxySQL, 백업, 복구를 책임짐                                                    |
-| 앱 배포            | CI/CD/App Runtime 담당이 Argo CD 기반 Kubernetes 배포와 AWS burst 앱 환경변수/Secret 주입을 책임짐      |
-| 앱-DB 연결         | CI/CD/App Runtime 담당과 DB/Storage 담당이 공동 검증함                                                  |
-| DB 보안그룹        | Network/IaC 담당과 DB/Storage 담당이 공동 리뷰함                                                        |
-| 관측성             | Observability 담당이 K8s, Argo CD, ALB/EC2, DB/Ceph 상태 확인 기준과 대시보드/캡처를 통합함             |
-| 발표/시연          | 전원이 발표에 참여하고, 각 담당자가 자기 영역의 설명, 캡처, 시연, Q&A 대응을 책임짐                     |
+| 경계               | 담당 원칙                                                                                                       |
+| :----------------- | :-------------------------------------------------------------------------------------------------------------- |
+| 클라우드 범위      | Cloud/Network/IaC 담당은 AWS 전체가 아니라 VPC, ALB, SG, WAF, EC2 ASG, Launch Template, Terraform 경계를 책임짐 |
+| CI/CD 범위         | CI/CD 담당은 GitHub Actions, ECR, Argo CD, Kubernetes manifest, 앱 배포와 롤백을 책임짐                         |
+| DB용 EC2 생성      | Cloud/Network/IaC 담당이 Terraform 골격과 내부망 배치를 책임지고, DB 담당이 스펙과 디스크 요구사항을 제시함     |
+| DB 소프트웨어 구성 | DB/Storage 담당이 PXC, ProxySQL, 백업, 복구를 책임짐                                                            |
+| 앱 배포            | CI/CD/App Runtime 담당이 Argo CD 기반 Kubernetes 배포와 AWS burst 앱 환경변수/Secret 주입을 책임짐              |
+| 앱-DB 연결         | CI/CD/App Runtime 담당과 DB/Storage 담당이 공동 검증함                                                          |
+| DB 보안그룹        | Cloud/Network/IaC 담당과 DB/Storage 담당이 공동 리뷰함                                                          |
+| 관측성             | Observability 담당이 K8s, Argo CD, ALB/EC2, DB/Ceph 상태 확인 기준과 대시보드/캡처를 통합함                     |
+| 발표/시연          | 전원이 발표에 참여하고, 각 담당자가 자기 영역의 설명, 캡처, 시연, Q&A 대응을 책임짐                             |
 
 핵심 기준: **DB 담당은 DB가 접속 가능한 상태까지 책임지고, 앱 배포 담당은 앱이 ProxySQL endpoint를
 사용하도록 연결하는 것을 책임짐.**
