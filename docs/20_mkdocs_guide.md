@@ -6,8 +6,13 @@ Markdown 문서를 웹 사이트 형태로 확인하기 위한 MkDocs 사용 절
 
 ## 1. 목적
 
-MkDocs는 `docs/` 아래 Markdown 문서를 웹 문서 사이트로 확인하기 위한 선택 도구임. 문서 파일을
-이동하지 않고 `mkdocs.yml`의 navigation으로 현재 읽기 순서를 표현함.
+MkDocs는 `docs/` 아래 Markdown 문서를 웹 문서 사이트로 확인하기 위한 선택 도구임.
+
+Navigation 기준:
+
+- 루트 문서 파일명 번호 흐름 우선
+- `00~21` 순서와 MkDocs 좌측 메뉴 순서 일치
+- 문서 파일 대규모 이동보다 `mkdocs.yml`의 `nav` 조정 우선
 
 발표 PDF는 기존 Marp 절차를 계속 사용함.
 
@@ -50,4 +55,4 @@ uv run mkdocs build
 
 - `site/` 출력물은 커밋하지 않음
 - 원본 Markdown은 계속 `docs/` 아래에서 관리함
-- 문서 위치를 대규모 이동하기보다 `mkdocs.yml`의 `nav`를 먼저 조정함
+- 루트 문서 추가 시 파일명 번호와 `mkdocs.yml`의 `nav` 순서를 함께 확인함
