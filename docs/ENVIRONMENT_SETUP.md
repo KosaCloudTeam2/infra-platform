@@ -37,10 +37,32 @@
 
 Windows는 `nvm-windows`, macOS/Linux는 `nvm` 사용 권장
 
-```powershell
+Windows `cmd`에서 `nvm-windows` 설치:
+
+```cmd
+winget install CoreyButler.NVMforWindows
+```
+
+설치 후 기존 `cmd`를 닫고 새 `cmd`를 열어 확인:
+
+```cmd
+nvm version
+```
+
+Node.js LTS와 pnpm 설치:
+
+```cmd
 nvm install lts
 nvm use lts
 npm install -g pnpm
+```
+
+설치 확인:
+
+```cmd
+node --version
+npm --version
+pnpm --version
 ```
 
 ### 3.2 uv
