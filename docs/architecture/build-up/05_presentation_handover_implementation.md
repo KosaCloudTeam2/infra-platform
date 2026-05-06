@@ -70,7 +70,7 @@ pnpm run slides:pdf
 
 발표 후 정리 대상:
 
-- AWS burst EC2/ASG 또는 ECS fallback 리소스
+- AWS burst EC2/ASG 리소스
 - ALB
 - NAT Gateway
 - WAF Web ACL
@@ -80,6 +80,6 @@ pnpm run slides:pdf
 
 ## 8. 주의 사항
 
-- Day 14 이후에는 신규 기능보다 발표 안정화와 캡처 확보를 우선함
+- Day 14부터는 신규 기능보다 발표 안정화와 캡처 확보를 우선함
 - 실패한 기능은 숨기기보다 한계와 향후 과제로 정리함
 - 비용 발생 리소스는 발표 후 정리 여부를 팀장이 최종 확인함

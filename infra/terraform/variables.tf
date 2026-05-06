@@ -50,50 +50,68 @@ variable "health_check_path" {
   default     = "/health"
 }
 
-variable "task_cpu" {
-  description = "Fargate task CPU"
-  type        = number
-  default     = 256
+variable "app_image" {
+  description = "Docker image used by AWS burst EC2 instances"
+  type        = string
+  default     = "dockerhub-username/cloud-infra-app:latest"
 }
 
-variable "task_memory" {
-  description = "Fargate task memory"
-  type        = number
-  default     = 512
+variable "app_container_name" {
+  description = "Docker container name used on AWS burst EC2 instances"
+  type        = string
+  default     = "cloud-infra-app"
 }
 
-variable "desired_count" {
-  description = "ECS desired task count"
+variable "app_instance_type" {
+  description = "EC2 instance type for AWS burst app instances"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "app_min_size" {
+  description = "Minimum size for the AWS burst app Auto Scaling Group"
+  type        = number
+  default     = 0
+}
+
+variable "app_desired_capacity" {
+  description = "Desired capacity for the AWS burst app Auto Scaling Group"
+  type        = number
+  default     = 1
+}
+
+variable "app_max_size" {
+  description = "Maximum size for the AWS burst app Auto Scaling Group"
   type        = number
   default     = 2
 }
 
-variable "ecs_cpu_alarm_threshold" {
-  description = "ECS average CPU utilization alarm threshold"
+variable "app_cpu_target_value" {
+  description = "Target average CPU utilization for AWS burst EC2 target tracking"
+  type        = number
+  default     = 70
+}
+
+variable "app_cpu_alarm_threshold" {
+  description = "AWS burst EC2 average CPU utilization alarm threshold"
   type        = number
   default     = 80
 }
 
-variable "ecs_memory_alarm_threshold" {
-  description = "ECS average memory utilization alarm threshold"
+variable "app_volume_size" {
+  description = "Root EBS volume size for AWS burst app instances"
   type        = number
-  default     = 80
-}
-
-variable "image_tag" {
-  description = "Initial image tag"
-  type        = string
-  default     = "latest"
+  default     = 20
 }
 
 variable "app_environment" {
-  description = "Plain environment variables for the ECS app container"
+  description = "Plain environment variables for the AWS burst app container. Do not store secrets here."
   type        = map(string)
   default     = {}
 }
 
 variable "app_secrets" {
-  description = "ECS container secret mappings. Key is environment variable name, value is Secrets Manager ARN."
+  description = "Reserved for future secret injection design. MVP does not place secret values in Terraform state."
   type        = map(string)
   default     = {}
 }

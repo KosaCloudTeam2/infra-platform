@@ -8,7 +8,7 @@ Change Log가 “무엇이 바뀌었는가”를 기록한다면, ADR은 “왜 
 
 | ID      | 제목                                                                                              | 상태       | 날짜       | 요약                                                                                              |
 | :------ | :------------------------------------------------------------------------------------------------ | :--------- | :--------- | :------------------------------------------------------------------------------------------------ |
-| ADR-001 | [ECS Fargate를 MVP 런타임으로 선택](./ADR-001-ecs-fargate-mvp.md)                                 | Superseded | 2026-05-03 | ADR-007 채택 이후 ECS Fargate는 AWS-only fallback 또는 비교안으로 유지                            |
+| ADR-001 | [ECS Fargate를 MVP 런타임으로 선택](./ADR-001-ecs-fargate-mvp.md)                                 | Superseded | 2026-05-03 | ADR-007 채택 이후 ECS Fargate는 MVP에서 제외하고 비교안으로 유지                                  |
 | ADR-002 | [RDS 제외와 PXC/ProxySQL 채택](./ADR-002-rds-exclusion-pxc-proxysql.md)                           | Accepted   | 2026-05-03 | 직접 운영 DB 경험과 장애/백업 시연을 위해 EC2 기반 PXC와 ProxySQL을 사용                          |
 | ADR-003 | [ProxySQL 1대 MVP와 이중화 확장 경로](./ADR-003-proxysql-single-node-mvp.md)                      | Accepted   | 2026-05-03 | ProxySQL 1대는 MVP 기준이며 단일 장애점으로 명시, 여유 시 2대 + Internal NLB로 확장               |
 | ADR-004 | [Proxmox 기반 Ceph 스토리지 역할 분리](./ADR-004-proxmox-ceph-storage-role.md)                    | Accepted   | 2026-05-03 | Proxmox/Ceph는 온프레미스 스토리지 계층이고 AWS 앱은 RGW S3 API로만 접근                          |

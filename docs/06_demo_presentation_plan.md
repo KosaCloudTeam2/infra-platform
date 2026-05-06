@@ -27,7 +27,7 @@
 - 잘못된 이미지 태그 또는 헬스체크 실패 manifest 반영
 - Argo CD sync 실패 또는 Kubernetes rollout 실패 확인
 - 이전 정상 Git revision 또는 image tag로 복구
-- CloudWatch Logs와 Alarm 확인
+- Kubernetes/EC2 로그와 CloudWatch Alarm 확인
 
 ### 시연 3: 보안 설명
 
@@ -59,9 +59,9 @@
 영역별 시연 책임:
 
 - 팀원 1: 관측성 대시보드, 알람, 통합 시연 흐름, 발표 캡처 품질
-- 팀원 2: Terraform plan/apply, 네트워크/보안그룹, ALB/WAF/EC2 ASG 캡처
+- 팀원 2: Terraform plan/apply, 네트워크/보안그룹, IAM/OIDC, 비용 제한, ALB/WAF/EC2 ASG 캡처
 - 팀원 3: PXC/ProxySQL 상태, 백업 산출물, Ceph RGW 업로드 캡처
-- 팀원 4: GitHub Actions, Docker Hub 이미지, Argo CD sync, Kubernetes rollout 캡처
+- 팀원 4: GitHub Actions, Docker Hub 이미지, Argo CD sync 실행, Kubernetes rollout 캡처
 
 ## 4. 발표 자료 체크리스트
 

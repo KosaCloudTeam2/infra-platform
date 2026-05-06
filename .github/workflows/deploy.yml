@@ -1,11 +1,12 @@
-name: Deploy to ECS
+name: Refresh AWS Burst ASG
 
 on:
-  # Enable push trigger after Terraform apply, OIDC trust policy, and AWS_DEPLOY_ROLE_ARN secret are ready.
-  # push:
-  #   branches:
-  #     - main
   workflow_dispatch:
+    inputs:
+      asg_name:
+        description: "Auto Scaling Group name. Defaults to cloud-infra-dev-burst-app-asg."
+        required: false
+        type: string
 
 permissions:
   id-token: write
@@ -13,62 +14,32 @@ permissions:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REPOSITORY: cloud-infra-dev-app
-  ECS_CLUSTER: cloud-infra-dev-cluster
-  ECS_SERVICE: cloud-infra-dev-app
-  ECS_TASK_DEFINITION: .github/task-definition.json
-  CONTAINER_NAME: app
+  DEFAULT_ASG_NAME: cloud-infra-dev-burst-app-asg
 
 jobs:
-  deploy:
+  refresh-asg:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Prepare ECS task definition
-        id: prepare-task
+      - name: Start instance refresh
         shell: bash
         run: |
-          aws_account_id="$(aws sts get-caller-identity --query Account --output text)"
-          sed "s/__AWS_ACCOUNT_ID__/${aws_account_id}/g" "${ECS_TASK_DEFINITION}" > /tmp/task-definition.json
-          echo "task-definition=/tmp/task-definition.json" >> "$GITHUB_OUTPUT"
+          asg_name="${{ inputs.asg_name }}"
+          if [ -z "$asg_name" ]; then
+            asg_name="$DEFAULT_ASG_NAME"
+          fi
 
-      - name: Build, tag, and push image
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "$asg_name" \
+            --preferences MinHealthyPercentage=50,InstanceWarmup=300
+
+      - name: Show target health hint
+        shell: bash
         run: |
-          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" ./app
-          docker tag "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Render ECS task definition
-        id: render-task
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: ${{ steps.prepare-task.outputs.task-definition }}
-          container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
-
-      - name: Deploy ECS service
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render-task.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          echo "Instance refresh started. Check ALB Target Group health and CloudWatch alarms before demo."

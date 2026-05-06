@@ -4,7 +4,7 @@
 
 비용을 줄이면서 Kubernetes 운영 경험과 GitOps 배포 흐름을 보여주기 위함. 기본 앱은 온프레미스
 Kubernetes에서 실행하고, Argo CD는 Git 저장소의 manifest를 클러스터에 동기화함. ECS Fargate는
-AWS-only fallback 또는 비교안으로만 유지함.
+MVP에서 제외하고 AWS-only 비교안으로만 유지함.
 
 ## Q2. 왜 ALB를 사용했나?
 

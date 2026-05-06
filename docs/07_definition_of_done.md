@@ -10,7 +10,7 @@
 - [ ] AWS burst ALB Health Check가 정상임
 - [ ] CloudWatch Alarm으로 AWS EC2 scale-out/scale-in 기준이 확인됨
 - [ ] GitHub Actions로 배포가 자동화됨
-- [ ] CloudWatch Logs에서 앱 로그가 보임
+- [ ] Kubernetes logs 또는 EC2 Docker logs에서 앱 로그를 확인할 수 있음
 - [ ] 최소 1개 이상의 CloudWatch Alarm이 동작함
 - [ ] WAF 또는 SG 기반 보안 정책이 적용됨
 - [ ] 배포 실패 또는 앱 장애 롤백 시나리오가 검증됨

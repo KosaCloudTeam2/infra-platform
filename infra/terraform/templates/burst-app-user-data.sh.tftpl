@@ -1,0 +1,32 @@
+#!/bin/bash
+set -euxo pipefail
+
+apt-get update -y
+apt-get install -y ca-certificates curl
+
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+. /etc/os-release
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
+
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io
+
+systemctl enable --now docker
+
+cat >/etc/cloud-infra-app.env <<'ENV'
+PORT=${container_port}
+${app_environment_lines}
+ENV
+
+docker rm -f ${app_container_name} || true
+docker pull ${app_image}
+docker run \
+  --detach \
+  --restart unless-stopped \
+  --name ${app_container_name} \
+  --env-file /etc/cloud-infra-app.env \
+  --publish ${container_port}:${container_port} \
+  ${app_image}

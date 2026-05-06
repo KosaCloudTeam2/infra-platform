@@ -48,7 +48,7 @@ EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
    - 인증서, CNI, VPN, node bootstrap, Cluster Autoscaler 연동을 직접 책임져야 함
    - 학습 효과는 높지만 13일 MVP에는 위험함
 
-3. **기존 ECS Fargate MVP 유지**
+3. **ECS Fargate 비교안 유지**
    - AWS 안에서 ECS Task Auto Scaling을 빠르게 검증 가능
    - 온프레미스 Kubernetes 운영 경험과는 맞지 않음
    - 기존 Terraform과 CI/CD를 재사용하기 쉬운 fallback 또는 비교안으로 유지 가능
@@ -72,8 +72,7 @@ EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
 - 온프레미스 Kubernetes와 AWS EC2 ASG는 같은 Kubernetes cluster가 아님
 - 앱 배포 방식이 온프레미스 Kubernetes와 AWS EC2 burst 영역으로 나뉠 수 있음
 - 세션, 파일 업로드, DB 연결, 배포 버전 동기화 기준을 별도로 정해야 함
-- 기존 ECS 중심 Terraform, GitHub Actions, Runbook은 새 MVP와 일부 맞지 않으므로 단계적으로
-  재정렬해야 함
+- Terraform, GitHub Actions, Runbook 기본 경로는 EC2 ASG/ALB burst 기준으로 재정렬됨
 
 ## 권장 적용 방식
 
@@ -83,7 +82,7 @@ EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
 
 - Proxmox VM 기반 온프레미스 Kubernetes 구성
 - 임시 앱 또는 실제 앱을 Kubernetes Deployment/Service/Ingress로 배포
-- AWS에는 EC2 Auto Scaling Group과 ALB 기반 burst 영역 구성
+- AWS에는 EC2 Auto Scaling Group, Launch Template, ALB 기반 burst 영역 구성
 - CloudWatch Alarm으로 AWS EC2 scale-out/scale-in 기준 정의
 - DB는 기존 원칙대로 RDS를 제외하고 PXC/ProxySQL 또는 비용상 단순화한 DB 운영안을 별도 결정
 - Ceph는 온프레미스 Kubernetes PV와 RGW 백업 저장소로 역할 분리

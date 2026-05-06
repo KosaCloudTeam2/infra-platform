@@ -29,10 +29,10 @@ size: 16:9
 | Network       | VPC, Public/Private Subnet, ALB, SG           |
 | Runtime       | 온프레미스 Kubernetes, AWS EC2 burst, Argo CD |
 | CI/CD         | GitHub Actions, Docker Hub, GitOps Deploy     |
-| Security      | IAM Role, WAF, Secrets Manager                |
+| Security      | IAM Role, WAF, Kubernetes/GitHub Secret       |
 | Data          | Percona XtraDB Cluster, ProxySQL              |
 | Storage       | Ceph RGW 백업, RBD/PVC 확장                   |
-| Observability | CloudWatch Logs, Metrics, Alarm               |
+| Observability | CloudWatch Metrics, Alarm, K8s/EC2 logs       |
 | Demo          | 장애 유도, 롤백, DB 백업 시연                 |
 
 ---
@@ -60,7 +60,7 @@ flowchart TD
     PXC --> Backup["XtraBackup"]
     Backup --> Ceph["Ceph RGW"]
     Ceph -. "OSD / pool / RGW status" .-> Prom
-    Burst --> Logs["CloudWatch Logs"]
+    Burst --> Logs["EC2 Docker logs"]
     ALB --> Metrics["CloudWatch Metrics / Alarm"]
 ```
 
@@ -110,7 +110,7 @@ sequenceDiagram
 - 장기 AWS Access Key 미사용
 - IAM Role 최소 권한 분리
 - WAF Managed Rule과 Rate Limit 적용
-- Secrets Manager로 민감 값 주입
+- Kubernetes/GitHub Secret으로 민감 값 분리
 - Public/Private Subnet 분리
 
 ---
@@ -155,7 +155,7 @@ sequenceDiagram
 
 - EKS control plane 상시 비용 제외
 - AWS EC2 burst 최소/최대 용량 제한
-- CloudWatch Log 보존 7일
+- CloudWatch Alarm과 로그 보존 범위 최소화
 - NAT Gateway 수는 비용과 가용성 균형 기준으로 결정
 - 발표 후 비용 발생 리소스 정리
 

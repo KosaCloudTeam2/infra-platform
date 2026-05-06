@@ -26,7 +26,7 @@
 - AWS EC2 Launch Template
 - AWS EC2 Auto Scaling Group
 - AWS ALB Target Group
-- CloudWatch Log Group
+- CloudWatch Alarm
 
 ### 애플리케이션
 
@@ -53,6 +53,7 @@
 - Kubernetes manifest 또는 Helm chart 적용
 - Argo CD가 추적할 manifest 경로와 sync 정책 정의
 - AWS Launch Template의 앱 bootstrap 버전 갱신 절차
+- AWS burst app ASG instance refresh 수동 실행 절차
 
 ### 보안
 
@@ -60,13 +61,13 @@
 - Deploy Role
 - GitHub Actions Deploy Role
 - EC2 Instance Role 또는 Kubernetes Secret 접근 Role
-- Secrets Manager
+- Kubernetes Secret과 GitHub Secret
 - WAF Managed Rule
 - Security Group 최소 허용
 
 ### 관측성
 
-- Container Logs
+- Kubernetes 또는 EC2 local container logs
 - ALB 5xx Alarm
 - AWS EC2 CPU/Request 기반 scale-out/scale-in Alarm
 - Unhealthy Host Alarm
@@ -88,6 +89,8 @@
 - ACM 인증서와 HTTPS Listener
 - S3 + CloudFront 정적 자산 오프로딩
 - Blue/Green 배포
+- CloudWatch Agent 기반 EC2 container log 수집
+- AWS Secrets Manager 기반 AWS burst app secret 주입
 - Prometheus/Grafana 별도 운영
 - Loki 기반 Kubernetes 로그 조회
 - Locust 또는 JMeter 기반 부하 테스트
@@ -95,7 +98,8 @@
 - HAProxy VIP/Keepalived 기반 온프레미스 Ingress 앞단 이중화
 - PMM(Percona Monitoring and Management)
 - Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
-- Elastic Container Registry(ECR) 기반 AWS-only fallback 이미지 저장소
+- Elastic Container Registry(ECR) 기반 AWS-only 비교안 이미지 저장소
+- ECS Fargate 기반 AWS-only 비교안
 - Argo CD HA 구성과 SSO 연동
 - ProxySQL 2대 운영 시 설정 동기화 자동화
 - AWS S3 2차 백업 복제
@@ -104,7 +108,6 @@
 - EKS 기반 하이브리드 Kubernetes 전환 검토
 - AWS EC2를 직접 구축 Kubernetes worker node로 자동 join
 - Cluster Autoscaler 기반 AWS node 증감
-- 기존 ECS Fargate 기반 AWS-only fallback 유지
 - Vault, PKI, Keycloak 기반 보안 운영 고도화
 
 ### Kubernetes cloud bursting 구현 경계

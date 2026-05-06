@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: example.com/cloud-infra-app:latest
+          image: DOCKERHUB_USERNAME/cloud-infra-app:latest
           ports:
             - containerPort: 8080
           readinessProbe:

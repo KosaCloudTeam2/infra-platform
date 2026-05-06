@@ -95,7 +95,8 @@ flowchart LR
 
 ### 주의 사항
 
-- Ceph RGW endpoint, access key, secret key는 Secrets Manager에 저장
+- Ceph RGW endpoint, access key, secret key는 Kubernetes Secret, GitHub Secret, 또는 선택 확장
+  Secrets Manager에 저장
 - 인터넷을 통한 RGW 공개는 지양하고 VPN 또는 제한된 IP 기반 HTTPS 접근 권장
 - presigned URL 만료 시간, CORS, multipart upload 동작은 S3와 별도 검증 필요
 
@@ -121,7 +122,7 @@ flowchart LR
 
 ### 주의 사항
 
-- AWS burst 앱 또는 ECS fallback은 Ceph RBD를 직접 마운트하지 않음
+- AWS burst 앱은 Ceph RBD를 직접 마운트하지 않음
 - AWS에서 Ceph RBD를 직접 쓰려면 네트워크 지연, 커널 모듈, 운영 복잡도가 커짐
 - 따라서 AWS 앱은 RGW(S3 API)를 쓰고, 온프레미스 K8s/VM은 RBD를 쓰는 식으로 역할 분리
 
@@ -132,11 +133,11 @@ flowchart LR
 CloudWatch는 AWS 앱 로그의 기본 관측 체계로 사용하고, 장기 보관 또는 분석용 로그는 Ceph에 아카이브할
 수 있음.
 
-| 로그 유형         | 기본 위치                    | 장기 보관                 |
-| :---------------- | :--------------------------- | :------------------------ |
-| AWS burst 앱 로그 | CloudWatch Logs              | 필요 시 Ceph RGW로 export |
-| DB 로그           | EC2 local + CloudWatch Agent | Ceph RGW 아카이브         |
-| Loki/ELK 로그     | 선택 구축                    | Ceph Object/File Storage  |
+| 로그 유형         | 기본 위치                                  | 장기 보관                 |
+| :---------------- | :----------------------------------------- | :------------------------ |
+| AWS burst 앱 로그 | EC2 Docker logs 또는 선택 CloudWatch Agent | 필요 시 Ceph RGW로 export |
+| DB 로그           | EC2 local + CloudWatch Agent               | Ceph RGW 아카이브         |
+| Loki/ELK 로그     | 선택 구축                                  | Ceph Object/File Storage  |
 
 ---
 

@@ -18,7 +18,8 @@ Accepted
 Argo CD를 MVP 배포 경로에 포함함. GitHub Actions는 Docker 이미지 빌드와 Docker Hub push를 담당하고,
 Argo CD는 Git 저장소의 Kubernetes manifest 또는 Helm chart를 온프레미스 Kubernetes에 동기화함.
 
-AWS ECS 배포 workflow는 AWS-only fallback 또는 비교안으로 유지함.
+AWS burst 영역은 EC2 Auto Scaling Group 기준으로 두며, GitHub Actions의 AWS workflow는 필요한 경우
+ASG instance refresh를 수동 실행하는 용도로 제한함.
 
 ## 대안
 

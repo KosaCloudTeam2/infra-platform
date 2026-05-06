@@ -100,10 +100,18 @@ Proxmox/Ceph RBD를 직접 사용하지 않고 Ceph RGW의 S3 호환 API만 사�
 - Ceph RGW endpoint는 VPN 또는 제한된 IP 기반 HTTPS로 보호함
 - 2노드 Proxmox/Ceph 구성을 고가용성처럼 과장하지 않음
 
-### 3.5 GitHub Actions fallback Task Definition
+### 3.5 AWS burst 배포 경로
 
-`.github/task-definition.json`은 AWS-only ECS fallback 검증용 파일임. `ACCOUNT_ID` 플레이스홀더는
-실제 계정 ID를 저장소에 커밋하지 않도록 배포 시점에 치환해야 함.
+Terraform 기본 경로를 ECS Fargate에서 EC2 Auto Scaling Group과 Launch Template으로 재정렬함. AWS
+burst 앱은 App Private Subnet의 EC2에서 Docker Hub 이미지를 실행하고, ALB Target Group 뒤에 등록됨.
+
+주의:
+
+- `env/dev.tfvars`의 `app_image`는 실제 Docker Hub 이미지로 바꾼 뒤 apply해야 함
+- ASG `min/desired/max` 값은 비용 제한과 발표 시연 범위를 먼저 확인해야 함
+- 새 이미지 반영은 `Refresh AWS Burst ASG` workflow 또는 Terraform apply 후 instance refresh로
+  수행함
+- 과거 ECS fallback용 task definition은 MVP 혼선을 줄이기 위해 제거함
 
 ### 3.6 Argo CD MVP 편입
 
@@ -115,7 +123,7 @@ Argo CD를 MVP 배포 경로에 포함함. 이 결정으로 Kubernetes 배포 �
 - Day 8까지 Application sync 성공 필요
 - Day 13 이전 auto-sync 활성화 여부 결정 필요
 - Argo CD admin 초기 비밀번호 저장소 커밋 금지
-- AWS ECS workflow는 fallback 검증용으로 분리
+- AWS ASG refresh workflow는 수동 실행으로 유지
 - Argo CD HA 구성, SSO 연동, 고급 RBAC는 선택 확장
 
 ---
@@ -155,17 +163,17 @@ IP 대역은 다른 팀 예시를 사용하지 않고, AWS VPC `10.20.0.0/16`과
 
 ## 6. 다음 보완 후보
 
-| 후보                             | 우선순위 | 설명                                                                                                                          |
-| :------------------------------- | :------- | :---------------------------------------------------------------------------------------------------------------------------- |
-| Terraform S3 Backend             | 중       | 협업 중 state 충돌 방지                                                                                                       |
-| Ansible PXC 설치 Playbook        | 중       | DB 설치 반복성 확보                                                                                                           |
-| ProxySQL 2대 + Internal NLB      | 중       | Terraform 변수로 전환 가능, Day 9 이후 일정 여유 시                                                                           |
-| 비용 우선 하이브리드 구조 재정렬 | 높음     | 온프레미스 Kubernetes + AWS EC2 ASG/ALB burst로 결정했으므로 기존 ECS 중심 Terraform, CI/CD, Runbook을 단계적으로 재정렬 필요 |
-| Argo CD Application 구체화       | 높음     | MVP에 포함했으므로 설치 방법, Application manifest, sync 정책을 Day 8 전 확정 필요                                            |
-| Ceph RGW 연결 방식 확정          | 중       | VPN 또는 제한된 IP 기반 HTTPS 중 하나를 결정해야 백업 시연 안정화                                                             |
-| 실제 앱 교체 체크리스트          | 중       | 임시 앱과 실제 앱의 포트, health check, secret 조건 차이 흡수                                                                 |
-| MkDocs 문서 사이트               | 낮음     | 물리적 문서 이동보다 `docs/index.md`와 `mkdocs.yml` nav 기반 도입 권장                                                        |
-| PMM 또는 Prometheus              | 낮음     | DB 관측성 고도화                                                                                                              |
-| Loki 로그 조회                   | 낮음     | 온프레미스 Kubernetes 로그를 Grafana에서 함께 조회                                                                            |
-| Locust/JMeter 부하 테스트        | 낮음     | AWS EC2 ASG scale-out 시연 안정화                                                                                             |
-| S3 2차 백업 복제                 | 낮음     | DR 메시지 강화                                                                                                                |
+| 후보                           | 우선순위 | 설명                                                                                                                      |
+| :----------------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------ |
+| Terraform S3 Backend           | 중       | 협업 중 state 충돌 방지                                                                                                   |
+| Ansible PXC 설치 Playbook      | 중       | DB 설치 반복성 확보                                                                                                       |
+| ProxySQL 2대 + Internal NLB    | 중       | Terraform 변수로 전환 가능, Day 9 이후 일정 여유 시                                                                       |
+| 비용 우선 하이브리드 구조 검증 | 높음     | Terraform, GitHub Actions, Runbook을 EC2 ASG/ALB burst 기준으로 재정렬했으므로 `fmt/validate/plan`과 실제 apply 검증 필요 |
+| Argo CD Application 구체화     | 높음     | MVP에 포함했으므로 설치 방법, Application manifest, sync 정책을 Day 8 전 확정 필요                                        |
+| Ceph RGW 연결 방식 확정        | 중       | VPN 또는 제한된 IP 기반 HTTPS 중 하나를 결정해야 백업 시연 안정화                                                         |
+| 실제 앱 교체 체크리스트        | 중       | 임시 앱과 실제 앱의 포트, health check, secret 조건 차이 흡수                                                             |
+| MkDocs 문서 사이트             | 낮음     | 물리적 문서 이동보다 `docs/index.md`와 `mkdocs.yml` nav 기반 도입 권장                                                    |
+| PMM 또는 Prometheus            | 낮음     | DB 관측성 고도화                                                                                                          |
+| Loki 로그 조회                 | 낮음     | 온프레미스 Kubernetes 로그를 Grafana에서 함께 조회                                                                        |
+| Locust/JMeter 부하 테스트      | 낮음     | AWS EC2 ASG scale-out 시연 안정화                                                                                         |
+| S3 2차 백업 복제               | 낮음     | DR 메시지 강화                                                                                                            |

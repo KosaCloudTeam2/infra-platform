@@ -38,7 +38,7 @@
 | Docker Hub            | Docker Hub                                   | Docker 이미지 저장소. MVP 기본 이미지 레지스트리                            |
 | Private Registry      | Private Registry                             | 팀 내부망 또는 온프레미스에 직접 운영하는 이미지 저장소                     |
 | Harbor                | Harbor                                       | 권한, 프로젝트, 이미지 스캔 기능을 제공하는 Private Registry 구현체         |
-| ECR                   | Elastic Container Registry                   | AWS 관리형 Docker 이미지 저장소. AWS-only fallback 대체안                   |
+| ECR                   | Elastic Container Registry                   | AWS 관리형 Docker 이미지 저장소. AWS-only 비교안 대체안                     |
 | ECS                   | Elastic Container Service                    | AWS 컨테이너 실행 서비스                                                    |
 | Fargate               | AWS Fargate                                  | 서버를 직접 관리하지 않고 ECS/EKS 컨테이너를 실행하는 방식                  |
 | GitOps                | Git Operations                               | Git 저장소 선언 상태를 실제 인프라/클러스터 상태로 동기화하는 운영 방식     |
@@ -138,7 +138,7 @@
 | `CloudWatch Logs`                    | AWS 리소스나 앱 로그가 저장되는 CloudWatch 로그 영역                                       |
 | `CloudWatch Alarm`                   | 지표가 정해진 조건을 넘으면 경고 상태로 바뀌는 규칙                                        |
 | `CloudWatch Agent`                   | EC2 내부 로그와 지표를 CloudWatch로 보내는 에이전트                                        |
-| `ECS fallback`                       | 현재 MVP 기본 경로가 아니라 AWS-only 비교/대체 시연용 ECS 배포 경로                        |
+| `ECS comparison`                     | 현재 MVP 기본 경로가 아니라 AWS-only 비교 시연용 ECS 배포 경로                             |
 | `ECS Task`                           | ECS에서 실행되는 컨테이너 작업 단위                                                        |
 | `ECS Service`                        | ECS Task 수를 유지하고 배포를 관리하는 ECS 리소스                                          |
 | `Task Definition`                    | ECS Task가 사용할 이미지, 포트, 환경변수, 로그 설정 정의                                   |

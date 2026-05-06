@@ -3,29 +3,19 @@ output "alb_dns_name" {
   value       = aws_lb.app.dns_name
 }
 
-output "ecr_repository_url" {
-  description = "ECR repository URL"
-  value       = aws_ecr_repository.app.repository_url
+output "app_autoscaling_group_name" {
+  description = "AWS burst app Auto Scaling Group name"
+  value       = aws_autoscaling_group.app.name
 }
 
-output "ecs_cluster_name" {
-  description = "ECS cluster name"
-  value       = aws_ecs_cluster.this.name
+output "app_launch_template_id" {
+  description = "AWS burst app Launch Template ID"
+  value       = aws_launch_template.app.id
 }
 
-output "ecs_service_name" {
-  description = "ECS service name"
-  value       = aws_ecs_service.app.name
-}
-
-output "ecs_task_execution_role_arn" {
-  description = "ECS task execution role ARN"
-  value       = aws_iam_role.ecs_task_execution.arn
-}
-
-output "ecs_task_role_arn" {
-  description = "ECS task role ARN"
-  value       = aws_iam_role.ecs_task.arn
+output "app_security_group_id" {
+  description = "AWS burst app security group ID"
+  value       = aws_security_group.app.id
 }
 
 output "target_group_arn" {

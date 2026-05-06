@@ -18,18 +18,18 @@
 
 ## 2. 반드시 공유할 자료
 
-| 분류             | 경로                                                                  | 공유 이유                                          |
-| :--------------- | :-------------------------------------------------------------------- | :------------------------------------------------- |
-| 인프라 코드(IaC) | `infra/terraform/**`                                                  | VPC, ALB, ECS, IAM, WAF 등을 재현 가능하게 구축    |
-| CI/CD            | `.github/workflows/**`                                                | 배포 자동화 흐름과 권한 사용 방식을 팀 전체가 확인 |
-| 앱 배포 기준     | `app/Dockerfile`, `app/README.md`                                     | 인프라가 실제 컨테이너를 실행하는지 검증           |
-| 아키텍처 문서    | `docs/01_architecture.md`                                             | 왜 이 구조를 선택했는지 설명                       |
-| 일정/역할        | `docs/02_schedule_13_plus_3.md`, `docs/03_roles_and_work_packages.md` | 4인 팀 작업 분담과 마감 기준 공유                  |
-| 보안 정책        | `docs/05_security_policy.md`                                          | IAM, SG, WAF, Secret 관리 기준 명확화              |
-| Runbook          | `docs/runbooks/**`                                                    | 배포, 롤백, 장애 대응을 누구나 수행 가능하게 함    |
-| 환경 구축        | `docs/ENVIRONMENT_SETUP.md`                                           | 팀원 로컬 환경과 품질 자동화 기준 통일             |
-| 발표 원본        | `docs/presentation/*.md`                                              | 발표 자료를 코드처럼 리뷰하고 버전 관리            |
-| 검증 체크리스트  | `tests/checklist.md`                                                  | 구축 완료 기준과 검증 흔적 관리                    |
+| 분류             | 경로                                                                  | 공유 이유                                           |
+| :--------------- | :-------------------------------------------------------------------- | :-------------------------------------------------- |
+| 인프라 코드(IaC) | `infra/terraform/**`                                                  | VPC, ALB, EC2 ASG, IAM, WAF 등을 재현 가능하게 구축 |
+| CI/CD            | `.github/workflows/**`                                                | 배포 자동화 흐름과 권한 사용 방식을 팀 전체가 확인  |
+| 앱 배포 기준     | `app/Dockerfile`, `app/README.md`                                     | 인프라가 실제 컨테이너를 실행하는지 검증            |
+| 아키텍처 문서    | `docs/01_architecture.md`                                             | 왜 이 구조를 선택했는지 설명                        |
+| 일정/역할        | `docs/02_schedule_13_plus_3.md`, `docs/03_roles_and_work_packages.md` | 4인 팀 작업 분담과 마감 기준 공유                   |
+| 보안 정책        | `docs/05_security_policy.md`                                          | IAM, SG, WAF, Secret 관리 기준 명확화               |
+| Runbook          | `docs/runbooks/**`                                                    | 배포, 롤백, 장애 대응을 누구나 수행 가능하게 함     |
+| 환경 구축        | `docs/ENVIRONMENT_SETUP.md`                                           | 팀원 로컬 환경과 품질 자동화 기준 통일              |
+| 발표 원본        | `docs/presentation/*.md`                                              | 발표 자료를 코드처럼 리뷰하고 버전 관리             |
+| 검증 체크리스트  | `tests/checklist.md`                                                  | 구축 완료 기준과 검증 흔적 관리                     |
 
 ---
 
@@ -119,5 +119,5 @@ GitHub는 단순 파일 저장소가 아니라 다음 역할을 수행함.
 - 인프라 변경은 PR로 공유하고 최소 1명 리뷰 후 병합
 - `apply`는 담당자 1명만 수행하고 결과를 PR 또는 이슈에 기록
 - 콘솔 수작업이 발생하면 반드시 Runbook 또는 문서에 반영
-- Day 14 이후에는 발표 안정화를 위해 새 인프라 기능 추가 금지
+- Day 14부터는 발표 안정화를 위해 새 인프라 기능 추가 금지
 - 발표 후 비용 발생 리소스는 `docs/09_cleanup_plan.md` 기준으로 정리

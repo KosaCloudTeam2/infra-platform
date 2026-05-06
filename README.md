@@ -11,7 +11,8 @@
 - Argo CD 기반 GitOps 배포로 Kubernetes manifest 동기화
 - 애플리케이션 로드 밸런서(Application Load Balancer, ALB), Docker Hub 기반 이미지 저장소, EC2 Auto
   Scaling Group 기반 burst 영역 구성
-- CloudWatch, 웹 방화벽(Web Application Firewall, WAF), Secrets Manager 기반 운영 가드레일 구성
+- CloudWatch Alarm, 웹 방화벽(Web Application Firewall, WAF), Kubernetes/GitHub Secret 기반 운영
+  가드레일 구성
 - 장애 상황과 롤백 시나리오를 포함한 발표 데모 준비
 
 현재 `app/` 디렉터리의 애플리케이션은 인프라 배포 파이프라인 검증을 위한 임시 샘플 앱임. 실제 서비스
@@ -25,7 +26,7 @@
 | 네트워크    | 가상 사설 클라우드(VPC), Public/Private Subnet, IGW, NAT 선택 기준, Security Group | [Architecture](docs/01_architecture.md)                               |
 | 컴퓨팅      | 온프레미스 Kubernetes, AWS EC2 burst, ALB Target Group                             | [Implementation Scope](docs/04_implementation_scope.md)               |
 | CI/CD       | GitHub Actions, Docker Build, Docker Hub Push, Argo CD GitOps Deploy               | [Deployment Runbook](docs/runbooks/deployment.md)                     |
-| 보안        | IAM OIDC Role, 최소 권한, WAF, Secrets Manager, HTTPS                              | [Security Policy](docs/05_security_policy.md)                         |
+| 보안        | IAM OIDC Role, 최소 권한, WAF, Kubernetes/GitHub Secret, HTTPS는 선택 확장         | [Security Policy](docs/05_security_policy.md)                         |
 | 데이터      | Percona XtraDB Cluster, ProxySQL, Ceph 백업                                        | [Architecture](docs/01_architecture.md)                               |
 | 스토리지    | Ceph RGW/RBD/CephFS 활용 전략                                                      | [Ceph Usage Strategy](docs/13_ceph_usage_strategy.md)                 |
 | DB 운영     | PXC, ProxySQL, Ceph 백업 점검 절차                                                 | [DB & Ceph Runbook](docs/runbooks/database_storage.md)                |
@@ -48,7 +49,8 @@
 - Route 53 + ACM 인증서 + HTTPS 도메인 연결
 - S3 + CloudFront 정적 자산 오프로딩
 - Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
-- Elastic Container Registry(ECR) 기반 AWS-only fallback 이미지 저장소
+- Elastic Container Registry(ECR) 기반 AWS-only 비교안 이미지 저장소
+- ECS Fargate 기반 AWS-only 비교안
 - ProxySQL 이중화와 Internal NLB: `proxysql_count = 2`, `enable_proxysql_internal_nlb = true`
 - AWS S3 2차 백업 복제
 - Prometheus/Grafana 별도 구축
@@ -76,13 +78,14 @@ terraform -chdir=infra/terraform init
 terraform -chdir=infra/terraform plan -var-file=env/dev.tfvars
 ```
 
-실제 배포 전 `infra/terraform/env/dev.tfvars`의 AWS 리전, 프로젝트명, 컨테이너 포트, 도메인 사용
-여부를 팀 기준에 맞게 수정함.
+실제 배포 전 `infra/terraform/env/dev.tfvars`의 AWS 리전, 프로젝트명, `app_image`, ASG
+`min/desired/max` 값을 팀 기준에 맞게 수정함.
 
 ## 6. 핵심 일정
 
 - **Day 1-13:** 시스템 구축
-- **Day 14-16:** 시연 포함 발표 자료 준비
+- **Day 14:** 발표 가능 상태 고정
+- **Day 15-16:** 시간이 남을 때만 발표 자료 보강과 리허설
 
 상세 일정은 [13+3 상세 일정](docs/02_schedule_13_plus_3.md) 참조
 

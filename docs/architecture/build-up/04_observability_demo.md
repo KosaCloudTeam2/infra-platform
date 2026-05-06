@@ -9,7 +9,7 @@
 
 ## 2. 구현 범위
 
-- Prometheus/Grafana 또는 CloudWatch Logs
+- CloudWatch Metrics/Alarm 또는 Prometheus/Grafana
 - ALB 5xx Alarm
 - Unhealthy Host Alarm
 - EC2 CPU/Request 기반 Alarm

@@ -17,7 +17,7 @@ Accepted
 
 Proxmox는 온프레미스 VM/LXC 및 Ceph 운영 플랫폼으로 사용함. AWS 앱과 PXC 백업은 Ceph RGW의 S3 호환
 API로만 연동함. Ceph RBD는 Proxmox VM 디스크 또는 온프레미스 Kubernetes 볼륨에 사용하고, AWS burst
-앱 또는 ECS fallback에서는 직접 사용하지 않음.
+AWS burst 앱에서는 직접 사용하지 않음.
 
 ## 대안
 

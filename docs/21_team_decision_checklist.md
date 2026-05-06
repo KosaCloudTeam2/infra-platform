@@ -9,6 +9,20 @@
 이 프로젝트는 온프레미스(Proxmox)와 AWS를 함께 사용하는 하이브리드 인프라를 목표로 함. 다만 “함께
 사용한다”는 말 안에도 여러 방식이 있음.
 
+2026-05-07 기준 MVP는 아래 방향으로 고정함.
+
+| 결정 항목         | MVP 선택                                      | 확장 또는 비교안                                      |
+| :---------------- | :-------------------------------------------- | :---------------------------------------------------- |
+| 클러스터 구성     | 온프레미스 Kubernetes와 AWS burst 별도 런타임 | 단일 Kubernetes cluster, EKS Hybrid Nodes             |
+| 웹앱 실행 위치    | 온프레미스 기본, AWS는 EC2 ASG/ALB burst      | 온프레미스/AWS 상시 병행                              |
+| DB 위치           | AWS EC2 기반 PXC/ProxySQL MVP                 | 온프레미스 DB, 양쪽 분산 DB                           |
+| 파일/백업 저장소  | Ceph RGW 우선                                 | AWS S3 2차 복제                                       |
+| EKS 사용 여부     | MVP 미사용                                    | 비용/운영 편의성 비교 또는 향후 전환                  |
+| AWS EC2 확장 방식 | 일반 앱 서버 ASG                              | AWS EC2를 직접 구축 K8s worker로 자동 join            |
+| 트래픽 분산       | DNS 또는 발표용 수동 endpoint 전환            | 자동 failover, Route 53 고급 정책                     |
+| GitOps 정책       | Day 13 전 수동 sync 기본                      | 안정화 후 auto-sync/self-heal                         |
+| 비용 제한         | ASG 낮은 Max, 단일 NAT, 발표 후 삭제          | 고가용 NAT, ProxySQL 이중화, HTTPS, PMM, Loki 등 확장 |
+
 예를 들어 다음 질문들은 모두 팀이 명확히 합의해야 함.
 
 - 온프레미스와 AWS를 하나의 Kubernetes 클러스터로 묶을 것인가?

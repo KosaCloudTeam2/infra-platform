@@ -5,7 +5,8 @@
 ## 1. 목표
 
 GitHub Actions 기반으로 Docker 이미지를 Docker Hub에 push하고, Argo CD 기반 GitOps로 온프레미스
-Kubernetes Deployment를 갱신함. AWS ECS Fargate 배포는 AWS-only fallback 검증용으로 분리함.
+Kubernetes Deployment를 갱신함. AWS burst 영역은 EC2 ASG instance refresh를 수동 실행하는 방식으로
+분리함.
 
 ## 2. 사전 조건
 
@@ -33,7 +34,7 @@ Kubernetes Deployment를 갱신함. AWS ECS Fargate 배포는 AWS-only fallback 
 12. Kubernetes Deployment rollout 확인
 13. 앱 로그 확인
 14. 앱에서 ProxySQL endpoint 접속 확인
-15. AWS ECS fallback 배포 필요 시 별도 수동 workflow 실행
+15. AWS burst app image 반영 필요 시 `Refresh AWS Burst ASG` workflow 수동 실행
 16. 실패 배포 롤백 절차를 Runbook에 반영
 
 ## 4. 로컬 앱 검증
@@ -85,7 +86,7 @@ kubectl rollout status deployment/<app-deployment-name> -n <app-namespace>
 - `DB_HOST`: ProxySQL private IP 또는 Internal NLB DNS
 - `DB_PORT`: `6033`
 - `DB_USER`: 앱 전용 계정
-- `DB_PASSWORD`: Secrets Manager secret
+- `DB_PASSWORD`: Kubernetes Secret 또는 선택 확장 Secrets Manager secret
 
 앱은 PXC 노드 private IP를 직접 참조하지 않음.
 
@@ -95,17 +96,17 @@ kubectl rollout status deployment/<app-deployment-name> -n <app-namespace>
 - Docker Hub 이미지 태그 목록
 - Argo CD Application 상태
 - Kubernetes rollout 결과
-- 필요 시 ECS Service deployment와 ALB Target Group health 결과
-- CloudWatch Logs 캡처
+- 필요 시 ASG instance refresh와 ALB Target Group health 결과
+- Kubernetes 또는 EC2 Docker logs 캡처
 - 앱-DB 연결 확인 결과
 - 롤백 Runbook 업데이트
 
 ## 9. 주의 사항
 
 - GitHub에 AWS Access Key를 저장하지 않음
-- `.github/task-definition.json`에 실제 AWS Account ID를 커밋하지 않음
+- AWS 계정 ID, Access Key, Argo CD 초기 비밀번호를 저장소에 커밋하지 않음
 - Argo CD admin 초기 비밀번호를 저장소에 커밋하지 않음
 - 강의 실습은 NodePort 접속 방식이었으나, 프로젝트에서는 사설망 또는 제한된 실습망에서만 사용함
 - Argo CD auto-sync는 Day 13 이전 안정화 후 활성화함
-- Day 14 이후에는 자동 배포보다 수동 `workflow_dispatch` 기반 안정화를 우선 검토함
+- Day 14부터는 자동 배포보다 수동 `workflow_dispatch` 기반 안정화를 우선 검토함
 - 실패 배포 시 새 기능 수정이 아니라 이전 정상 Git revision 또는 image tag로 롤백함

@@ -3,7 +3,7 @@
 ## 1. Pod 또는 앱 인스턴스 장애
 
 - **상황:** 컨테이너 또는 앱 프로세스 비정상 종료
-- **감지:** Kubernetes Pod `CrashLoopBackOff`, Argo CD Health 저하, CloudWatch Logs
+- **감지:** Kubernetes Pod `CrashLoopBackOff`, Argo CD Health 저하, Kubernetes 또는 EC2 Docker logs
 - **복구:** Kubernetes Deployment 재시작, 이전 이미지 태그 롤백
 - **시연:** 잘못된 환경 변수로 앱 시작 실패 유도
 

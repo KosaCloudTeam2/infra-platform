@@ -42,7 +42,7 @@ resource "aws_iam_instance_profile" "db_ec2" {
 
 resource "aws_security_group" "proxysql" {
   name        = "${local.name}-proxysql-sg"
-  description = "Allow DB client traffic from ECS only"
+  description = "Allow DB client traffic from app runtime only"
   vpc_id      = aws_vpc.this.id
 
   tags = merge(local.tags, {
@@ -63,7 +63,7 @@ resource "aws_security_group" "pxc" {
 resource "aws_security_group" "proxysql_nlb" {
   count       = var.enable_proxysql_internal_nlb ? 1 : 0
   name        = "${local.name}-proxysql-nlb-sg"
-  description = "Allow ECS traffic to internal ProxySQL NLB"
+  description = "Allow app runtime traffic to internal ProxySQL NLB"
   vpc_id      = aws_vpc.this.id
 
   tags = merge(local.tags, {
@@ -71,44 +71,44 @@ resource "aws_security_group" "proxysql_nlb" {
   })
 }
 
-resource "aws_security_group_rule" "ecs_to_proxysql" {
+resource "aws_security_group_rule" "app_to_proxysql" {
   count                    = var.enable_proxysql_internal_nlb ? 0 : 1
   type                     = "egress"
-  security_group_id        = aws_security_group.ecs.id
+  security_group_id        = aws_security_group.app.id
   from_port                = 6033
   to_port                  = 6033
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.proxysql.id
 }
 
-resource "aws_security_group_rule" "ecs_to_proxysql_nlb" {
+resource "aws_security_group_rule" "app_to_proxysql_nlb" {
   count                    = var.enable_proxysql_internal_nlb ? 1 : 0
   type                     = "egress"
-  security_group_id        = aws_security_group.ecs.id
+  security_group_id        = aws_security_group.app.id
   from_port                = 6033
   to_port                  = 6033
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.proxysql_nlb[0].id
 }
 
-resource "aws_security_group_rule" "proxysql_from_ecs" {
+resource "aws_security_group_rule" "proxysql_from_app" {
   count                    = var.enable_proxysql_internal_nlb ? 0 : 1
   type                     = "ingress"
   security_group_id        = aws_security_group.proxysql.id
   from_port                = 6033
   to_port                  = 6033
   protocol                 = "tcp"
-  source_security_group_id = aws_security_group.ecs.id
+  source_security_group_id = aws_security_group.app.id
 }
 
-resource "aws_security_group_rule" "proxysql_nlb_from_ecs" {
+resource "aws_security_group_rule" "proxysql_nlb_from_app" {
   count                    = var.enable_proxysql_internal_nlb ? 1 : 0
   type                     = "ingress"
   security_group_id        = aws_security_group.proxysql_nlb[0].id
   from_port                = 6033
   to_port                  = 6033
   protocol                 = "tcp"
-  source_security_group_id = aws_security_group.ecs.id
+  source_security_group_id = aws_security_group.app.id
 }
 
 resource "aws_security_group_rule" "proxysql_nlb_to_proxysql" {

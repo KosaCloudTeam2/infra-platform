@@ -4,7 +4,6 @@
 
 - AWS EC2 Auto Scaling Group
 - Launch Template
-- ECS fallback 리소스
 - Docker Hub Repository 이미지
 - ALB / Target Group / Listener
 - WAF Web ACL
@@ -14,6 +13,9 @@
 - ProxySQL Internal NLB를 켠 경우 NLB와 Target Group
 - VPC / Subnet / Route Table / IGW / NAT Gateway
 - IAM Role / Policy / OIDC Provider
+
+ECS 비교안을 별도 확장으로 만들었다면 해당 Cluster, Service, Task Definition, ECR Repository도 함께
+삭제함.
 
 ## 2. 정리 명령
 

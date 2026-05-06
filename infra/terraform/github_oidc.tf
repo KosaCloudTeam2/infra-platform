@@ -46,32 +46,15 @@ resource "aws_iam_role" "github_deploy" {
 data "aws_iam_policy_document" "github_deploy" {
   statement {
     actions = [
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:CompleteLayerUpload",
-      "ecr:GetAuthorizationToken",
-      "ecr:InitiateLayerUpload",
-      "ecr:PutImage",
-      "ecr:UploadLayerPart"
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeInstanceRefreshes",
+      "autoscaling:StartInstanceRefresh",
+      "ec2:DescribeInstances",
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeLaunchTemplateVersions",
+      "elasticloadbalancing:DescribeTargetHealth"
     ]
     resources = ["*"]
-  }
-
-  statement {
-    actions = [
-      "ecs:DescribeServices",
-      "ecs:DescribeTaskDefinition",
-      "ecs:RegisterTaskDefinition",
-      "ecs:UpdateService"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    actions = ["iam:PassRole"]
-    resources = [
-      aws_iam_role.ecs_task_execution.arn,
-      aws_iam_role.ecs_task.arn
-    ]
   }
 }
 

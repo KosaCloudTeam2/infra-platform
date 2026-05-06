@@ -35,7 +35,7 @@ Terraform 기준:
 
 - `aws_cloudwatch_metric_alarm.alb_5xx`
 - `aws_cloudwatch_metric_alarm.alb_unhealthy_hosts`
-- `aws_cloudwatch_metric_alarm.ec2_cpu_high`
+- `aws_cloudwatch_metric_alarm.app_cpu_high`
 - `aws_autoscaling_policy.*`
 - Kubernetes 또는 Prometheus/Grafana 지표는 적용 시 별도 대시보드 구성
 
@@ -44,7 +44,7 @@ Terraform 기준:
 1. CloudWatch Dashboard 확인
 2. Argo CD Application `Sync`/`Health` 확인
 3. Kubernetes rollout과 Pod 상태 확인
-4. CloudWatch Logs에서 오류 검색
+4. Kubernetes logs 또는 EC2 Docker logs에서 오류 검색
 5. Target Group Health와 최근 배포 이력 확인
 6. PXC `wsrep_cluster_status`, `wsrep_cluster_size` 확인
 7. Ceph `ceph health`, OSD, RGW 로그 확인
@@ -53,7 +53,7 @@ Terraform 기준:
 
 | 로그 유형      | 기본 위치                            | MVP 보존 기준  | 목적                   |
 | :------------- | :----------------------------------- | :------------- | :--------------------- |
-| 앱 로그        | CloudWatch Logs 또는 Kubernetes      | 7일            | 장애 분석, 발표 캡처   |
+| 앱 로그        | Kubernetes logs 또는 EC2 Docker logs | 발표 기간 유지 | 장애 분석, 발표 캡처   |
 | ALB/WAF 지표   | CloudWatch Metrics                   | 발표 기간 유지 | 트래픽과 차단 근거     |
 | DB 로그        | EC2 local + 필요 시 CloudWatch Agent | 발표 기간 유지 | PXC/ProxySQL 장애 분석 |
 | Ceph RGW 로그  | 온프레미스 로그 또는 Grafana         | 발표 기간 유지 | 백업 업로드 실패 분석  |
@@ -68,7 +68,7 @@ Terraform 기준:
 
 ## 5. 발표용 관측 포인트
 
-- 배포 전후 로그가 같은 Log Group에 쌓이는지 확인
+- 배포 전후 Kubernetes 또는 EC2 Docker 로그에서 같은 image tag가 확인되는지 점검
 - 장애 Pod 또는 AWS burst app이 비정상 Target으로 표시되는지 확인
 - 알람이 어떤 지표를 기준으로 울리는지 설명
 - Auto Scaling 정책은 AWS EC2 ASG와 Kubernetes replica 조정 기준을 구분해 설명

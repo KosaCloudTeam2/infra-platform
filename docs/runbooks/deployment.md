@@ -3,13 +3,13 @@
 ## 1. 사전 조건
 
 - Docker Hub 계정 또는 조직 repository 준비 완료
-- AWS burst 또는 ECS fallback 검증 시 AWS Command Line Interface(CLI) 인증 완료
-- AWS burst 또는 ECS fallback 검증 시 Terraform plan/apply 완료
-- Docker Hub Repository 생성 완료
-- Docker Hub GitHub Secret 등록 완료
-- AWS fallback 배포가 필요하면 GitHub Actions OpenID Connect(OIDC) Role 생성 완료
+- GitHub Repository Secret `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` 등록 완료
 - 온프레미스 Kubernetes 클러스터 준비 완료
 - Argo CD 설치와 Application 생성 완료
+- Kubernetes manifest 또는 Helm chart image 경로 확정
+- AWS burst 검증 시 Terraform plan/apply 완료
+- AWS burst ASG refresh 검증 시 GitHub Actions OpenID Connect(OIDC) Role과 `AWS_DEPLOY_ROLE_ARN`
+  등록 완료
 - 기존 앱 Dockerfile 준비 완료
 
 ## 2. 로컬 이미지 검증
@@ -25,7 +25,21 @@ docker run --rm -p 8080:8080 cloud-infra-app:local
 curl http://localhost:8080/health
 ```
 
-## 3. Argo CD 설치 지침
+## 3. Docker Hub 이미지 빌드
+
+MVP 이미지 저장소는 Docker Hub임. `.github/workflows/build-image.yml`은 수동 실행
+`workflow_dispatch`로 동작함.
+
+1. GitHub Actions에서 `Build and Push Image` workflow 수동 실행
+2. Docker Hub login 단계 성공 확인
+3. Docker Hub에 `github.sha` 태그와 `latest` 태그 생성 확인
+4. Kubernetes manifest 또는 Helm values의 image tag 갱신
+5. AWS burst Launch Template에 사용할 `app_image` 값을 같은 태그 기준으로 맞춤
+
+발표 안정화 기간에는 `latest`만 의존하지 않고 `github.sha` 태그를 캡처해 어떤 버전이 배포됐는지
+설명할 수 있게 함.
+
+## 4. Argo CD 설치 지침
 
 온프레미스 Kubernetes 클러스터에서 1회 수행함.
 
@@ -83,7 +97,7 @@ kubectl get secret argocd-initial-admin-secret `
 kubectl delete secret argocd-initial-admin-secret -n argocd
 ```
 
-## 4. Argo CD Application 생성 기준
+## 5. Argo CD Application 생성 기준
 
 Application은 `k8s/` manifest 또는 Helm chart 경로를 추적함. 실제 경로는 앱 manifest 확정 후 조정함.
 
@@ -92,7 +106,8 @@ GitOps 운영 기준:
 - Git 저장소를 Kubernetes 배포 상태의 기준으로 둠
 - 클러스터에서 직접 `kubectl edit`로 수정한 내용은 임시 조치로만 기록
 - 환경별 설정은 `values-dev.yaml`, `values-onprem.yaml`, `values-cloud.yaml`처럼 분리 가능
-- ConfigMap/Secret 변경 후 Pod 재시작이 필요하면 rollout restart 또는 Helm checksum 방식을 검토
+- Day 13 전에는 수동 sync를 기본으로 둠
+- 발표 당일에는 수동 sync 또는 auto-sync 중 하나로 고정함
 - Reloader Operator, Argo Rollouts, Blue/Green, Canary는 선택 확장
 
 예시:
@@ -124,100 +139,16 @@ kubectl apply -f k8s/argocd-application.yaml
 kubectl get application -n argocd
 ```
 
-Sync 정책:
+## 6. Argo CD GitOps 배포
 
-- Day 13 전: 수동 sync 기본
-- 수동 sync 1회 이상 성공 후 auto-sync 전환 검토
-- 발표 당일: 수동 sync 또는 auto-sync 중 하나로 고정
-- `CreateNamespace=true`: destination namespace가 없으면 생성
-- `prune`: Git에서 삭제된 리소스를 클러스터에서도 삭제
-- `selfHeal`: 클러스터 직접 변경을 Git 상태로 복구
-
-자동 sync 예시:
-
-```yaml
-syncPolicy:
-  automated:
-    prune: true
-    selfHeal: true
-  syncOptions:
-    - CreateNamespace=true
-```
-
-자동 sync는 실수한 commit도 반영될 수 있으므로 MVP 안정화 전에는 수동 sync를 기본값으로 둠.
-
-## 5. Argo CD GitOps 배포
-
-MVP 배포 기준은 GitHub Actions 이미지 빌드와 Argo CD GitOps 동기화임.
-
-1. GitHub Actions에서 `Build and Push Image` workflow 수동 실행
-2. 이미지 build/push 성공 확인
-3. Docker Hub 이미지 태그 확인
-4. Kubernetes manifest 또는 Helm values image tag 갱신 확인
-5. Argo CD Application sync 실행
-6. Kubernetes Deployment rollout 상태 확인
-7. Service 또는 Ingress Health Check 확인
-
-## 6. ECS fallback 배포
-
-현재 `Deploy to ECS` workflow는 AWS OIDC Role과 GitHub Secret 준비 전 push 실패를 막기 위해 수동
-실행만 허용함. 이 workflow는 AWS-only fallback 검증이 필요할 때 사용함.
-
-1. Terraform apply와 GitHub Secret 설정 완료 확인
+1. Docker Hub 이미지 build/push 성공 확인
 2. Kubernetes manifest 또는 Helm values image tag 갱신 확인
-3. GitHub Actions에서 `Deploy to ECS` workflow 수동 실행
-4. AWS fallback용 이미지 태그 확인
-5. ECS Service Deployment 상태 확인
-6. ALB Target Group Health Check 확인
+3. Argo CD Application sync 실행
+4. Kubernetes Deployment rollout 상태 확인
+5. Service 또는 Ingress Health Check 확인
+6. 앱에서 ProxySQL endpoint 접속 확인
 
-## 7. ECS 자동 배포 재활성화 기준
-
-## 7. Docker Hub 이미지 workflow 활성화 기준
-
-아래 조건이 모두 충족되면 `.github/workflows/build-image.yml`의 `workflow_dispatch`를 활성화함.
-
-- Docker Hub Repository 생성 완료
-- GitHub Repository Secret `DOCKERHUB_USERNAME` 등록 완료
-- GitHub Repository Secret `DOCKERHUB_TOKEN` 등록 완료
-- `IMAGE_NAME` 값이 Docker Hub Repository 이름과 일치
-
-활성화할 트리거:
-
-```yaml
-on:
-  workflow_dispatch:
-```
-
-## 8. ECS 자동 배포 재활성화 기준
-
-아래 조건이 모두 충족되면 `main` push 자동 배포를 다시 활성화할 수 있음.
-
-- Terraform apply 완료
-- AWS fallback용 ECR Repository 생성 확인
-- Elastic Container Service(ECS) Cluster, Service, Task Execution Role 생성 확인
-- GitHub OIDC Provider와 `GitHubDeployRole` 생성 확인
-- `infra/terraform/env/dev.tfvars`의 `github_repository`가 실제 저장소명으로 설정됨
-- GitHub Repository Secret `AWS_DEPLOY_ROLE_ARN` 등록 완료
-- `Deploy to ECS` workflow 수동 실행 1회 성공
-
-재활성화 절차:
-
-1. `.github/workflows/deploy.yml`의 주석 처리된 `push` 트리거 복원
-2. PR로 workflow 변경 리뷰
-3. `main` 병합 후 자동 배포 실행 확인
-4. 실패 시 push 트리거를 다시 비활성화하고 수동 실행 기준으로 복구
-
-복원할 트리거:
-
-```yaml
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-```
-
-## 9. Argo CD 확인 명령
+확인 명령:
 
 ```powershell
 kubectl get application -n argocd
@@ -238,7 +169,43 @@ kubectl get deployment/<app-deployment-name> -n <app-namespace> -w
 - 수동 sync 모드: Application이 `OutOfSync`로 표시됨
 - `selfHeal: true`: replica 수가 Git 선언값으로 복구됨
 
-정리 명령:
+## 7. AWS burst ASG refresh
+
+AWS burst 영역은 ECS가 아니라 EC2 Auto Scaling Group과 Launch Template으로 구성함. 새 Docker Hub
+이미지를 burst EC2에 반영해야 하면 `Refresh AWS Burst ASG` workflow를 수동 실행함.
+
+사전 확인:
+
+- Terraform output `app_autoscaling_group_name` 확인
+- `infra/terraform/env/dev.tfvars`의 `app_image`가 발표에 사용할 태그와 일치
+- `AWS_DEPLOY_ROLE_ARN` Secret 등록 완료
+- ASG `app_min_size`, `app_desired_capacity`, `app_max_size`가 비용 제한과 일치
+
+실행:
+
+1. GitHub Actions에서 `Refresh AWS Burst ASG` workflow 수동 실행
+2. 필요 시 `asg_name` 입력값에 Terraform output `app_autoscaling_group_name` 입력
+3. AWS Console 또는 CLI에서 instance refresh 진행 상태 확인
+4. ALB Target Group Health가 `healthy`인지 확인
+5. ALB DNS로 `/health` 응답 확인
+
+확인 명령:
+
+```powershell
+aws autoscaling describe-auto-scaling-groups `
+  --auto-scaling-group-names <ASG_NAME> `
+  --region ap-northeast-2
+```
+
+```powershell
+aws elbv2 describe-target-health `
+  --target-group-arn <TARGET_GROUP_ARN> `
+  --region ap-northeast-2
+```
+
+## 8. 정리 명령
+
+Argo CD 정리:
 
 ```powershell
 kubectl delete application <app-name> -n argocd
@@ -249,34 +216,14 @@ kubectl delete namespace argocd
 
 - Application 삭제 전 Argo CD가 관리하던 앱 리소스 삭제 여부 확인
 - `prune` 활성화 상태에서는 Git에서 삭제한 리소스가 클러스터에서도 삭제됨
+- AWS 리소스 정리는 `docs/09_cleanup_plan.md` 기준으로 담당자 1명만 수행함
 
-설정 변경 검증:
+## 9. 완료 기준
 
-- ConfigMap 또는 Secret 변경 후 새 Pod가 최신 설정을 읽는지 확인
-- `kubectl rollout status`로 rolling update 완료 여부 확인
-- Git에 없는 수동 변경은 Argo CD에서 `OutOfSync` 또는 drift로 감지되는지 확인
-
-## 10. ECS 수동 배포 확인 명령
-
-```powershell
-aws ecs describe-services `
-  --cluster cloud-infra-dev-cluster `
-  --services cloud-infra-dev-app `
-  --region ap-northeast-2
-```
-
-```powershell
-aws elbv2 describe-target-health `
-  --target-group-arn <TARGET_GROUP_ARN> `
-  --region ap-northeast-2
-```
-
-## 11. 완료 기준
-
+- Docker Hub에 발표 대상 이미지 태그가 있음
 - Argo CD Application `Synced` 상태
 - Argo CD Application `Healthy` 상태
 - Kubernetes Deployment rollout 성공
-- AWS-only ECS fallback 사용 시 ECS Service `runningCount`가 `desiredCount`와 동일함
-- Target Health가 `healthy`임
-- ALB URL로 앱 응답 확인 가능함
-- CloudWatch Logs에 신규 컨테이너 로그가 기록됨
+- AWS burst ASG 사용 시 Target Health가 `healthy`임
+- ALB URL 또는 온프레미스 Ingress URL로 앱 응답 확인 가능함
+- 배포 실패 시 이전 Git revision 또는 image tag로 복구 가능함

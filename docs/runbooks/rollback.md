@@ -16,7 +16,7 @@ Argo CD auto-sync와 self-heal은 발표 전 안정화 이후에만 활성화함
 
 - Argo CD Application `Sync`/`Health`
 - Kubernetes Deployment rollout 상태
-- CloudWatch Logs 오류 메시지
+- Kubernetes logs 또는 EC2 Docker logs 오류 메시지
 
 ## 3. 수동 롤백 절차
 
@@ -30,8 +30,9 @@ kubectl rollout undo deployment/<APP_DEPLOYMENT> -n <APP_NAMESPACE>
 argocd app sync <APP_NAME>
 ```
 
-AWS-only ECS fallback을 시연하는 경우에만 이전 Task Definition revision으로 ECS Service를
-업데이트함.
+AWS burst ASG까지 같은 이미지를 반영해야 하는 경우 `app_image`를 이전 정상 태그로 되돌리고 Terraform
+apply 또는 `Refresh AWS Burst ASG` workflow를 수동 실행함. 발표 중에는 온프레미스 Kubernetes 롤백을
+먼저 완료하고 AWS burst 반영은 별도 단계로 설명함.
 
 ## 4. 발표용 롤백 시연
 

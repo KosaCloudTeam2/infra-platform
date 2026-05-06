@@ -86,7 +86,7 @@ flowchart TB
 - ProxySQL/PXC는 Data Private Subnet에만 배치하고 Public IP를 부여하지 않음
 - Prometheus/Grafana는 온프레미스 Kubernetes와 Ceph 지표를 볼 때 추가하는 선택 관측성임
 - CloudWatch Agent는 EC2 기반 PXC/ProxySQL 로그와 지표를 AWS CloudWatch로 보낼 때 사용함
-- ECS Fargate는 현재 MVP 경로가 아니라 AWS-only fallback 또는 비교안임
+- ECS Fargate는 현재 MVP 경로가 아니라 AWS-only 비교안임
 
 ## 4. 세부 구현
 

@@ -209,7 +209,7 @@ uv run pre-commit run pip-audit --hook-stage pre-push --all-files
 
 - Day 1에 전원 환경 구축 완료
 - Day 5, Day 9, Day 13에 전체 검증
-- Day 14 이후 신규 기능 추가 금지
+- Day 14부터 신규 기능 추가 금지
 - `.env`, `*.tfstate`, 개인키, 인증서, AWS Access Key 커밋 금지
 - GitHub에 공유할 자료와 제외할 자료는
   [Repository Sharing Policy](./12_repository_sharing_policy.md) 기준 준수

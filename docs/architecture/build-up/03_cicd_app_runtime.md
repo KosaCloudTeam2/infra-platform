@@ -15,8 +15,8 @@ Kubernetes에 배포함. 앱은 ProxySQL endpoint를 통해 DB에 연결함.
 - Kubernetes manifest 또는 Helm chart 관리
 - Argo CD Application 구성
 - Argo CD sync 기반 Kubernetes 배포
-- ECS 배포는 AWS-only fallback으로 분리
-- Secrets Manager 기반 앱 환경변수 주입
+- AWS burst ASG refresh workflow는 수동 실행으로 분리
+- Kubernetes Secret 기반 앱 환경변수 주입
 - 앱-DB 연결 확인
 - 롤백 Runbook 작성
 
@@ -46,7 +46,7 @@ sequenceDiagram
 ### 4.1 GitHub Actions
 
 - `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` Secret 사용
-- AWS-only fallback 배포 외에는 장기 AWS Access Key 미사용
+- AWS burst ASG refresh에도 장기 AWS Access Key 미사용
 - 이미지 태그는 `github.sha`와 `latest` 병행
 - manifest image tag 갱신 PR 또는 commit 생성
 
@@ -57,20 +57,20 @@ sequenceDiagram
 - MVP는 수동 sync 또는 auto-sync 중 하나 선택
 - 발표 안정화 기간에는 수동 sync 우선
 
-### 4.3 ECS fallback
+### 4.3 AWS burst ASG refresh
 
-- App Private Subnet 배치
-- Public IP 비활성화
-- ALB Target Group 연결
-- Deployment Circuit Breaker 활성화
-- CloudWatch Logs 연결
+- Terraform output `app_autoscaling_group_name` 확인
+- `app_image` 값과 Docker Hub 태그 일치 확인
+- `Refresh AWS Burst ASG` workflow 수동 실행
+- ALB Target Group Health 확인
+- 비용 보호를 위해 자동 refresh는 선택 확장으로 유지
 
 ### 4.4 앱-DB 연결
 
 - `DB_HOST`: ProxySQL endpoint
 - `DB_PORT`: `6033`
 - `DB_USER`: 앱 전용 계정
-- `DB_PASSWORD`: Secrets Manager에서 주입
+- `DB_PASSWORD`: Kubernetes Secret 또는 선택 확장 Secrets Manager에서 주입
 - 앱은 PXC 노드 IP를 직접 알지 않음
 
 ## 5. 완료 기준

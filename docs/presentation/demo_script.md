@@ -23,7 +23,7 @@
 
 - Argo CD Application 상태
 - Kubernetes rollout 상태
-- CloudWatch Logs
+- Kubernetes 또는 EC2 Docker logs
 - 복구 후 Service 또는 Ingress 응답
 
 ## 3. 보안 설명

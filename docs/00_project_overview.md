@@ -13,7 +13,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - 온프레미스 Kubernetes Deployment가 최신 이미지로 갱신됨
 - Argo CD 기반 GitOps 배포로 Kubernetes manifest 동기화 가능함
 - AWS burst 영역의 ALB Health Check가 정상이고 부하 증가 시 EC2 인스턴스가 Target Group에 등록됨
-- CloudWatch Logs에서 컨테이너 로그 확인 가능함
+- Kubernetes logs 또는 EC2 Docker logs에서 컨테이너 로그 확인 가능함
 - CloudWatch Alarm 또는 대시보드로 AWS EC2 CPU/Request/5xx/Unhealthy Host를 확인 가능함
 - 웹 방화벽(Web Application Firewall, WAF) 또는 Security Group으로 최소 보안 정책이 적용됨
 - AWS Relational Database Service(RDS) 없이 Percona XtraDB Cluster(PXC)와 ProxySQL 기반 DB 접근이
@@ -32,7 +32,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - AWS burst ALB 1개
 - AWS EC2 Auto Scaling Group 1개
 - Docker Hub Repository 또는 팀 표준 컨테이너 레지스트리 1개
-- CloudWatch Logs/Metrics/Alarm
+- CloudWatch Metrics/Alarm, Kubernetes 또는 EC2 local logs
 - GitHub Actions OpenID Connect(OIDC) 배포 Role
 - Security Group 최소 허용 정책
 - WAF 기본 Managed Rule 적용
@@ -48,7 +48,8 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - Prometheus/Grafana 별도 구성
 - 부하 테스트와 Auto Scaling 정책 고도화
 - Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
-- Elastic Container Registry(ECR) 기반 AWS-only fallback 이미지 저장소
+- Elastic Container Registry(ECR) 기반 AWS-only 비교안 이미지 저장소
+- ECS Fargate 기반 AWS-only 비교안
 - ProxySQL 2대 + Internal NLB
 - Ceph RADOS Block Device(RBD)/CephFS 고급 활용
 - AWS S3 2차 백업 복제

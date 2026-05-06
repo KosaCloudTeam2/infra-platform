@@ -14,11 +14,11 @@
 
 ## 2. IAM 역할
 
-| Role             | 용도           | 주요 권한                                                           |
-| :--------------- | :------------- | :------------------------------------------------------------------ |
-| GitHubDeployRole | CI/CD 배포     | AWS fallback 배포, manifest 갱신, iam:PassRole 제한                 |
-| EC2InstanceRole  | AWS burst 실행 | CloudWatch Logs Write, 필요한 Secret Read                           |
-| ECSTaskRole      | ECS fallback   | Secrets Manager Read, 필요 시 Simple Storage Service(S3) Read/Write |
+| Role             | 용도           | 주요 권한                                         |
+| :--------------- | :------------- | :------------------------------------------------ |
+| GitHubDeployRole | CI/CD 배포     | AWS burst ASG instance refresh, ALB/ASG 상태 조회 |
+| EC2InstanceRole  | AWS burst 실행 | SSM Session Manager, 필요한 최소 AWS API 접근     |
+| DBEC2Role        | DB 운영 접속   | SSM Session Manager                               |
 
 ## 3. 팀원 AWS 접근 원칙
 
@@ -123,9 +123,11 @@ Session Manager 또는 제한된 Bastion 접근을 우선함.
 
 ## 6. Secret 관리
 
-- `APP_SECRET`, `DB_PASSWORD`, `JWT_SECRET` 등은 Secrets Manager에 저장함
-- `PROXYSQL_PASSWORD`, `PXC_BACKUP_KEY`, `CEPH_RGW_ACCESS_KEY`, `CEPH_RGW_SECRET_KEY` 등도 Secrets
-  Manager 또는 CI Secret에 저장함
+- `APP_SECRET`, `DB_PASSWORD`, `JWT_SECRET` 등은 MVP에서 Kubernetes Secret 또는 GitHub Secret으로
+  관리함
+- AWS burst EC2가 직접 Secret을 읽어야 하는 확장 단계에서는 Secrets Manager를 사용함
+- `PROXYSQL_PASSWORD`, `PXC_BACKUP_KEY`, `CEPH_RGW_ACCESS_KEY`, `CEPH_RGW_SECRET_KEY` 등은
+  Kubernetes Secret, GitHub Secret, 또는 선택 확장인 Secrets Manager에 저장함
 - Argo CD admin 초기 비밀번호, repository credential, deploy key는 저장소에 저장하지 않음
 - GitHub Secrets에는 Docker Hub Access Token, AWS Role ARN, AWS Region 등 CI/CD 실행에 필요한 값만
   저장함
@@ -143,7 +145,7 @@ Session Manager 또는 제한된 Bastion 접근을 우선함.
 - [ ] 콘솔 접근 사용자에 MFA가 활성화되어 있음
 - [ ] 실습용 단일 그룹 사용 시 apply 담당자와 실행 시간이 기록됨
 - [ ] WAF가 ALB에 연결됨
-- [ ] CloudWatch 로그 보존 기간이 설정됨
+- [ ] 로그 보존 위치와 기간이 발표 기간 기준으로 정리됨
 - [ ] ProxySQL Admin 포트 `6032`가 인터넷에 노출되지 않음
 - [ ] PXC Galera 포트 `4567/4568/4444`는 PXC 노드 간에만 허용됨
 - [ ] Ceph RGW access/secret key가 저장소와 Terraform state에 노출되지 않음

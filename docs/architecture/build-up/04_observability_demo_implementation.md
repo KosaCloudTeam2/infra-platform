@@ -65,7 +65,7 @@ Prometheus/Grafana 또는 CloudWatch 기반 최소 관측 체계를 구성하고
 
 ## 6. 산출물
 
-- CloudWatch Logs 캡처
+- Kubernetes 또는 EC2 Docker logs 캡처
 - Argo CD와 Kubernetes rollout 캡처
 - ALB/EC2 지표 캡처
 - DB/Ceph 상태 확인 명령과 결과
@@ -75,6 +75,6 @@ Prometheus/Grafana 또는 CloudWatch 기반 최소 관측 체계를 구성하고
 ## 7. 주의 사항
 
 - 발표용 장애는 리허설에서 재현 시간을 측정함
-- Day 14 이후에는 신규 관측 도구 추가보다 캡처와 Runbook 검증을 우선함
+- Day 14부터는 신규 관측 도구 추가보다 캡처와 Runbook 검증을 우선함
 - Prometheus/Grafana를 적용하면 최소 dashboard만 구성하고, PMM은 선택 확장으로 분리함
 - 장애 유도 후 리소스가 정상 상태로 돌아왔는지 반드시 확인함

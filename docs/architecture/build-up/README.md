@@ -31,4 +31,4 @@ flowchart TD
 - DB 관련 포트는 인터넷에 열지 않음
 - Terraform `apply`는 담당자 1명만 수행함
 - 콘솔 수작업이 발생하면 Runbook에 반영함
-- Day 14 이후 신규 기능 추가 금지
+- Day 14부터 신규 기능 추가 금지

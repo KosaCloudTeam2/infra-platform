@@ -5,6 +5,8 @@ name: Build and Push Image
 # - DOCKERHUB_USERNAME
 # - DOCKERHUB_TOKEN
 on: {}
+#on:
+#  workflow_dispatch:
 
 permissions:
   contents: read
