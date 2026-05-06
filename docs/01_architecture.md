@@ -57,19 +57,28 @@ flowchart TD
     User["User"] --> Traffic["DNS / Traffic Policy"]
 
     subgraph OnPrem["On-prem Proxmox"]
+        Bastion["Bastion / VPN<br/>management access"]
+        DnsVip["DNS VIP<br/>optional"]
+        HaproxyVip["HAProxy VIP<br/>optional"]
         K8s["Self-managed Kubernetes"]
         AppPod["App Pods"]
         Ingress["Ingress Controller"]
         Prom["Prometheus<br/>optional"]
+        Loki["Loki<br/>optional logs"]
         Grafana["Grafana<br/>optional"]
         CephRBD["Ceph RBD / CephFS<br/>K8s PV"]
         CephRGW["Ceph RGW<br/>S3-compatible Backup"]
+        Bastion --> K8s
+        DnsVip -. "internal name" .-> Ingress
+        HaproxyVip -. "entry VIP" .-> Ingress
         K8s --> AppPod
         Ingress --> AppPod
         AppPod --> CephRBD
         Prom -. "scrape metrics" .-> K8s
         Prom -. "scrape metrics" .-> AppPod
+        Loki -. "collect logs" .-> AppPod
         Grafana -. "dashboard" .-> Prom
+        Grafana -. "logs" .-> Loki
     end
 
     subgraph AWS["AWS Burst Area"]
@@ -113,6 +122,8 @@ flowchart TD
 - 점선은 관측성 수집 또는 선택 확장 경로임
 - CloudWatch는 AWS ALB, EC2, 로그, 알람 중심 관측성임
 - Prometheus/Grafana는 온프레미스 Kubernetes, 앱, Ceph 지표를 보기 위한 선택 관측성임
+- Loki는 온프레미스 Kubernetes 앱 로그를 Grafana에서 함께 보기 위한 선택 확장임
+- Bastion/VPN은 관리 접속 경로, DNS VIP와 HAProxy VIP는 온프레미스 진입점 안정화 후보임
 - PMM은 PXC/ProxySQL 상세 DB 관측성이 필요할 때 추가하는 선택 확장임
 
 ---
@@ -256,6 +267,26 @@ ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는
 - 앱은 PXC 노드에 직접 접근하지 않고 ProxySQL `6033`으로만 접근함
 - PXC 노드는 ProxySQL SG와 PXC SG 자기 자신에서 오는 트래픽만 허용함
 - 운영 접속은 SSH 공개보다 SSM Session Manager 또는 제한된 Bastion 경유를 우선함
+
+### 온프레미스 운영망 참고 구성
+
+`settings.md`의 다른 팀 온프레미스 설계표는 운영망 구성 요소를 빠짐없이 보여주는 참고안으로 사용함.
+다만 아래 항목은 현재 MVP에서 모두 직접 구축하지 않고, 역할과 우선순위를 분리함.
+
+| 구성 요소               | 역할                            | 이번 프로젝트 반영 기준                |
+| :---------------------- | :------------------------------ | :------------------------------------- |
+| Bastion                 | 관리자 SSH 진입점               | MVP 관리 접속 기준으로 문서화          |
+| VPN Server / WireGuard  | 온프레미스-AWS 또는 원격 접속   | MVP 연결 방식 후보                     |
+| DNS VIP / CoreDNS       | 내부 도메인 해석과 VIP          | 선택 확장, 내부 이름 체계 결정 시 반영 |
+| HAProxy VIP             | 온프레미스 Ingress 앞단 진입점  | 선택 확장, Ingress 안정화 후보         |
+| NAT 역할                | 온프레미스 사설망 outbound 경로 | 필요 시 문서화, 별도 서버 필수 아님    |
+| Prometheus/Loki/Grafana | 메트릭, 로그, 대시보드          | Prometheus/Grafana 우선, Loki 선택     |
+| Locust/JMeter           | 부하 테스트와 scale-out 시연    | 선택 확장, 발표 시연에 유용            |
+| Vault/PKI/Keycloak      | 시크릿, 인증서, SSO/MFA         | Day 13 MVP 제외, 보안 고도화 후보      |
+| GitLab/Private Registry | 폐쇄망 Git/이미지 저장소        | 폐쇄망 선택 확장                       |
+
+온프레미스 IP 대역은 다른 팀 예시를 그대로 쓰지 않음. AWS VPC `10.20.0.0/16`과 겹치지 않는 별도
+CIDR을 팀에서 결정함.
 
 ## 3.2 로드밸런싱 영역
 
@@ -581,6 +612,8 @@ flowchart LR
 | ALB              | 4xx, 5xx, Unhealthy Host                  | 장애 감지                             |
 | CloudWatch Logs  | stdout/stderr                             | 앱 오류 분석                          |
 | CloudWatch Alarm | 임계치 알림                               | 시연과 운영 대응                      |
+| Loki             | Kubernetes 앱 로그                        | 온프레미스 로그 조회 선택 확장        |
+| Locust/JMeter    | 부하 테스트 요청                          | AWS burst scale-out 시연 선택 확장    |
 
 ### 알람 기준
 
@@ -590,6 +623,7 @@ flowchart LR
 - Kubernetes Pod Ready 실패 또는 rollout timeout
 - PXC `wsrep_cluster_status`가 `Primary`가 아님
 - Ceph `HEALTH_WARN` 또는 `HEALTH_ERR` 발생
+- Locust 또는 JMeter로 짧은 부하를 발생시켜 AWS burst scale-out 조건 확인
 
 ### 발표 설명 포인트
 

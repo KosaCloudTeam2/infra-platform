@@ -20,6 +20,7 @@
 | IGW            | Internet Gateway                     | VPC와 인터넷 연결 게이트웨이                                     |
 | NAT            | Network Address Translation          | Private Subnet 리소스의 외부 통신 경로                           |
 | NLB            | Network Load Balancer                | TCP/UDP 트래픽을 분산하는 L4 로드밸런서                          |
+| VIP            | Virtual IP                           | 장애 전환을 위해 여러 서버 앞에 두는 공유 가상 IP                |
 | RDS            | Relational Database Service          | AWS 관리형 관계형 데이터베이스 서비스                            |
 | S3             | Simple Storage Service               | AWS 객체 스토리지 서비스                                         |
 | SG             | Security Group                       | AWS 리소스 단위 가상 방화벽                                      |
@@ -53,25 +54,34 @@
 | 약어        | Full name                      | 의미                                                            |
 | :---------- | :----------------------------- | :-------------------------------------------------------------- |
 | CLI         | Command Line Interface         | 터미널 기반 명령 실행 도구                                      |
+| Bastion     | Bastion Host                   | 내부망 서버에 접속하기 위한 제한된 관리용 진입 서버             |
 | IAM         | Identity and Access Management | AWS 사용자, 역할, 권한 관리 서비스                              |
+| Keepalived  | Keepalived                     | VIP를 active/standby 서버 사이에서 넘겨주는 고가용성 도구       |
+| Keycloak    | Keycloak                       | SSO, MFA, 사용자 인증과 권한 관리를 제공하는 오픈소스 IAM 도구  |
 | MFA         | Multi-Factor Authentication    | 비밀번호 외 추가 인증 방식                                      |
+| PKI         | Public Key Infrastructure      | 인증서 발급, 검증, 폐기를 관리하는 공개키 기반 구조             |
 | Role Assume | AssumeRole                     | 사용자나 GitHub Actions가 IAM Role의 임시 권한을 빌려 쓰는 동작 |
 | SSM         | Systems Manager                | EC2 접속, 명령 실행, 운영 자동화 서비스                         |
+| Vault       | HashiCorp Vault                | 비밀번호, 토큰, 인증서 같은 시크릿을 중앙 관리하는 도구         |
 
 ## 데이터 / 스토리지
 
-| 약어          | Full name                         | 의미                                                              |
-| :------------ | :-------------------------------- | :---------------------------------------------------------------- |
-| Ceph OSD      | Ceph Object Storage Daemon        | Ceph에서 실제 데이터를 디스크에 저장하고 복제하는 프로세스        |
-| Ceph pool     | Ceph Storage Pool                 | Ceph 객체를 저장하는 논리 저장 공간 묶음                          |
-| Grafana       | Grafana                           | Prometheus, CloudWatch 같은 지표를 대시보드로 보여주는 도구       |
-| PMM           | Percona Monitoring and Management | Percona DB 모니터링 도구                                          |
-| Prometheus    | Prometheus                        | Kubernetes와 앱 지표를 주기적으로 수집하는 오픈소스 모니터링 도구 |
-| PXC           | Percona XtraDB Cluster            | MySQL 호환 동기식 DB 클러스터                                     |
-| RBD           | RADOS Block Device                | Ceph 블록 스토리지                                                |
-| RGW           | RADOS Gateway                     | Ceph S3 호환 객체 스토리지 게이트웨이                             |
-| Single Writer | Single Writer                     | PXC에서 쓰기 노드를 1대로 정해 쓰기 충돌을 줄이는 운영 방식       |
-| wsrep         | Write Set Replication             | PXC/Galera Cluster의 복제 상태를 보여주는 상태 변수 접두어        |
+| 약어          | Full name                         | 의미                                                                |
+| :------------ | :-------------------------------- | :------------------------------------------------------------------ |
+| Ceph OSD      | Ceph Object Storage Daemon        | Ceph에서 실제 데이터를 디스크에 저장하고 복제하는 프로세스          |
+| Ceph pool     | Ceph Storage Pool                 | Ceph 객체를 저장하는 논리 저장 공간 묶음                            |
+| Grafana       | Grafana                           | Prometheus, CloudWatch 같은 지표를 대시보드로 보여주는 도구         |
+| JMeter        | Apache JMeter                     | HTTP/API 부하 테스트와 성능 검증 도구                               |
+| Locust        | Locust                            | Python 코드로 사용자 행동을 작성하는 부하 테스트 도구               |
+| Loki          | Grafana Loki                      | Kubernetes와 앱 로그를 label 기반으로 수집하고 조회하는 로그 도구   |
+| PMM           | Percona Monitoring and Management | Percona DB 모니터링 도구                                            |
+| Prometheus    | Prometheus                        | Kubernetes와 앱 지표를 주기적으로 수집하는 오픈소스 모니터링 도구   |
+| Thanos        | Thanos                            | Prometheus 지표 장기 보관, 통합 조회, 고가용성을 제공하는 확장 도구 |
+| PXC           | Percona XtraDB Cluster            | MySQL 호환 동기식 DB 클러스터                                       |
+| RBD           | RADOS Block Device                | Ceph 블록 스토리지                                                  |
+| RGW           | RADOS Gateway                     | Ceph S3 호환 객체 스토리지 게이트웨이                               |
+| Single Writer | Single Writer                     | PXC에서 쓰기 노드를 1대로 정해 쓰기 충돌을 줄이는 운영 방식         |
+| wsrep         | Write Set Replication             | PXC/Galera Cluster의 복제 상태를 보여주는 상태 변수 접두어          |
 
 ## 숙지해야 할 표현
 

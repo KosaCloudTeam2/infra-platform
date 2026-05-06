@@ -130,9 +130,30 @@ Argo CD를 MVP 배포 경로에 포함함. 이 결정으로 Kubernetes 배포 �
 - Marp 발표 원본 관리
 - 리소스 정리 계획
 
+## 5. 외부 온프레미스 구성표 반영 기준
+
+다른 팀의 온프레미스 전체 운영망 설계표를 참고하되 그대로 병합하지 않음. 우리 프로젝트에는 13+3
+MVP에 맞는 요소만 선별 반영함.
+
+| 항목                           | 반영 판단  | 이유                                                    |
+| :----------------------------- | :--------- | :------------------------------------------------------ |
+| Bastion                        | MVP 문서화 | 관리자 접속 경로 설명에 필요                            |
+| VPN Server / WireGuard         | MVP 후보   | 온프레미스-AWS 연결 후보와 일치                         |
+| DNS VIP / CoreDNS / Keepalived | 선택 확장  | 내부 DNS 이중화는 좋지만 Day 13 필수는 아님             |
+| HAProxy VIP / Keepalived       | 선택 확장  | 온프레미스 Ingress 앞단 안정화 후보                     |
+| Prometheus / Loki / Grafana    | 선택 확장  | Prometheus/Grafana는 관측성 후보, Loki는 로그 조회 확장 |
+| Locust / JMeter                | 선택 확장  | AWS burst scale-out 발표 시연에 유용                    |
+| Private Registry / Harbor      | 선택 확장  | 폐쇄망 또는 온프레미스 독립 운영 시 필요                |
+| GitLab self-managed            | 제외/확장  | 현재 저장소와 CI/CD 기준은 GitHub Actions               |
+| Vault / PKI / Keycloak         | 제외/확장  | 보안적으로 좋지만 MVP 필수화 시 범위 과다               |
+| 별도 K8s etcd 서버             | 제외/확장  | HA control plane 확장 시 검토                           |
+
+IP 대역은 다른 팀 예시를 사용하지 않고, AWS VPC `10.20.0.0/16`과 겹치지 않는 온프레미스 CIDR을
+팀에서 별도로 정함.
+
 ---
 
-## 5. 다음 보완 후보
+## 6. 다음 보완 후보
 
 | 후보                             | 우선순위 | 설명                                                                                                                          |
 | :------------------------------- | :------- | :---------------------------------------------------------------------------------------------------------------------------- |
@@ -145,4 +166,6 @@ Argo CD를 MVP 배포 경로에 포함함. 이 결정으로 Kubernetes 배포 �
 | 실제 앱 교체 체크리스트          | 중       | 임시 앱과 실제 앱의 포트, health check, secret 조건 차이 흡수                                                                 |
 | MkDocs 문서 사이트               | 낮음     | 물리적 문서 이동보다 `docs/index.md`와 `mkdocs.yml` nav 기반 도입 권장                                                        |
 | PMM 또는 Prometheus              | 낮음     | DB 관측성 고도화                                                                                                              |
+| Loki 로그 조회                   | 낮음     | 온프레미스 Kubernetes 로그를 Grafana에서 함께 조회                                                                            |
+| Locust/JMeter 부하 테스트        | 낮음     | AWS EC2 ASG scale-out 시연 안정화                                                                                             |
 | S3 2차 백업 복제                 | 낮음     | DR 메시지 강화                                                                                                                |

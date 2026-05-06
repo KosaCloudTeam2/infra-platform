@@ -13,6 +13,8 @@
 - AWS burst용 ALB Security Group
 - AWS burst EC2 Security Group
 - 온프레미스-AWS 연결 방식 문서화(VPN, WireGuard, 제한된 HTTPS 중 택1)
+- 온프레미스 관리 접속 경로 문서화(Bastion 또는 VPN)
+- 온프레미스 Ingress 진입 방식 문서화(Ingress 직접 접근 또는 HAProxy VIP 선택)
 
 ### 컴퓨팅
 
@@ -72,6 +74,7 @@
 - ProxySQL backend 상태 확인
 - PXC `wsrep` 클러스터 상태 확인
 - Ceph Health 상태 확인
+- 부하 테스트 도구 후보와 scale-out 시연 기준 문서화
 
 ### 스토리지
 
@@ -86,6 +89,10 @@
 - S3 + CloudFront 정적 자산 오프로딩
 - Blue/Green 배포
 - Prometheus/Grafana 별도 운영
+- Loki 기반 Kubernetes 로그 조회
+- Locust 또는 JMeter 기반 부하 테스트
+- DNS VIP/CoreDNS/Keepalived 기반 내부 DNS 이중화
+- HAProxy VIP/Keepalived 기반 온프레미스 Ingress 앞단 이중화
 - PMM(Percona Monitoring and Management)
 - Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
 - Elastic Container Registry(ECR) 기반 AWS-only fallback 이미지 저장소
@@ -98,6 +105,7 @@
 - AWS EC2를 직접 구축 Kubernetes worker node로 자동 join
 - Cluster Autoscaler 기반 AWS node 증감
 - 기존 ECS Fargate 기반 AWS-only fallback 유지
+- Vault, PKI, Keycloak 기반 보안 운영 고도화
 
 ### Kubernetes cloud bursting 구현 경계
 
@@ -120,3 +128,5 @@
 - AWS burst 앱에서 Proxmox/Ceph RBD 직접 마운트
 - Proxmox 관리 UI 인터넷 공개
 - EKS control plane 상시 운영
+- GitLab self-managed와 Harbor를 MVP 필수로 운영
+- Vault, PKI, Keycloak을 Day 13 MVP 필수로 운영
