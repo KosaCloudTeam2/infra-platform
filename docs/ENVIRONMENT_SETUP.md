@@ -15,7 +15,6 @@
 | [Quality Checks](./18_quality_checks.md)             | Prettier, pre-commit, Terraform 검증 절차 |
 | [Tool Troubleshooting](./19_tool_troubleshooting.md) | winget, Terraform, Git Hook 문제 해결     |
 | [MkDocs Guide](./20_mkdocs_guide.md)                 | MkDocs 설치와 로컬 문서 사이트 실행       |
-| [Quality Checks](./18_quality_checks.md)             | Terraform 실행과 plan 검토 기준           |
 
 ## 2. 공통 필수 도구
 
@@ -38,11 +37,13 @@
 
 ## 3. 최초 설치
 
-### 3.1 Node.js와 pnpm
+### 3.1 Windows
 
-Windows는 `nvm-windows`, macOS/Linux는 `nvm` 사용 권장
+Windows는 `cmd` 또는 PowerShell 기준으로 진행함.
 
-Windows `cmd`에서 `nvm-windows` 설치:
+#### 3.1.1 Node.js와 pnpm
+
+`cmd`에서 `nvm-windows` 설치:
 
 ```cmd
 winget install CoreyButler.NVMforWindows
@@ -70,7 +71,39 @@ npm --version
 pnpm --version
 ```
 
-macOS에서 `nvm` 설치:
+#### 3.1.2 uv
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+설치 후 새 터미널에서 확인:
+
+```powershell
+uv --version
+```
+
+#### 3.1.3 Terraform
+
+`winget` 또는 HashiCorp 공식 설치 프로그램 사용 권장
+
+```powershell
+winget install Hashicorp.Terraform
+```
+
+설치 후 새 터미널에서 확인:
+
+```powershell
+terraform version
+```
+
+### 3.2 macOS
+
+macOS는 기본 shell이 `zsh`인 환경 기준으로 진행함.
+
+#### 3.2.1 Node.js와 pnpm
+
+`nvm` 설치:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
@@ -99,15 +132,7 @@ npm --version
 pnpm --version
 ```
 
-### 3.2 uv
-
-Windows:
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-macOS:
+#### 3.2.2 uv
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -120,17 +145,18 @@ source ~/.zshrc
 uv --version
 ```
 
-### 3.3 Terraform
+#### 3.2.3 Terraform
 
-Windows는 `winget` 또는 HashiCorp 공식 설치 프로그램 사용 권장
+Homebrew 사용 권장:
 
-```powershell
-winget install Hashicorp.Terraform
+```bash
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
 ```
 
-설치 후 새 터미널에서 확인
+설치 확인:
 
-```powershell
+```bash
 terraform version
 ```
 
