@@ -33,7 +33,7 @@ uv sync --group dev
 기본 `8000` 포트 충돌을 피하기 위해 `8010` 포트를 사용함.
 
 ```powershell
-uv run mkdocs serve -a 127.0.0.1:8010
+uv run mkdocs serve -a 127.0.0.1:8010 --livereload
 ```
 
 브라우저에서 확인:
