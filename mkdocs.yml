@@ -7,6 +7,8 @@ exclude_docs: |
   engineering/**
   operations/**
   **/_workspace/**
+not_in_nav: |
+  daily_notice/[0-9]*.md
 
 theme:
   name: material
@@ -50,6 +52,7 @@ nav:
       - GitHub Setup: 11_github_setup.md
       - Repository Sharing Policy: 12_repository_sharing_policy.md
       - Environment Setup: ENVIRONMENT_SETUP.md
+      - Daily Notice: daily_notice/README.md
   - Reviews and History:
       - Ceph Usage Strategy: 13_ceph_usage_strategy.md
       - Existing Project Comparison: 14_existing_project_comparison.md

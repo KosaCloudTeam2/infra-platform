@@ -26,6 +26,7 @@
 | [GitHub Setup](./11_github_setup.md)                           | GitHub OIDC, Secret, Branch Protection     |
 | [Repository Sharing Policy](./12_repository_sharing_policy.md) | GitHub 공유/제외 기준                      |
 | [Environment Setup](./ENVIRONMENT_SETUP.md)                    | 팀원 초기 환경 설정                        |
+| [Daily Notice](./daily_notice/README.md)                       | 당일 공지와 작업 전 확인 사항              |
 | [AI Collaboration Guide](./17_ai_collaboration_guide.md)       | AI 도구 작업 요청 기준                     |
 | [Quality Checks](./18_quality_checks.md)                       | 품질 검증과 Terraform 검증                 |
 | [Tool Troubleshooting](./19_tool_troubleshooting.md)           | winget, Terraform, Git Hook 문제 해결      |
