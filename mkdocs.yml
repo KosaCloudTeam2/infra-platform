@@ -6,6 +6,7 @@ use_directory_urls: true
 exclude_docs: |
   engineering/**
   operations/**
+  **/_workspace/**
 
 theme:
   name: material

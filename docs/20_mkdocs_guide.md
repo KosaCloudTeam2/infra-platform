@@ -58,3 +58,4 @@ uv run mkdocs build
 - 루트 문서 추가 시 파일명 번호와 `mkdocs.yml`의 `nav` 순서를 함께 확인함
 - 다른 프로젝트에서 가져온 `docs/engineering`, `docs/operations`는 참고 자료이므로 MkDocs 빌드
   대상에서 제외함
+- 역할별 임시 작업 공간인 `_workspace` 디렉터리는 공식 문서가 아니므로 MkDocs 빌드 대상에서 제외함
