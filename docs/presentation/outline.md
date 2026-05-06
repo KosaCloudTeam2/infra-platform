@@ -25,7 +25,7 @@ Cloud Infra Deployment Platform: 안전하고 반복 가능한 컨테이너 배�
 ## 3. 시연 순서
 
 1. GitHub Actions 이미지 빌드 실행
-2. ECR 이미지 확인
+2. Docker Hub 이미지 확인
 3. Argo CD Application sync 확인
 4. Kubernetes rollout 확인
 5. Service 또는 Ingress URL 접속

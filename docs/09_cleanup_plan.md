@@ -5,7 +5,7 @@
 - AWS EC2 Auto Scaling Group
 - Launch Template
 - ECS fallback 리소스
-- ECR Repository 이미지
+- Docker Hub Repository 이미지
 - ALB / Target Group / Listener
 - WAF Web ACL
 - CloudWatch Log Group
@@ -23,7 +23,7 @@ terraform -chdir=infra/terraform destroy -var-file=env/dev.tfvars
 
 ## 3. 수동 확인
 
-- ECR 이미지가 남아 있으면 삭제 필요
+- Docker Hub 이미지가 남아 있으면 삭제 필요
 - CloudWatch Log Group 보존 여부 확인
 - NAT Gateway가 남아 있으면 비용 발생 가능
 - Elastic IP가 남아 있으면 비용 발생 가능

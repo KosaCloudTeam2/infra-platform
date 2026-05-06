@@ -5,7 +5,7 @@
 - [ ] Terraform으로 AWS burst 네트워크, ALB, EC2 Auto Scaling 리소스를 재현 가능함
 - [ ] 온프레미스 Proxmox VM 기반 Kubernetes 클러스터가 구성됨
 - [ ] 기존 앱이 Docker 이미지로 빌드됨
-- [ ] ECR 또는 팀 표준 컨테이너 레지스트리에 이미지가 저장됨
+- [ ] Docker Hub 또는 팀 표준 컨테이너 레지스트리에 이미지가 저장됨
 - [ ] Kubernetes Deployment/Service/Ingress가 정상 동작함
 - [ ] AWS burst ALB Health Check가 정상임
 - [ ] CloudWatch Alarm으로 AWS EC2 scale-out/scale-in 기준이 확인됨

@@ -4,14 +4,14 @@
 
 ## 1. 목표
 
-애플리케이션 이미지를 자동으로 빌드하고 ECR에 업로드한 뒤 Argo CD 기반 GitOps로 온프레미스
+애플리케이션 이미지를 자동으로 빌드하고 Docker Hub에 업로드한 뒤 Argo CD 기반 GitOps로 온프레미스
 Kubernetes에 배포함. 앱은 ProxySQL endpoint를 통해 DB에 연결함.
 
 ## 2. 구현 범위
 
 - Dockerfile 검증
-- ECR Repository 사용
-- GitHub Actions OIDC 인증
+- Docker Hub Repository 사용
+- GitHub Actions Secret 기반 Docker Hub 인증
 - Kubernetes manifest 또는 Helm chart 관리
 - Argo CD Application 구성
 - Argo CD sync 기반 Kubernetes 배포
@@ -27,14 +27,14 @@ sequenceDiagram
     participant Dev as Developer
     participant GH as GitHub
     participant GA as GitHub Actions
-    participant ECR as ECR
+    participant Registry as Docker Hub
     participant Argo as Argo CD
     participant K8s as Kubernetes
     participant DB as ProxySQL
 
     Dev->>GH: Merge
     GH->>GA: Workflow
-    GA->>ECR: Build & Push
+    GA->>Registry: Build & Push
     GA->>GH: Update manifest image tag
     Argo->>GH: Watch
     Argo->>K8s: Sync
@@ -45,8 +45,8 @@ sequenceDiagram
 
 ### 4.1 GitHub Actions
 
-- `AWS_DEPLOY_ROLE_ARN` Secret 사용
-- 장기 Access Key 미사용
+- `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` Secret 사용
+- AWS-only fallback 배포 외에는 장기 AWS Access Key 미사용
 - 이미지 태그는 `github.sha`와 `latest` 병행
 - manifest image tag 갱신 PR 또는 commit 생성
 
@@ -75,7 +75,7 @@ sequenceDiagram
 
 ## 5. 완료 기준
 
-- [ ] GitHub Actions로 ECR Push 성공
+- [ ] GitHub Actions로 Docker Hub Push 성공
 - [ ] Argo CD Application sync 성공
 - [ ] Kubernetes Deployment rollout 성공
 - [ ] ALB Health Check 정상
@@ -85,7 +85,7 @@ sequenceDiagram
 ## 6. 인계 자료
 
 - Workflow 실행 캡처
-- ECR 이미지 태그
+- Docker Hub 이미지 태그
 - Argo CD Application 상태
 - Kubernetes rollout 상태
 - 앱 환경변수/Secret 목록

@@ -44,7 +44,7 @@
 
 ### 배포
 
-- ECR Repository 또는 팀이 선택한 컨테이너 레지스트리
+- Docker Hub Repository 또는 팀이 선택한 컨테이너 레지스트리
 - GitHub Actions workflow
 - Argo CD 설치와 GitOps Application 구성
 - Docker image tag: `git-sha`, `latest`
@@ -87,6 +87,8 @@
 - Blue/Green 배포
 - Prometheus/Grafana 별도 운영
 - PMM(Percona Monitoring and Management)
+- Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
+- Elastic Container Registry(ECR) 기반 AWS-only fallback 이미지 저장소
 - Argo CD HA 구성과 SSO 연동
 - ProxySQL 2대 운영 시 설정 동기화 자동화
 - AWS S3 2차 백업 복제

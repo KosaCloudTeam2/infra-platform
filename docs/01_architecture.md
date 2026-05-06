@@ -167,8 +167,8 @@ flowchart TD
     PXC3 <-. "Galera Sync" .-> PXC1
 
     GitHub["GitHub Repository"] --> Actions["GitHub Actions<br/>OIDC Deploy"]
-    Actions --> ECR["Amazon ECR<br/>Image Registry"]
-    ECR --> ECS
+    Actions --> Registry["Docker Hub<br/>Image Registry"]
+    Registry --> ECS
 
     subgraph OnPrem["On-prem Proxmox Cluster"]
         Proxmox["Proxmox VE<br/>VM / LXC Management"]
@@ -202,7 +202,8 @@ flowchart TD
 - Proxmox는 온프레미스 VM/LXC와 Ceph 운영 계층이며, AWS 앱은 Ceph RBD를 직접 마운트하지 않고 RGW의
   S3 호환 API만 사용함
 - ProxySQL 1대는 MVP 기준이고, 일정 여유가 있으면 Internal NLB를 통해 ProxySQL 2대 구성으로 확장함
-- GitHub Actions는 OIDC로 AWS 임시 권한을 받아 ECR/ECS 배포를 수행함
+- GitHub Actions는 Docker Hub에 이미지를 push하고, AWS-only fallback 배포가 필요할 때 OIDC로 AWS
+  임시 권한을 받음
 - CloudWatch는 로그, 지표, 알람을 통해 장애와 성능 상태를 확인하는 기본 관측 계층임
 
 ---
@@ -213,15 +214,15 @@ flowchart TD
 
 ### 구성 요소
 
-| 구성 요소           | 역할                               | MVP 구현                    |
-| :------------------ | :--------------------------------- | :-------------------------- |
-| VPC                 | 전체 네트워크 격리 단위            | `10.20.0.0/16`              |
-| Public Subnet       | 인터넷 진입점 배치                 | 2개 AZ                      |
-| Private App Subnet  | AWS burst 앱 EC2 실행              | 2개 AZ                      |
-| Private Data Subnet | ProxySQL, Percona DB 노드 배치     | 3개 AZ 권장                 |
-| Internet Gateway    | Public Subnet 인터넷 연결          | 필수                        |
-| NAT Gateway         | Private 리소스의 ECR/외부 API 접근 | MVP 포함, 비용 이슈 시 논의 |
-| Route Table         | Public/Private 라우팅 분리         | 필수                        |
+| 구성 요소           | 역할                                       | MVP 구현                    |
+| :------------------ | :----------------------------------------- | :-------------------------- |
+| VPC                 | 전체 네트워크 격리 단위                    | `10.20.0.0/16`              |
+| Public Subnet       | 인터넷 진입점 배치                         | 2개 AZ                      |
+| Private App Subnet  | AWS burst 앱 EC2 실행                      | 2개 AZ                      |
+| Private Data Subnet | ProxySQL, Percona DB 노드 배치             | 3개 AZ 권장                 |
+| Internet Gateway    | Public Subnet 인터넷 연결                  | 필수                        |
+| NAT Gateway         | Private 리소스의 외부 API/이미지 pull 접근 | MVP 포함, 비용 이슈 시 논의 |
+| Route Table         | Public/Private 라우팅 분리                 | 필수                        |
 
 ### 설계 설명
 
@@ -323,16 +324,19 @@ AWS-only fallback 또는 비교안으로 유지함.
 
 ### 구성 요소
 
-| 구성 요소      | 역할                        |
-| :------------- | :-------------------------- |
-| ECR Repository | Docker 이미지 저장          |
-| Image Tag      | `github.sha`, `latest` 병행 |
-| Scan on Push   | 이미지 취약점 기본 스캔     |
+| 구성 요소             | 역할                             |
+| :-------------------- | :------------------------------- |
+| Docker Hub Repository | Docker 이미지 저장               |
+| Image Tag             | `github.sha`, `latest` 병행      |
+| Private Registry      | 온프레미스 독립 운영 시 확장안   |
+| ECR Repository        | AWS-only fallback 사용 시 대체안 |
 
 ### 설계 설명
 
-GitHub Actions는 커밋 SHA 기반 태그로 이미지를 저장함. `latest`만 사용하면 어떤 코드가 배포되었는지
-추적하기 어려우므로, 발표와 장애 분석을 위해 SHA 태그를 같이 사용함.
+GitHub Actions는 커밋 SHA 기반 태그로 Docker Hub에 이미지를 저장함. `latest`만 사용하면 어떤 코드가
+배포되었는지 추적하기 어려우므로, 발표와 장애 분석을 위해 SHA 태그를 같이 사용함. 온프레미스 독립
+운영 또는 폐쇄망 요구가 생기면 Private Registry 또는 Harbor로 확장함. ECR은 AWS-only fallback 배포를
+강하게 묶어야 할 때의 대체안으로 유지함.
 
 ## 3.5 데이터베이스 영역
 
@@ -487,7 +491,7 @@ sequenceDiagram
     participant Dev as Developer
     participant GH as GitHub
     participant GA as GitHub Actions
-    participant ECR as ECR
+    participant Registry as Docker Hub
     participant Argo as Argo CD
     participant K8s as Kubernetes
     participant ECS as ECS
@@ -496,7 +500,7 @@ sequenceDiagram
     Dev->>GH: PR Merge to main
     GH->>GA: Workflow Trigger
     GA->>GA: Docker Build
-    GA->>ECR: Push image: github.sha
+    GA->>Registry: Push image: github.sha
     GA->>GH: Update manifest image tag
     Argo->>GH: Watch manifest
     Argo->>K8s: Sync Deployment
@@ -507,8 +511,8 @@ sequenceDiagram
 
 ### 설계 설명
 
-`main` 브랜치 병합 또는 수동 실행으로 이미지 빌드를 시작함. GitHub Actions는 이미지를 ECR에 push하고
-Kubernetes manifest의 이미지 태그를 갱신함. Argo CD는 Git 저장소 상태를 감시하고 온프레미스
+`main` 브랜치 병합 또는 수동 실행으로 이미지 빌드를 시작함. GitHub Actions는 이미지를 Docker Hub에
+push하고 Kubernetes manifest의 이미지 태그를 갱신함. Argo CD는 Git 저장소 상태를 감시하고 온프레미스
 Kubernetes에 manifest를 동기화함.
 
 AWS burst 또는 AWS-only fallback 배포가 필요하면 GitHub Actions가 OIDC로 `GitHubDeployRole`을
@@ -647,7 +651,7 @@ flowchart LR
 1. PR 병합
 2. GitHub Actions 실행
 3. Docker 이미지 빌드
-4. ECR Push
+4. Docker Hub Push
 5. Kubernetes manifest image tag 갱신
 6. Argo CD Application sync
 7. Kubernetes rollout과 ALB Health Check 통과

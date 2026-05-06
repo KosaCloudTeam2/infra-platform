@@ -1,0 +1,37 @@
+name: Build and Push Image
+
+# Disabled until Docker Hub repository and GitHub Secrets are ready.
+# Required secrets:
+# - DOCKERHUB_USERNAME
+# - DOCKERHUB_TOKEN
+on: {}
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: cloud-infra-app
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          docker build -t "$DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG" ./app
+          docker tag "$DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG" "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
+          docker push "$DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG"
+          docker push "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"

@@ -9,8 +9,8 @@
 - AWS 기반 네트워크, EC2 burst, 배포, 보안, 관측성 체계 구성
 - GitHub Actions와 OpenID Connect(OIDC)를 이용한 키 없는 이미지 빌드 자동화
 - Argo CD 기반 GitOps 배포로 Kubernetes manifest 동기화
-- 애플리케이션 로드 밸런서(Application Load Balancer, ALB), Elastic Container Registry(ECR), EC2
-  Auto Scaling Group 기반 burst 영역 구성
+- 애플리케이션 로드 밸런서(Application Load Balancer, ALB), Docker Hub 기반 이미지 저장소, EC2 Auto
+  Scaling Group 기반 burst 영역 구성
 - CloudWatch, 웹 방화벽(Web Application Firewall, WAF), Secrets Manager 기반 운영 가드레일 구성
 - 장애 상황과 롤백 시나리오를 포함한 발표 데모 준비
 
@@ -24,7 +24,7 @@
 | :---------- | :--------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
 | 네트워크    | 가상 사설 클라우드(VPC), Public/Private Subnet, IGW, NAT 선택 기준, Security Group | [Architecture](docs/01_architecture.md)                               |
 | 컴퓨팅      | 온프레미스 Kubernetes, AWS EC2 burst, ALB Target Group                             | [Implementation Scope](docs/04_implementation_scope.md)               |
-| CI/CD       | GitHub Actions, Docker Build, ECR Push, Argo CD GitOps Deploy                      | [Deployment Runbook](docs/runbooks/deployment.md)                     |
+| CI/CD       | GitHub Actions, Docker Build, Docker Hub Push, Argo CD GitOps Deploy               | [Deployment Runbook](docs/runbooks/deployment.md)                     |
 | 보안        | IAM OIDC Role, 최소 권한, WAF, Secrets Manager, HTTPS                              | [Security Policy](docs/05_security_policy.md)                         |
 | 데이터      | Percona XtraDB Cluster, ProxySQL, Ceph 백업                                        | [Architecture](docs/01_architecture.md)                               |
 | 스토리지    | Ceph RGW/RBD/CephFS 활용 전략                                                      | [Ceph Usage Strategy](docs/13_ceph_usage_strategy.md)                 |
@@ -47,6 +47,8 @@
 - Blue/Green 배포: Argo CD progressive sync 또는 CodeDeploy 기반
 - Route 53 + ACM 인증서 + HTTPS 도메인 연결
 - S3 + CloudFront 정적 자산 오프로딩
+- Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
+- Elastic Container Registry(ECR) 기반 AWS-only fallback 이미지 저장소
 - ProxySQL 이중화와 Internal NLB: `proxysql_count = 2`, `enable_proxysql_internal_nlb = true`
 - AWS S3 2차 백업 복제
 - Prometheus/Grafana 별도 구축

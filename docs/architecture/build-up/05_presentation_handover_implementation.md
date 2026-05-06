@@ -48,12 +48,12 @@ pnpm run slides:pdf
 
 ## 5. 담당자별 인계 자료
 
-| 담당                           | 필수 자료                                                     |
-| :----------------------------- | :------------------------------------------------------------ |
-| Cloud/Network/IaC              | ALB DNS, Subnet/SG/WAF 캡처, EC2 ASG, Terraform plan 요약     |
-| DB/Storage                     | PXC 상태, ProxySQL endpoint, Ceph 백업 경로, 복구 절차        |
-| CI/CD/App Runtime              | GitHub Actions 실행 결과, ECR 태그, Argo CD sync, K8s rollout |
-| Observability/Integration/Demo | Prometheus/Grafana 또는 CloudWatch 캡처, 장애 시나리오 결과   |
+| 담당                           | 필수 자료                                                            |
+| :----------------------------- | :------------------------------------------------------------------- |
+| Cloud/Network/IaC              | ALB DNS, Subnet/SG/WAF 캡처, EC2 ASG, Terraform plan 요약            |
+| DB/Storage                     | PXC 상태, ProxySQL endpoint, Ceph 백업 경로, 복구 절차               |
+| CI/CD/App Runtime              | GitHub Actions 실행 결과, Docker Hub 태그, Argo CD sync, K8s rollout |
+| Observability/Integration/Demo | Prometheus/Grafana 또는 CloudWatch 캡처, 장애 시나리오 결과          |
 
 ## 6. 마감 체크리스트
 
@@ -76,7 +76,7 @@ pnpm run slides:pdf
 - WAF Web ACL
 - EC2 기반 PXC/ProxySQL
 - CloudWatch Log Group 보존 정책 확인
-- ECR 이미지 보존 정책 확인
+- Docker Hub 이미지 보존 정책 확인
 
 ## 8. 주의 사항
 

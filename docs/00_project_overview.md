@@ -9,8 +9,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 ## 2. 성공 기준
 
 - GitHub `main` 브랜치에 병합된 코드가 GitHub Actions를 통해 Docker 이미지로 빌드됨
-- 빌드된 이미지가 Elastic Container Registry(ECR) 또는 팀 표준 컨테이너 레지스트리에 태그와 함께
-  저장됨
+- 빌드된 이미지가 Docker Hub 또는 팀 표준 컨테이너 레지스트리에 태그와 함께 저장됨
 - 온프레미스 Kubernetes Deployment가 최신 이미지로 갱신됨
 - Argo CD 기반 GitOps 배포로 Kubernetes manifest 동기화 가능함
 - AWS burst 영역의 ALB Health Check가 정상이고 부하 증가 시 EC2 인스턴스가 Target Group에 등록됨
@@ -32,7 +31,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - Argo CD 기반 GitOps 배포
 - AWS burst ALB 1개
 - AWS EC2 Auto Scaling Group 1개
-- ECR Repository 또는 팀 표준 컨테이너 레지스트리 1개
+- Docker Hub Repository 또는 팀 표준 컨테이너 레지스트리 1개
 - CloudWatch Logs/Metrics/Alarm
 - GitHub Actions OpenID Connect(OIDC) 배포 Role
 - Security Group 최소 허용 정책
@@ -48,6 +47,8 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - Blue/Green 배포
 - Prometheus/Grafana 별도 구성
 - 부하 테스트와 Auto Scaling 정책 고도화
+- Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
+- Elastic Container Registry(ECR) 기반 AWS-only fallback 이미지 저장소
 - ProxySQL 2대 + Internal NLB
 - Ceph RADOS Block Device(RBD)/CephFS 고급 활용
 - AWS S3 2차 백업 복제

@@ -2,10 +2,12 @@
 
 ## 1. 사전 조건
 
-- AWS Command Line Interface(CLI) 인증 완료
-- Terraform plan/apply 완료
-- Elastic Container Registry(ECR) Repository 생성 완료
-- GitHub Actions OpenID Connect(OIDC) Role 생성 완료
+- Docker Hub 계정 또는 조직 repository 준비 완료
+- AWS burst 또는 ECS fallback 검증 시 AWS Command Line Interface(CLI) 인증 완료
+- AWS burst 또는 ECS fallback 검증 시 Terraform plan/apply 완료
+- Docker Hub Repository 생성 완료
+- Docker Hub GitHub Secret 등록 완료
+- AWS fallback 배포가 필요하면 GitHub Actions OpenID Connect(OIDC) Role 생성 완료
 - 온프레미스 Kubernetes 클러스터 준비 완료
 - Argo CD 설치와 Application 생성 완료
 - 기존 앱 Dockerfile 준비 완료
@@ -148,12 +150,13 @@ syncPolicy:
 
 MVP 배포 기준은 GitHub Actions 이미지 빌드와 Argo CD GitOps 동기화임.
 
-1. GitHub Actions에서 이미지 build/push 성공 확인
-2. Kubernetes manifest 또는 Helm values image tag 갱신 확인
-3. Argo CD Application sync 실행
-4. ECR 이미지 태그 확인
-5. Kubernetes Deployment rollout 상태 확인
-6. Service 또는 Ingress Health Check 확인
+1. GitHub Actions에서 `Build and Push Image` workflow 수동 실행
+2. 이미지 build/push 성공 확인
+3. Docker Hub 이미지 태그 확인
+4. Kubernetes manifest 또는 Helm values image tag 갱신 확인
+5. Argo CD Application sync 실행
+6. Kubernetes Deployment rollout 상태 확인
+7. Service 또는 Ingress Health Check 확인
 
 ## 6. ECS fallback 배포
 
@@ -161,17 +164,36 @@ MVP 배포 기준은 GitHub Actions 이미지 빌드와 Argo CD GitOps 동기화
 실행만 허용함. 이 workflow는 AWS-only fallback 검증이 필요할 때 사용함.
 
 1. Terraform apply와 GitHub Secret 설정 완료 확인
-2. GitHub Actions에서 `Deploy to ECS` workflow 수동 실행
-3. ECR 이미지 태그 확인
-4. ECS Service Deployment 상태 확인
-5. ALB Target Group Health Check 확인
+2. Kubernetes manifest 또는 Helm values image tag 갱신 확인
+3. GitHub Actions에서 `Deploy to ECS` workflow 수동 실행
+4. AWS fallback용 이미지 태그 확인
+5. ECS Service Deployment 상태 확인
+6. ALB Target Group Health Check 확인
 
 ## 7. ECS 자동 배포 재활성화 기준
+
+## 7. Docker Hub 이미지 workflow 활성화 기준
+
+아래 조건이 모두 충족되면 `.github/workflows/build-image.yml`의 `workflow_dispatch`를 활성화함.
+
+- Docker Hub Repository 생성 완료
+- GitHub Repository Secret `DOCKERHUB_USERNAME` 등록 완료
+- GitHub Repository Secret `DOCKERHUB_TOKEN` 등록 완료
+- `IMAGE_NAME` 값이 Docker Hub Repository 이름과 일치
+
+활성화할 트리거:
+
+```yaml
+on:
+  workflow_dispatch:
+```
+
+## 8. ECS 자동 배포 재활성화 기준
 
 아래 조건이 모두 충족되면 `main` push 자동 배포를 다시 활성화할 수 있음.
 
 - Terraform apply 완료
-- ECR Repository 생성 확인
+- AWS fallback용 ECR Repository 생성 확인
 - Elastic Container Service(ECS) Cluster, Service, Task Execution Role 생성 확인
 - GitHub OIDC Provider와 `GitHubDeployRole` 생성 확인
 - `infra/terraform/env/dev.tfvars`의 `github_repository`가 실제 저장소명으로 설정됨
@@ -195,7 +217,7 @@ on:
   workflow_dispatch:
 ```
 
-## 8. Argo CD 확인 명령
+## 9. Argo CD 확인 명령
 
 ```powershell
 kubectl get application -n argocd
@@ -234,7 +256,7 @@ kubectl delete namespace argocd
 - `kubectl rollout status`로 rolling update 완료 여부 확인
 - Git에 없는 수동 변경은 Argo CD에서 `OutOfSync` 또는 drift로 감지되는지 확인
 
-## 9. ECS 수동 배포 확인 명령
+## 10. ECS 수동 배포 확인 명령
 
 ```powershell
 aws ecs describe-services `
@@ -249,7 +271,7 @@ aws elbv2 describe-target-health `
   --region ap-northeast-2
 ```
 
-## 10. 완료 기준
+## 11. 완료 기준
 
 - Argo CD Application `Synced` 상태
 - Argo CD Application `Healthy` 상태

@@ -34,7 +34,10 @@
 | Argo CD               | Argo Continuous Delivery                     | Git 저장소의 Kubernetes manifest를 클러스터에 동기화하는 GitOps 배포 도구   |
 | CI/CD                 | Continuous Integration / Continuous Delivery | 코드 통합, 빌드, 테스트, 배포 자동화 흐름                                   |
 | Drift                 | Configuration Drift                          | Git에 선언된 상태와 실제 클러스터 상태가 달라진 상황                        |
-| ECR                   | Elastic Container Registry                   | Docker 이미지 저장소                                                        |
+| Docker Hub            | Docker Hub                                   | Docker 이미지 저장소. MVP 기본 이미지 레지스트리                            |
+| Private Registry      | Private Registry                             | 팀 내부망 또는 온프레미스에 직접 운영하는 이미지 저장소                     |
+| Harbor                | Harbor                                       | 권한, 프로젝트, 이미지 스캔 기능을 제공하는 Private Registry 구현체         |
+| ECR                   | Elastic Container Registry                   | AWS 관리형 Docker 이미지 저장소. AWS-only fallback 대체안                   |
 | ECS                   | Elastic Container Service                    | AWS 컨테이너 실행 서비스                                                    |
 | Fargate               | AWS Fargate                                  | 서버를 직접 관리하지 않고 ECS/EKS 컨테이너를 실행하는 방식                  |
 | GitOps                | Git Operations                               | Git 저장소 선언 상태를 실제 인프라/클러스터 상태로 동기화하는 운영 방식     |

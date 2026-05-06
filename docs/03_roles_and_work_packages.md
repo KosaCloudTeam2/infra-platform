@@ -11,7 +11,7 @@
 | WP-05 | Percona Cluster     | PXC 3노드, DB 계정/권한, Single Writer 운영                                    | 팀원 3  | 팀원 2 |
 | WP-06 | ProxySQL            | DB 접근 단일화, 읽기/쓰기 라우팅, backend 상태 확인                            | 팀원 3  | 팀원 4 |
 | WP-07 | Ceph 백업           | XtraBackup, Ceph RGW 업로드, 체크섬/복구 절차                                  | 팀원 3  | 팀원 1 |
-| WP-08 | 컨테이너 레지스트리 | ECR Repository, 이미지 태그 정책                                               | 팀원 4  | 팀원 2 |
+| WP-08 | 컨테이너 레지스트리 | Docker Hub Repository, 이미지 태그 정책, Private Registry 확장 검토            | 팀원 4  | 팀원 2 |
 | WP-09 | K8s/App 런타임      | Kubernetes Deployment/Service/Ingress, 앱-DB 연결                              | 팀원 4  | 팀원 3 |
 | WP-10 | CI/CD / GitOps      | Docker Build, Image Push, Argo CD GitOps 배포, AWS EC2 bootstrap 버전 관리     | 팀원 4  | 팀원 1 |
 | WP-11 | IAM/OIDC            | GitHub OIDC Provider, Deploy Role, 최소 권한                                   | 팀원 4  | 팀원 1 |
@@ -54,7 +54,7 @@
 | 경계               | 담당 원칙                                                                                                       |
 | :----------------- | :-------------------------------------------------------------------------------------------------------------- |
 | 클라우드 범위      | Cloud/Network/IaC 담당은 AWS 전체가 아니라 VPC, ALB, SG, WAF, EC2 ASG, Launch Template, Terraform 경계를 책임짐 |
-| CI/CD 범위         | CI/CD 담당은 GitHub Actions, ECR, Argo CD, Kubernetes manifest, 앱 배포와 롤백을 책임짐                         |
+| CI/CD 범위         | CI/CD 담당은 GitHub Actions, Docker Hub, Argo CD, Kubernetes manifest, 앱 배포와 롤백을 책임짐                  |
 | DB용 EC2 생성      | Cloud/Network/IaC 담당이 Terraform 골격과 내부망 배치를 책임지고, DB 담당이 스펙과 디스크 요구사항을 제시함     |
 | DB 소프트웨어 구성 | DB/Storage 담당이 PXC, ProxySQL, 백업, 복구를 책임짐                                                            |
 | 앱 배포            | CI/CD/App Runtime 담당이 Argo CD 기반 Kubernetes 배포와 AWS burst 앱 환경변수/Secret 주입을 책임짐              |
@@ -98,7 +98,7 @@
 
 ### 5.4 CI/CD / App Runtime
 
-- GitHub Actions 이미지 빌드와 ECR push
+- GitHub Actions 이미지 빌드와 Docker Hub push
 - Argo CD 설치, Application 구성, sync 검증
 - Kubernetes manifest 또는 Helm chart 관리
 - 앱 환경변수와 Secret 주입

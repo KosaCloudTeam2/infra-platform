@@ -4,13 +4,13 @@
 
 ## 1. 목표
 
-GitHub Actions OIDC 기반으로 Docker 이미지를 ECR에 push하고, Argo CD 기반 GitOps로 온프레미스
+GitHub Actions 기반으로 Docker 이미지를 Docker Hub에 push하고, Argo CD 기반 GitOps로 온프레미스
 Kubernetes Deployment를 갱신함. AWS ECS Fargate 배포는 AWS-only fallback 검증용으로 분리함.
 
 ## 2. 사전 조건
 
-- `AWS_DEPLOY_ROLE_ARN` GitHub Secret 등록
-- Terraform output에서 ECR repository 이름 확인
+- `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` GitHub Secret 등록
+- Docker Hub repository 이름 확인
 - 온프레미스 Kubernetes 클러스터 접근 가능
 - Argo CD 설치 namespace와 접속 경로 확인
 - Argo CD Application이 추적할 manifest 또는 Helm chart 경로 확정
@@ -20,14 +20,14 @@ Kubernetes Deployment를 갱신함. AWS ECS Fargate 배포는 AWS-only fallback 
 ## 3. 구현 순서
 
 1. 로컬 Docker build와 `/health` 응답 확인
-2. ECR repository 이름과 GitHub Actions env 값 확인
-3. GitHub OIDC Role assume 가능 여부 확인
+2. Docker Hub repository 이름과 GitHub Actions env 값 확인
+3. AWS fallback이 필요하면 GitHub OIDC Role assume 가능 여부 확인
 4. Argo CD 설치
 5. Argo CD admin 초기 비밀번호 변경과 초기 Secret 삭제
 6. Argo CD Application 생성
 7. Argo CD 수동 sync 성공 확인
 8. Drift 감지와 Self Heal 검증
-9. workflow에서 Docker image를 `github.sha`, `latest`로 push
+9. `Build and Push Image` workflow에서 Docker image를 `github.sha`, `latest`로 push
 10. Kubernetes manifest 또는 Helm values의 image tag 갱신
 11. Argo CD Application sync 실행
 12. Kubernetes Deployment rollout 확인
@@ -53,9 +53,8 @@ docker run --rm -p 8080:8080 cloud-infra-app:local
 
 확인 항목:
 
-- `Configure AWS credentials` 단계 성공
-- `Login to Amazon ECR` 단계 성공
-- ECR에 `github.sha` 태그와 `latest` 태그 생성
+- Docker Hub login 단계 성공
+- Docker Hub에 `github.sha` 태그와 `latest` 태그 생성
 - `argocd-server` deployment rollout 성공
 - `argocd-initial-admin-secret` 삭제 또는 비밀번호 변경 완료
 - Application 수동 sync 성공
@@ -93,7 +92,7 @@ kubectl rollout status deployment/<app-deployment-name> -n <app-namespace>
 ## 8. 산출물
 
 - GitHub Actions 실행 결과 캡처
-- ECR 이미지 태그 목록
+- Docker Hub 이미지 태그 목록
 - Argo CD Application 상태
 - Kubernetes rollout 결과
 - 필요 시 ECS Service deployment와 ALB Target Group health 결과

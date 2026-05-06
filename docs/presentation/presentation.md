@@ -28,7 +28,7 @@ size: 16:9
 | :------------ | :-------------------------------------------- |
 | Network       | VPC, Public/Private Subnet, ALB, SG           |
 | Runtime       | 온프레미스 Kubernetes, AWS EC2 burst, Argo CD |
-| CI/CD         | GitHub Actions, OIDC, ECR, GitOps Deploy      |
+| CI/CD         | GitHub Actions, Docker Hub, GitOps Deploy     |
 | Security      | IAM Role, WAF, Secrets Manager                |
 | Data          | Percona XtraDB Cluster, ProxySQL              |
 | Storage       | Ceph RGW 백업, RBD/PVC 확장                   |
@@ -46,8 +46,8 @@ flowchart TD
     Traffic --> WAF["AWS WAF"]
     WAF --> ALB["AWS ALB"]
     ALB --> Burst["AWS EC2 ASG Burst App"]
-    GitHub["GitHub"] --> Actions["GitHub Actions OIDC"]
-    Actions --> ECR["ECR"]
+    GitHub["GitHub"] --> Actions["GitHub Actions"]
+    Actions --> Registry["Docker Hub"]
     Actions --> Manifest["K8s Manifest"]
     Manifest --> Argo["Argo CD"]
     Argo --> K8s["On-prem Kubernetes App"]
@@ -66,7 +66,7 @@ flowchart TD
 
 - 기본 앱 경로: User -> On-prem K8s Ingress -> Kubernetes App
 - AWS burst 경로: User -> WAF/ALB -> EC2 ASG Burst App
-- 배포 경로: GitHub Actions -> ECR/Manifest -> Argo CD -> Kubernetes
+- 배포 경로: GitHub Actions -> Docker Hub/Manifest -> Argo CD -> Kubernetes
 - 데이터 경로: App -> ProxySQL -> PXC -> XtraBackup -> Ceph RGW
 - 관측 경로: CloudWatch는 AWS, Prometheus/Grafana는 온프레미스와 Ceph 중심
 
@@ -78,7 +78,7 @@ flowchart TD
 - Private Subnet: AWS burst 앱 EC2, ProxySQL/PXC
 - ALB Security Group: 80/443 from Internet
 - AWS burst app Security Group: App Port from ALB SG only
-- NAT Gateway: Private 리소스의 ECR/외부 API 접근 경로
+- NAT Gateway: Private 리소스의 외부 API/이미지 pull 접근 경로
 
 ---
 
@@ -89,13 +89,13 @@ sequenceDiagram
     participant Dev as Developer
     participant GH as GitHub
     participant GA as GitHub Actions
-    participant ECR as ECR
+    participant Registry as Docker Hub
     participant Argo as Argo CD
     participant K8s as Kubernetes
 
     Dev->>GH: Merge to main
     GH->>GA: Workflow Trigger
-    GA->>ECR: Docker Build & Push
+    GA->>Registry: Docker Build & Push
     GA->>GH: Update image tag
     Argo->>GH: Watch manifest
     Argo->>K8s: Sync
@@ -168,7 +168,7 @@ sequenceDiagram
 | Observability / Integration / Demo | 관측성, 통합 검증, 장애 시나리오, 발표 흐름   |
 | Cloud / Network / IaC              | VPC, Subnet, ALB, SG, WAF, EC2 ASG, Terraform |
 | DB / Storage                       | PXC, ProxySQL, Ceph RGW 백업                  |
-| CI/CD / App Runtime                | GitHub Actions, ECR, Argo CD, K8s 배포        |
+| CI/CD / App Runtime                | GitHub Actions, Docker Hub, Argo CD, K8s 배포 |
 
 ---
 
@@ -192,3 +192,4 @@ sequenceDiagram
 - AWS S3 2차 백업 복제
 - Ceph CSI 기반 Kubernetes PVC
 - EKS 기반 하이브리드 Kubernetes 전환
+- Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소

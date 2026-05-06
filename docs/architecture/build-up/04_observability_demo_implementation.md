@@ -44,7 +44,7 @@ Prometheus/Grafana 또는 CloudWatch 기반 최소 관측 체계를 구성하고
 ### 5.1 정상 배포
 
 1. GitHub Actions workflow 실행
-2. ECR 이미지 태그 확인
+2. Docker Hub 이미지 태그 확인
 3. Argo CD Application sync 확인
 4. Kubernetes rollout 확인
 5. Service 또는 Ingress URL로 앱 응답 확인

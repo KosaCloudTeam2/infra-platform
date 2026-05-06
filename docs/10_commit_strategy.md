@@ -4,7 +4,7 @@
 
 - `main`: 발표 가능한 안정 상태
 - `feature/network-iac`: VPC/ALB/SG
-- `feature/app-runtime`: Kubernetes/ECR/Argo CD
+- `feature/app-runtime`: Kubernetes/Docker Hub/Argo CD
 - `feature/cicd-security`: GitHub Actions/IAM/WAF
 - `feature/observability`: CloudWatch/Alarm/Runbook
 - `docs/presentation`: 발표 자료

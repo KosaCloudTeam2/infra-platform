@@ -37,7 +37,7 @@
 ### 4.1 배포 시연
 
 1. GitHub Actions 실행
-2. ECR 이미지 확인
+2. Docker Hub 이미지 확인
 3. Argo CD Application sync 확인
 4. Kubernetes Deployment rollout 확인
 5. Service 또는 Ingress URL 접속

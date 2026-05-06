@@ -14,11 +14,11 @@
 
 ## 2. IAM 역할
 
-| Role             | 용도           | 주요 권한                                                                                 |
-| :--------------- | :------------- | :---------------------------------------------------------------------------------------- |
-| GitHubDeployRole | CI/CD 배포     | Elastic Container Registry(ECR) Push, manifest 갱신, AWS fallback 배포, iam:PassRole 제한 |
-| EC2InstanceRole  | AWS burst 실행 | ECR Pull, CloudWatch Logs Write, 필요한 Secret Read                                       |
-| ECSTaskRole      | ECS fallback   | Secrets Manager Read, 필요 시 Simple Storage Service(S3) Read/Write                       |
+| Role             | 용도           | 주요 권한                                                           |
+| :--------------- | :------------- | :------------------------------------------------------------------ |
+| GitHubDeployRole | CI/CD 배포     | AWS fallback 배포, manifest 갱신, iam:PassRole 제한                 |
+| EC2InstanceRole  | AWS burst 실행 | CloudWatch Logs Write, 필요한 Secret Read                           |
+| ECSTaskRole      | ECS fallback   | Secrets Manager Read, 필요 시 Simple Storage Service(S3) Read/Write |
 
 ## 3. 팀원 AWS 접근 원칙
 
@@ -55,7 +55,7 @@
 | 팀원 1 Observability/Integration | ReadOnly + 제한된 운영 확인 권한                   | 관측성, 통합 검증, 발표 캡처 확인 중심   |
 | 팀원 2 Cloud/Network/IaC         | Terraform plan 중심, apply는 합의된 담당자만       | VPC, ALB, SG, WAF, EC2 ASG 변경 책임     |
 | 팀원 3 DB/Storage                | EC2 Systems Manager(SSM) 접속, CloudWatch/EC2 확인 | PXC/ProxySQL/Ceph 구성 책임              |
-| 팀원 4 CI/CD/App Runtime         | ECR, Argo CD, GitHub Actions 확인                  | 이미지 빌드, GitOps 배포, 앱 런타임 책임 |
+| 팀원 4 CI/CD/App Runtime         | Docker Hub, Argo CD, GitHub Actions 확인           | 이미지 빌드, GitOps 배포, 앱 런타임 책임 |
 | Terraform apply 담당자           | 별도 관리자 승인 또는 임시 상승 권한               | 팀 apply는 1명으로 제한                  |
 
 ### 3.2 실습용 단일 그룹 예외
@@ -127,7 +127,9 @@ Session Manager 또는 제한된 Bastion 접근을 우선함.
 - `PROXYSQL_PASSWORD`, `PXC_BACKUP_KEY`, `CEPH_RGW_ACCESS_KEY`, `CEPH_RGW_SECRET_KEY` 등도 Secrets
   Manager 또는 CI Secret에 저장함
 - Argo CD admin 초기 비밀번호, repository credential, deploy key는 저장소에 저장하지 않음
-- GitHub Secrets에는 AWS Role ARN, AWS Region 등 민감도가 낮은 설정만 저장함
+- GitHub Secrets에는 Docker Hub Access Token, AWS Role ARN, AWS Region 등 CI/CD 실행에 필요한 값만
+  저장함
+- Docker Hub Token은 최소 권한 Access Token을 사용하고, 개인 비밀번호를 저장하지 않음
 - `.env` 파일은 커밋 금지
 
 ## 7. 점검 체크리스트

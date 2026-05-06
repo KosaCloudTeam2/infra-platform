@@ -103,3 +103,4 @@ nav:
       - MkDocs Navigation: architecture/decisions/ADR-006-mkdocs-docs-navigation.md
       - Cost-first Hybrid Kubernetes Burst: architecture/decisions/ADR-007-hybrid-kubernetes-cloud-bursting.md
       - Argo CD GitOps MVP: architecture/decisions/ADR-008-argocd-gitops-mvp.md
+      - Docker Hub Registry MVP: architecture/decisions/ADR-009-docker-hub-registry-mvp.md

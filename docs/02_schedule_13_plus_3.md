@@ -10,12 +10,12 @@
 
 ## 2. 팀 역할
 
-| 역할                                  | 담당자 | 핵심 책임                                                                       |
-| :------------------------------------ | :----- | :------------------------------------------------------------------------------ |
-| A. Observability / Integration / Demo | 팀원 1 | 관측성, 통합 검증, 장애 시나리오, Runbook 품질, 발표 흐름과 캡처 통합           |
-| B. Cloud / Network / IaC Engineer     | 팀원 2 | VPC, Subnet, ALB, SG, WAF, EC2 ASG, Launch Template, DB용 EC2 Terraform 골격    |
-| C. DB / Storage Engineer              | 팀원 3 | Percona Cluster, ProxySQL, DB 계정/권한, XtraBackup, Ceph 백업                  |
-| D. CI/CD / App Runtime Engineer       | 팀원 4 | GitHub Actions, Argo CD, IAM OIDC, ECR, K8s manifest, 앱 배포, 앱-DB 연결, 롤백 |
+| 역할                                  | 담당자 | 핵심 책임                                                                    |
+| :------------------------------------ | :----- | :--------------------------------------------------------------------------- |
+| A. Observability / Integration / Demo | 팀원 1 | 관측성, 통합 검증, 장애 시나리오, Runbook 품질, 발표 흐름과 캡처 통합        |
+| B. Cloud / Network / IaC Engineer     | 팀원 2 | VPC, Subnet, ALB, SG, WAF, EC2 ASG, Launch Template, DB용 EC2 Terraform 골격 |
+| C. DB / Storage Engineer              | 팀원 3 | Percona Cluster, ProxySQL, DB 계정/권한, XtraBackup, Ceph 백업               |
+| D. CI/CD / App Runtime Engineer       | 팀원 4 | GitHub Actions, Argo CD, Docker Hub, K8s manifest, 앱 배포, 앱-DB 연결, 롤백 |
 
 역할 경계:
 
@@ -35,7 +35,7 @@
 | Day 2  | 설계 확정                   | 아키텍처 다이어그램 확정, 역할별 작업 보드 구성                   | Terraform Backend/Provider 구조 작성, App/Data Subnet 분리 설계    | DB EC2 사양, 디스크, 백업 저장소 요구사항 제시                              | OIDC 배포 방식 설계, 앱 포트/헬스체크 경로 확인                            |
 | Day 3  | 네트워크 골격               | 설계 리뷰 및 리스크 점검                                          | VPC, Public/App Private/Data Private Subnet, IGW, Route Table 구현 | PXC 설치 절차와 ProxySQL 라우팅 초안 작성                                   | GitHub Actions 기본 workflow 작성                                          |
 | Day 4  | 외부 진입점                 | ALB/SG 설계 리뷰                                                  | AWS burst ALB, Target Group, Listener, EC2 SG 구현                 | DB 계정/권한 모델, PXC 노드 구성 계획 확정                                  | Docker build/push job 작성, 이미지 태그 전략 수립                          |
-| Day 5  | 첫 배포 준비                | MVP 범위 재점검, 일정 조정                                        | DB용 EC2 Terraform 골격, ProxySQL/PXC SG, SSM Role 구성            | PXC/ProxySQL 설치 준비, Ceph RGW 접근 방식 확정                             | GitHub OIDC Role, ECR push 권한 검증                                       |
+| Day 5  | 첫 배포 준비                | MVP 범위 재점검, 일정 조정                                        | DB용 EC2 Terraform 골격, ProxySQL/PXC SG, SSM Role 구성            | PXC/ProxySQL 설치 준비, Ceph RGW 접근 방식 확정                             | Docker Hub push 권한, GitHub Actions Secret 검증                           |
 | Day 6  | 첫 배포 성공                | 첫 배포 체크리스트 운영                                           | ALB Health Check 경로와 SG 수정                                    | DB EC2 접속 경로(SSM/Bastion) 검증                                          | 온프레미스 K8s 첫 배포, GitHub Actions 이미지 빌드, Argo CD 설치 착수      |
 | Day 7  | 보안 기본선                 | 보안 리뷰 회의 진행                                               | Private 라우팅, NAT 비용 선택안, DB 내부망 접근 확인               | PXC 3노드 구성 착수, ProxySQL 접속 정보 분리                                | Secrets Manager 주입, 앱 환경변수/Secret 연결                              |
 | Day 8  | 데이터 계층                 | DB/Ceph 시연 범위 확정                                            | DB Subnet/SG 규칙 검토, 0.0.0.0/0 DB 포트 차단 확인                | PXC 3노드, ProxySQL 1대 MVP 구성 완료 목표                                  | Argo CD Application sync, 앱에서 ProxySQL endpoint 접속 테스트             |
@@ -82,7 +82,7 @@
 
 ### 팀원 4: CI/CD / App Runtime
 
-- ECR 또는 팀 표준 이미지 레지스트리 구성
+- Docker Hub 또는 팀 표준 이미지 레지스트리 구성
 - Argo CD 설치와 Application 구성
 - Kubernetes manifest 또는 Helm chart 배포 절차
 - AWS EC2 Launch Template 앱 bootstrap 절차 정의 지원

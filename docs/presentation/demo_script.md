@@ -2,13 +2,14 @@
 
 ## 1. 자동 배포 시연
 
-> "main 브랜치에 변경 사항이 반영되면 GitHub Actions가 Docker 이미지를 빌드하고 ECR에 업로드합니다.
-> 이후 Kubernetes manifest의 이미지 태그를 갱신하고, Argo CD가 Git 상태를 클러스터에 동기화합니다."
+> "main 브랜치에 변경 사항이 반영되면 GitHub Actions가 Docker 이미지를 빌드하고 Docker Hub에
+> 업로드합니다. 이후 Kubernetes manifest의 이미지 태그를 갱신하고, Argo CD가 Git 상태를 클러스터에
+> 동기화합니다."
 
 확인 화면
 
 - GitHub Actions workflow
-- ECR image tag
+- Docker Hub image tag
 - Argo CD Application sync
 - Kubernetes rollout
 - Service 또는 Ingress URL
