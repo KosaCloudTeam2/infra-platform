@@ -7,9 +7,10 @@
 3. 아키텍처: VPC, ALB, 온프레미스 Kubernetes, Argo CD, Docker Hub, GitHub Actions, CloudWatch, WAF
 4. 구현 내용: IaC, CI/CD, 보안, 관측성
 5. 장애 대응: Pod 장애, 배포 실패, Health Check 실패
-6. 비용 최적화: EKS 미사용, EC2 burst, NAT 선택, 로그 보존
+6. 비용 최적화: EKS 최소 PoC 범위 제한, 운영용 EKS 미전환, EC2 burst, NAT 선택, 로그 보존
 7. 데이터 계층: RDS 제외, Percona XtraDB Cluster, ProxySQL, Ceph 백업
-8. 한계와 확장: HTTPS, Blue/Green, CloudFront, EKS, S3 2차 백업
+8. 한계와 확장: HTTPS, Blue/Green, CloudFront, EKS Hybrid Nodes, AWS Load Balancer Controller,
+   운영용 EKS 전환, S3 2차 백업
 
 ## 2. 시연 시나리오
 

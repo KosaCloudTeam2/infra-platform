@@ -319,8 +319,8 @@ ProxySQL 앞단에 둠.
 ### 설계 설명
 
 MVP 기본 런타임은 온프레미스 Kubernetes임. Argo CD로 GitOps 배포 흐름을 보여주고, AWS는 ALB와 EC2
-Auto Scaling Group 기반 burst 영역으로 분리함. EKS control plane 비용은 제외하고, ECS Fargate는
-문서상 비교안으로만 유지함.
+Auto Scaling Group 기반 burst 영역으로 분리함. EKS는 최소 PoC로만 포함하고 운영용 control plane 상시
+전환은 제외하며, ECS Fargate는 문서상 비교안으로만 유지함.
 
 ### Task 기준값
 
@@ -710,10 +710,15 @@ Route 53 Hosted Zone과 ACM 인증서를 추가하면 ALB HTTPS Listener를 구�
 RDS는 제외하고 EC2 기반 PXC + ProxySQL을 기본 데이터 계층으로 사용함. 안정성 보완 단계에서는
 ProxySQL 2대와 Internal NLB를 추가하고, 백업은 Ceph RGW에 저장한 뒤 중요 백업만 AWS S3로 2차 복제함.
 
-## 5.4 EKS 전환
+## 5.4 EKS 최소 PoC와 관리형 Kubernetes 비교안
 
-Kubernetes 포트폴리오를 강조하기 위해 Argo CD 기반 GitOps는 MVP에 포함함. 단, EKS control plane은
-비용과 일정 부담 때문에 선택 확장으로 유지함.
+Kubernetes 포트폴리오를 강조하기 위해 Argo CD 기반 GitOps와 EKS 최소 PoC를 MVP에 포함함. 단, EKS는
+운영 런타임이 아니라 AWS 관리형 Kubernetes 경험 확보용 보조 산출물이며, EKS control plane 상시
+운영과 운영용 EKS 전환은 비용과 일정 부담 때문에 선택 확장으로 유지함.
+
+EKS PoC의 목적은 클러스터 생성, `kubectl` 연결, 샘플 앱 배포, 삭제 검증까지의 기본 사용 흐름 확인임.
+AWS Load Balancer Controller(ALB Ingress Controller), EKS Hybrid Nodes, 운영용 EKS 전환은 고도화
+확장으로 분리함.
 
 ## 5.5 비용 우선 하이브리드 Kubernetes와 AWS EC2 버스팅
 
@@ -765,7 +770,9 @@ flowchart LR
 권장 판단:
 
 - 비용이 최우선이면 EKS Hybrid가 아니라 온프레미스 Kubernetes + AWS EC2 ASG/ALB burst를 우선함
-- AWS EC2가 Kubernetes worker로 자동 join하는 구조는 선택 확장으로 둠
+- EKS 최소 PoC는 관리형 Kubernetes 경험 확보용 MVP 보조 산출물로 포함함
+- AWS EC2에 직접 Kubernetes를 설치해 cloud worker로 붙이는 구성은 이번 MVP와 선택 확장 범위에서
+  제외함
 - 기존 ECS Fargate 구성은 MVP에서 제외하고 비교안으로만 유지함
 - Proxmox/Ceph는 온프레미스 노드와 스토리지 계층으로 유지하고, AWS burst 인스턴스는 상태 없는 앱
   실행 영역으로 먼저 설계함
@@ -784,11 +791,12 @@ flowchart LR
 ## 6. 팀 회의 체크리스트
 
 - [ ] [Team Decision Checklist](./21_team_decision_checklist.md)의 핵심 결정 항목을 회의에서 검토
-- [ ] 온프레미스와 AWS를 하나의 Kubernetes 클러스터로 묶을지, 별도 런타임으로 둘지 결정
+- [ ] MVP 기준 온프레미스와 AWS는 별도 런타임으로 두고, 단일 Kubernetes 클러스터 확장은 제외했는지
+      확인
 - [ ] 온프레미스에 웹앱과 DB를 모두 둘지, DB는 AWS EC2에 둘지 결정
-- [ ] AWS burst EC2를 Kubernetes worker node로 붙일지, 일반 앱 서버로 둘지 결정
+- [ ] AWS burst EC2를 일반 앱 서버 ASG/ALB로 두고, EC2 직접 Kubernetes 구성은 제외했는지 확인
 - [ ] 파일/백업 저장소를 Ceph RGW로 둘지, AWS S3로 둘지 결정
-- [ ] EKS와 ECS/Fargate는 MVP에서 제외하고 비교안으로만 설명하는지 확인
+- [ ] EKS는 최소 PoC로 수행하고, ECS/Fargate는 AWS-only 비교안으로만 설명하는지 확인
 - [ ] NAT Gateway를 단일 구성으로 둘지, AZ별로 둘지 결정
 - [ ] HTTPS/Route 53을 MVP에 포함할지 결정
 - [ ] 자동 배포 트리거를 `main push`로 둘지, 수동 실행으로 제한할지 결정

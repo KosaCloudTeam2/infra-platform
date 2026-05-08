@@ -51,9 +51,14 @@
 - Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소
 - Elastic Container Registry(ECR) 기반 AWS-only 비교안 이미지 저장소
 - ECS Fargate 기반 AWS-only 비교안
+- Elastic Kubernetes Service(EKS) 최소 PoC: AWS 관리형 Kubernetes 생성, 샘플 앱 배포, 삭제 검증
+- AWS Load Balancer Controller(ALB Ingress Controller), EKS Hybrid Nodes, 운영용 EKS 전환 검토
 - ProxySQL 이중화와 Internal NLB: `proxysql_count = 2`, `enable_proxysql_internal_nlb = true`
 - AWS S3 2차 백업 복제
 - Prometheus/Grafana 별도 구축
+
+AWS EC2에 직접 Kubernetes를 설치해 클라우드 worker로 붙이는 구성은 이번 MVP와 선택 확장 범위에서
+제외함.
 
 ## 4. 저장소 구조
 

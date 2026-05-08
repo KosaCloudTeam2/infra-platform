@@ -17,9 +17,14 @@ Accepted
 묶을 수 있다는 장점이 있음. 그러나 비용을 최대한 줄이는 것이 우선 조건이므로 EKS control plane 상시
 비용과 EKS Hybrid Nodes 비용을 피하는 방향을 우선함.
 
+2026-05-08 보강: AWS에서 Kubernetes를 구성할 때 EKS는 필수는 아니지만 관리형 Kubernetes 경험 확보
+측면에서는 권장됨. 따라서 본 프로젝트는 EKS를 운영 런타임으로 전환하지는 않되, 클러스터 생성, 샘플
+앱 배포, 삭제 검증 수준의 EKS 최소 PoC를 MVP 보조 산출물로 포함함.
+
 ## 결정
 
-MVP 방향은 **EKS를 사용하지 않는 비용 우선 하이브리드 구조**로 잡음.
+MVP 운영 구조는 **온프레미스 Kubernetes + AWS EC2 ASG/ALB burst**로 잡고, EKS는 최소 PoC로 제한해
+포함함.
 
 권장 목표 구조:
 
@@ -43,10 +48,10 @@ EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
    - EKS control plane과 hybrid node 비용이 추가됨
    - AWS 관리형 기능을 쓰는 대신 비용 우선 조건과 맞지 않음
 
-2. **직접 구축 Kubernetes에 AWS EC2 worker node 자동 join**
-   - EKS 없이 단일 Kubernetes 클러스터 cloud bursting 구현 가능
-   - 인증서, CNI, VPN, node bootstrap, Cluster Autoscaler 연동을 직접 책임져야 함
-   - 학습 효과는 높지만 13일 MVP에는 위험함
+2. **EKS 최소 PoC**
+   - 관리형 Kubernetes 생성, `kubectl` 연결, 샘플 앱 배포, 삭제 검증까지 MVP 보조 산출물로 포함
+   - 운영 트래픽 처리, 고급 애드온, 하이브리드 노드 연결은 포함하지 않음
+   - 비용과 일정 부담을 제한하면서 EKS 경험을 설명할 수 있음
 
 3. **ECS Fargate 비교안 유지**
    - AWS 안에서 ECS Task Auto Scaling을 빠르게 검증 가능
@@ -73,6 +78,7 @@ EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
 - 앱 배포 방식이 온프레미스 Kubernetes와 AWS EC2 burst 영역으로 나뉠 수 있음
 - 세션, 파일 업로드, DB 연결, 배포 버전 동기화 기준을 별도로 정해야 함
 - Terraform, GitHub Actions, Runbook 기본 경로는 EC2 ASG/ALB burst 기준으로 재정렬됨
+- EKS 경험은 MVP 운영 경로가 아니라 최소 PoC 보조 산출물로 별도 설명해야 함
 
 ## 권장 적용 방식
 
@@ -80,6 +86,7 @@ EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
 
 ### MVP
 
+- EKS 최소 PoC: 클러스터 생성, Managed Node Group 최소 구성, `kubectl` 연결, 샘플 앱 배포, 삭제 검증
 - Proxmox VM 기반 온프레미스 Kubernetes 구성
 - 임시 앱 또는 실제 앱을 Kubernetes Deployment/Service/Ingress로 배포
 - AWS에는 EC2 Auto Scaling Group, Launch Template, ALB 기반 burst 영역 구성
@@ -89,10 +96,15 @@ EC2 Auto Scaling 기반 하이브리드 운영**임을 명확히 구분함.
 
 ### 선택 확장
 
-- AWS EC2 인스턴스를 직접 구축 Kubernetes worker node로 자동 join
-- Cluster Autoscaler 기반 AWS node 증감
+- AWS Load Balancer Controller(ALB Ingress Controller) 기반 EKS/클라우드 Kubernetes 외부 노출 검토
+- EKS Hybrid Nodes 검토
+- 운영용 EKS 전환 검토
 - VPN/WireGuard 기반 온프레미스-AWS 사설 통신
-- EKS Hybrid Nodes 전환 검토
+
+### 이번 범위에서 제외
+
+- AWS EC2에 직접 Kubernetes를 설치해 온프레미스 클러스터의 worker로 붙이는 구성
+- 직접 구축 단일 Kubernetes 클러스터의 AWS node 자동 증감
 
 ## 관련 문서
 

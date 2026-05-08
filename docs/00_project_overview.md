@@ -31,6 +31,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - Argo CD 기반 GitOps 배포
 - AWS burst ALB 1개
 - AWS EC2 Auto Scaling Group 1개
+- EKS 최소 PoC 1회: 클러스터 생성, 샘플 앱 배포, 삭제 검증
 - Docker Hub Repository 또는 팀 표준 컨테이너 레지스트리 1개
 - CloudWatch Metrics/Alarm, Kubernetes 또는 EC2 local logs
 - GitHub Actions OpenID Connect(OIDC) 배포 Role
@@ -53,8 +54,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - ProxySQL 2대 + Internal NLB
 - Ceph RADOS Block Device(RBD)/CephFS 고급 활용
 - AWS S3 2차 백업 복제
-- Elastic Kubernetes Service(EKS) Hybrid Nodes 전환
-- AWS EC2를 직접 구축 Kubernetes worker node로 자동 join
+- AWS Load Balancer Controller(ALB Ingress Controller), EKS Hybrid Nodes, 운영용 EKS 전환 검토
 
 ## 4. 프로젝트에서 제외할 항목
 
@@ -62,6 +62,7 @@ Cloud(EC2) Auto Scaling과 애플리케이션 로드 밸런서(Application Load 
 - 복잡한 마이크로서비스 분리
 - EKS 기반 운영 클러스터 전면 구축
 - 단일 Kubernetes 클러스터 기반 AWS worker node 자동 확장 전체 구현
+- AWS EC2에 직접 Kubernetes를 설치해 클라우드 worker로 붙이는 구성
 - 장기 운영 비용 최적화 자동화 전체 구현
 
 ## 5. 발표 핵심 메시지

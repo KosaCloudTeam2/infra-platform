@@ -153,7 +153,8 @@ sequenceDiagram
 
 # 10. 비용 최적화
 
-- EKS control plane 상시 비용 제외
+- EKS 최소 PoC는 생성, 샘플 앱 배포, 삭제 검증까지만 수행
+- 운영용 EKS control plane 상시 비용 제외
 - AWS EC2 burst 최소/최대 용량 제한
 - CloudWatch Alarm과 로그 보존 범위 최소화
 - NAT Gateway 수는 비용과 가용성 균형 기준으로 결정
@@ -191,5 +192,7 @@ sequenceDiagram
 - ProxySQL 이중화와 Internal NLB
 - AWS S3 2차 백업 복제
 - Ceph CSI 기반 Kubernetes PVC
-- EKS 기반 하이브리드 Kubernetes 전환
+- EKS 최소 PoC와 운영용 EKS 전환 검토
+- AWS Load Balancer Controller(ALB Ingress Controller) 기반 외부 노출 검토
+- EKS Hybrid Nodes 검토
 - Private Registry 또는 Harbor 기반 온프레미스 이미지 저장소

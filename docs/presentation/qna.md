@@ -23,5 +23,19 @@ Ingress를 통해 들어오고, DB 접근은 ProxySQL endpoint로 제한함.
 
 ## Q5. 비용을 줄이려면 무엇을 조정할 수 있나?
 
-EKS control plane을 제외하고, EC2 burst 최소/최대 용량을 낮추고, NAT Gateway 수와 로그 보존 기간을
-제한할 수 있음. 발표용 MVP에서는 고가용성과 비용 사이의 선택 기준을 명확히 설명함.
+EKS 최소 PoC는 생성, 샘플 앱 배포, 삭제 검증까지만 수행하고, 운영용 EKS control plane 전환은 제외함.
+EC2 burst 최소/최대 용량을 낮추고, NAT Gateway 수와 로그 보존 기간을 제한할 수 있음. 발표용
+MVP에서는 고가용성과 비용 사이의 선택 기준을 명확히 설명함.
+
+## Q6. EKS를 어느 범위까지 사용했나?
+
+AWS에서 Kubernetes를 운영하는 표준 관리형 선택지는 EKS이므로, 본 MVP에는 EKS 최소 PoC를 포함함.
+범위는 클러스터 생성, `kubectl` 연결, 샘플 앱 배포, 삭제 검증까지로 제한함. 운영 트래픽 처리는
+온프레미스 Proxmox Kubernetes와 AWS EC2 Auto Scaling Group/ALB burst 구조가 담당하며, 운영용 EKS
+전환은 비용과 일정상 향후 확장으로 분리함.
+
+## Q7. ALB Ingress Controller와 현재 ALB burst는 무엇이 다른가?
+
+현재 MVP의 ALB는 Terraform으로 생성한 AWS ALB와 Target Group이며, AWS EC2 ASG의 앱 인스턴스로
+트래픽을 분산함. AWS Load Balancer Controller(ALB Ingress Controller)는 Kubernetes Ingress를 AWS
+ALB와 연동하는 EKS/클라우드 Kubernetes 확장 기능이므로 MVP 경로와 분리함.

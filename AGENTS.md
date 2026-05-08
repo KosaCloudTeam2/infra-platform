@@ -10,8 +10,11 @@
 - MVP는 비용 우선 하이브리드 구조로 정의함. 기본 런타임은 온프레미스 Proxmox 기반 Kubernetes이며,
   AWS는 EC2 Auto Scaling Group, Launch Template, ALB 기반 burst 영역으로 사용함.
 - DB는 AWS RDS를 제외하고 EC2 기반 Percona XtraDB Cluster(PXC), ProxySQL, Ceph RGW 백업을 사용함.
-- EKS Hybrid Nodes, 단일 Kubernetes 클러스터 기반 AWS EC2 worker 자동 join, CloudFront, Blue/Green
-  배포, Route 53/ACM HTTPS, PMM/Prometheus는 선택 확장으로 분리함.
+- EKS 최소 PoC는 AWS 관리형 Kubernetes 경험 확보용 MVP 보조 산출물로 포함함.
+- EKS Hybrid Nodes, 운영용 EKS 전환 검토, CloudFront, Blue/Green 배포, Route 53/ACM HTTPS,
+  PMM/Prometheus는 선택 확장으로 분리함.
+- AWS EC2에 직접 Kubernetes를 설치해 클라우드 worker로 붙이는 구성은 MVP와 선택 확장 범위에서
+  제외함.
 - 운영 키는 저장소에 저장하지 않음. GitHub Actions OIDC와 AWS IAM Role을 우선 사용함.
 - Day 14 이후에는 신규 기능 추가보다 발표 안정화, 캡처, Runbook 검증을 우선함.
 

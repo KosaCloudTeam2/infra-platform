@@ -108,3 +108,5 @@
   `uv run pre-commit run --all-files` 확인
 - Day 5, Day 9, Day 13: 통합 검수 회의
 - Day 14부터는 신규 기능 추가 금지, 발표 안정화만 수행
+- EKS 최소 PoC는 메인 운영 MVP를 흔들지 않는 범위에서 Day 13 전까지 클러스터 생성, 샘플 앱 배포,
+  삭제 검증만 수행하며, Day 14 이후에는 신규 EKS 구축을 시작하지 않음

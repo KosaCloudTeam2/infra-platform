@@ -27,6 +27,7 @@
 - AWS EC2 Auto Scaling Group
 - AWS ALB Target Group
 - CloudWatch Alarm
+- EKS 최소 PoC: 클러스터 생성, Managed Node Group 최소 구성, 샘플 앱 배포, 삭제 검증
 
 ### 애플리케이션
 
@@ -105,22 +106,26 @@
 - AWS S3 2차 백업 복제
 - Ceph CSI 기반 Kubernetes PVC
 - Proxmox VE 기반 온프레미스 VM/LXC 운영 시연
-- EKS 기반 하이브리드 Kubernetes 전환 검토
-- AWS EC2를 직접 구축 Kubernetes worker node로 자동 join
-- Cluster Autoscaler 기반 AWS node 증감
+- AWS Load Balancer Controller(ALB Ingress Controller) 기반 EKS/클라우드 Kubernetes 외부 노출 검토
+- EKS Hybrid Nodes 검토
+- 운영용 EKS 전환 검토
 - Vault, PKI, Keycloak 기반 보안 운영 고도화
 
 ### Kubernetes cloud bursting 구현 경계
 
-현재 MVP는 비용 우선 구조이므로 EKS를 쓰지 않음. 단, 아래 두 구조는 구분해서 설명해야 함.
+현재 MVP의 운영 런타임은 비용 우선 구조이므로 EKS로 전환하지 않음. 다만 AWS 관리형 Kubernetes 경험
+확보를 위해 EKS 최소 PoC는 MVP 보조 산출물로 포함하고, 아래 구조를 구분해서 설명해야 함.
 
-| 구분                                          | 설명                                            | MVP 포함 여부 |
-| :-------------------------------------------- | :---------------------------------------------- | :------------ |
-| 온프레미스 Kubernetes + AWS EC2 ASG/ALB burst | 온프레미스 K8s와 AWS ASG가 별도 런타임으로 동작 | 포함          |
-| 단일 Kubernetes cluster node autoscaling      | AWS EC2가 K8s worker로 자동 join/release        | 선택 확장     |
+| 구분                                          | 설명                                                     | MVP 포함 여부 |
+| :-------------------------------------------- | :------------------------------------------------------- | :------------ |
+| 온프레미스 Kubernetes + AWS EC2 ASG/ALB burst | 온프레미스 K8s와 AWS ASG가 별도 런타임으로 동작          | 포함          |
+| EKS 최소 PoC                                  | 관리형 Kubernetes 생성, 샘플 앱 배포, 삭제 검증 중심     | 포함          |
+| ALB Ingress Controller / EKS Hybrid Nodes     | EKS 기반 외부 노출 또는 하이브리드 운영 고도화           | 선택 확장     |
+| 운영용 EKS 전환                               | AWS 관리형 Kubernetes를 실제 운영 런타임으로 전환하는 안 | 선택 확장     |
 
-단일 Kubernetes cluster 확장까지 구현하려면 인증서, CNI, 노드 bootstrap, VPN, Cluster Autoscaler
-설계가 추가되므로 13일 MVP에서는 제외함.
+AWS EC2에 직접 Kubernetes를 설치해 온프레미스 클러스터의 worker로 붙이는 구성은 인증서, Container
+Network Interface(CNI), 노드 bootstrap, VPN, Autoscaler 설계 부담이 크고 EKS 경험 목적과도 맞지
+않으므로 이번 MVP와 선택 확장 범위에서 제외함.
 
 ## 3. 구현하지 않을 항목
 
@@ -131,5 +136,6 @@
 - AWS burst 앱에서 Proxmox/Ceph RBD 직접 마운트
 - Proxmox 관리 UI 인터넷 공개
 - EKS control plane 상시 운영
+- AWS EC2에 직접 Kubernetes를 설치해 클라우드 worker로 붙이는 구성
 - GitLab self-managed와 Harbor를 MVP 필수로 운영
 - Vault, PKI, Keycloak을 Day 13 MVP 필수로 운영

@@ -126,6 +126,20 @@ Argo CD를 MVP 배포 경로에 포함함. 이 결정으로 Kubernetes 배포 �
 - AWS ASG refresh workflow는 수동 실행으로 유지
 - Argo CD HA 구성, SSO 연동, 고급 RBAC는 선택 확장
 
+### 3.7 EKS와 AWS Kubernetes 확장 경계
+
+운영 MVP는 EKS가 아니라 온프레미스 Kubernetes + AWS EC2 ASG/ALB burst 구조임. 다만 EKS 최소 PoC는
+AWS 관리형 Kubernetes 경험 확보용 MVP 보조 산출물로 포함하고, 운영용 EKS 전환은 향후 과제로 분리함.
+
+주의:
+
+- EKS PoC는 클러스터 생성, `kubectl` 연결, 샘플 앱 배포, 삭제 검증 수준으로 제한함
+- AWS Load Balancer Controller(ALB Ingress Controller)는 EKS/클라우드 Kubernetes 외부 노출 확장
+  기능이며, 현재 MVP의 Terraform ALB/Target Group과 구분함
+- EKS Hybrid Nodes는 네트워크와 비용 부담이 크므로 MVP가 아닌 확장 기능으로 둠
+- AWS EC2에 직접 Kubernetes를 설치해 cloud worker로 붙이는 구성은 이번 MVP와 선택 확장 범위에서
+  제외함
+
 ---
 
 ## 4. 추가 적용한 기존 프로젝트 요소
