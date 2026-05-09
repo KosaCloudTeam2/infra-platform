@@ -39,6 +39,11 @@ nav:
   - Project:
       - Overview: 00_project_overview.md
       - Architecture: 01_architecture.md
+      - Architecture Details:
+          - Network / LB: architecture/details/network_and_lb.md
+          - Runtime / CI-CD / Security: architecture/details/runtime_cicd_security.md
+          - Data / Ceph / Observability / Cost: architecture/details/data_ceph_observability_cost.md
+          - Ops Flow / Extensions: architecture/details/ops_flow_and_extensions.md
       - Schedule 13+3: 02_schedule_13_plus_3.md
       - Roles and Work Packages: 03_roles_and_work_packages.md
       - Implementation Scope: 04_implementation_scope.md
@@ -106,3 +111,9 @@ nav:
       - Cost-first Hybrid Kubernetes Burst: architecture/decisions/ADR-007-hybrid-kubernetes-cloud-bursting.md
       - Argo CD GitOps MVP: architecture/decisions/ADR-008-argocd-gitops-mvp.md
       - Docker Hub Registry MVP: architecture/decisions/ADR-009-docker-hub-registry-mvp.md
+  - Temporary:
+      - tmp: tmp.md
+  - pfsense:
+      - pfsense-setup: pfsense_setup.md
+      - pfsense-guide: pfsense_guide.md
+      - pfsense_detail_guide: pfsense_detail_guide.md

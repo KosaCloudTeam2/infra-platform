@@ -2,6 +2,13 @@
 
 13일 시스템 구축 + 3일 발표 준비를 위한 역할 기반 상세 구현 가이드
 
+> 전환 안내(2026-05-09 ~ 2026-05-16): 아키텍처 조회 경로를 Level 0/1/2로 분리 중임.
+>
+> - 통합(Level 0): [docs/01_architecture.md](../../01_architecture.md)
+> - 상세(Level 1/2): [docs/architecture/details](../details/network_and_lb.md)
+>
+> 본 Build-up 문서는 **역할별 구현 절차 정본**으로 계속 유지함.
+
 ---
 
 ## 1. Build-up 구조

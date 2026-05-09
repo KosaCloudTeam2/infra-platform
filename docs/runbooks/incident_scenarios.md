@@ -1,5 +1,7 @@
 # 장애 시나리오
 
+> 아키텍처 상세 참조: [Ops Flow / Extensions](../architecture/details/ops_flow_and_extensions.md)
+
 ## 1. Pod 또는 앱 인스턴스 장애
 
 - **상황:** 컨테이너 또는 앱 프로세스 비정상 종료

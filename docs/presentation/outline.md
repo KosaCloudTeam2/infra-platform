@@ -1,5 +1,8 @@
 # 발표 자료 목차
 
+> 다이어그램 정본은 기술 문서(`docs/01_architecture.md`, `docs/architecture/details/*`)를 기준으로
+> 유지함. 발표 자료는 요약/시연 흐름 전달용으로 사용함.
+
 ## 1. 제목
 
 Cloud Infra Deployment Platform: 안전하고 반복 가능한 컨테이너 배포 인프라

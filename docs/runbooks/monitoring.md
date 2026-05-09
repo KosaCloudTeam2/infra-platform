@@ -1,5 +1,9 @@
 # 모니터링 Runbook
 
+> 아키텍처 상세 참조:
+> [Data / Ceph / Observability / Cost](../architecture/details/data_ceph_observability_cost.md),
+> [Ops Flow / Extensions](../architecture/details/ops_flow_and_extensions.md)
+
 ## 1. 관측 대상
 
 | 대상       | 지표                            | 목적                       |

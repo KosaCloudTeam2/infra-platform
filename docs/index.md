@@ -3,6 +3,19 @@
 이 문서는 13일 시스템 구축 + 3일 발표 준비를 위한 문서 홈임. 처음 보는 팀원은 아래 순서대로 읽고,
 담당자는 자기 영역 문서와 구현 절차 문서를 함께 확인함.
 
+> 전환 안내(2026-05-09 ~ 2026-05-16): 아키텍처 문서를 단일 대형 문서에서 통합(Level 0) + 상세(Level
+> 1/2) 구조로 분리 중임. 기존 링크를 쓰던 팀원은 아래 "아키텍처 상세 문서"를 우선 확인함.
+
+## 0. 아키텍처 상세 문서 (신규)
+
+| 구분                  | 문서                                                                                         | 목적                               |
+| :-------------------- | :------------------------------------------------------------------------------------------- | :--------------------------------- |
+| Level 0 (통합)        | [Architecture](./01_architecture.md)                                                         | 전체 흐름과 설계 고정점 확인       |
+| Level 1 (네트워크)    | [Network / LB](./architecture/details/network_and_lb.md)                                     | 네트워크/진입점 상세               |
+| Level 1 (런타임/보안) | [Runtime / CI-CD / Security](./architecture/details/runtime_cicd_security.md)                | 배포/런타임/보안 경계 상세         |
+| Level 1 (데이터/비용) | [Data / Ceph / Observability / Cost](./architecture/details/data_ceph_observability_cost.md) | DB/Ceph/관측/비용 상세             |
+| Level 2 (운영 절차)   | [Ops Flow / Extensions](./architecture/details/ops_flow_and_extensions.md)                   | Runbook/운영 시퀀스/확장 연결 허브 |
+
 ## 1. 처음 읽는 순서
 
 | 순서 | 문서                                                       | 목적                                        |
@@ -28,7 +41,7 @@
 | [Environment Setup](./ENVIRONMENT_SETUP.md)                    | 팀원 초기 환경 설정                        |
 | [Daily Notice](./daily_notice/README.md)                       | 당일 공지와 작업 전 확인 사항              |
 | [AI Collaboration Guide](./17_ai_collaboration_guide.md)       | AI 도구 작업 요청 기준                     |
-| [Quality Checks](./18_quality_checks.md)                       | 품질 검증과 Terraform 검증                 |
+| [Quality Checks](./18_quality_checks.md)                       | 문서 변경 검증 기준(`uv run mkdocs build`) |
 | [Tool Troubleshooting](./19_tool_troubleshooting.md)           | winget, Terraform, Git Hook 문제 해결      |
 | [MkDocs Guide](./20_mkdocs_guide.md)                           | 문서 사이트 로컬 미리보기                  |
 | [Team Decision Checklist](./21_team_decision_checklist.md)     | 팀 회의에서 결정해야 할 선택지와 용어 확인 |
@@ -80,11 +93,10 @@
 
 ## 7. MkDocs 도입 기준
 
-현재는 번호 기반 루트 문서를 유지함. 이유는 첫 커밋과 팀 온보딩 단계에서 읽는 순서가 명확하기
-때문임. MkDocs를 도입할 때도 파일을 대규모 이동하기보다 `mkdocs.yml`의 `nav`를 번호 흐름에 맞춰
-표현하는 방식을 우선함.
+현재는 번호 기반 루트 문서를 유지하되, 아키텍처 문서는 Phase 1로 통합(Level 0) + 상세(Level 1/2)
+구조를 병행 운영함. MkDocs는 `mkdocs.yml` nav에서 통합/상세 진입 경로를 함께 제공함.
 
-디렉터리 재구성은 다음 조건이 생기면 검토함.
+디렉터리 재구성 확대는 다음 조건이 생기면 추가 검토함.
 
 - 루트 문서가 25개 이상으로 늘어남
 - 문서가 순서형 온보딩 문서가 아니라 영역별 참고 문서 중심으로 바뀜

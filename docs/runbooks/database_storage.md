@@ -1,5 +1,8 @@
 # DB 및 Ceph Runbook
 
+> 아키텍처 상세 참조:
+> [Data / Ceph / Observability / Cost](../architecture/details/data_ceph_observability_cost.md)
+
 Percona XtraDB Cluster, ProxySQL, Ceph RGW 백업 검증 절차
 
 ---

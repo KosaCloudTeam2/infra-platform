@@ -1,5 +1,9 @@
 # 배포 Runbook
 
+> 아키텍처 상세 참조:
+> [Runtime / CI-CD / Security](../architecture/details/runtime_cicd_security.md),
+> [Ops Flow / Extensions](../architecture/details/ops_flow_and_extensions.md)
+
 ## 1. 사전 조건
 
 - Docker Hub 계정 또는 조직 repository 준비 완료

@@ -1,5 +1,9 @@
 # 롤백 Runbook
 
+> 아키텍처 상세 참조:
+> [Runtime / CI-CD / Security](../architecture/details/runtime_cicd_security.md),
+> [Ops Flow / Extensions](../architecture/details/ops_flow_and_extensions.md)
+
 ## 1. 롤백 대상
 
 - 배포 후 ALB Health Check 실패

@@ -1,5 +1,8 @@
 # 시연 스크립트
 
+> 시연 중 아키텍처 질문이 나오면 기술 문서 정본(`docs/01_architecture.md`,
+> `docs/architecture/details/*`)을 기준으로 답변함.
+
 ## 1. 자동 배포 시연
 
 > "main 브랜치에 변경 사항이 반영되면 GitHub Actions가 Docker 이미지를 빌드하고 Docker Hub에

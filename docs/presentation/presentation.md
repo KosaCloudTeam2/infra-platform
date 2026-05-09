@@ -11,6 +11,9 @@ size: 16:9
 
 온프레미스 Kubernetes + AWS EC2 burst 기반 하이브리드 배포 플랫폼
 
+> 참고: 아키텍처 다이어그램 정본은 `docs/01_architecture.md`, `docs/architecture/details/*`에서
+> 관리함.
+
 ---
 
 # 1. 프로젝트 목표
