@@ -66,6 +66,7 @@ nav:
       - Team Decision Checklist: 21_team_decision_checklist.md
       - Glossary: 22_glossary.md
       - Technical Questions: 23_technical_questions.md
+      - Tech Stack Ownership: 24_tech_stack_ownership.md
   - Architecture Build-up:
       - Guide: architecture/build-up/README.md
       - Network / IaC:
