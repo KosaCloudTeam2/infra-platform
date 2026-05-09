@@ -33,11 +33,11 @@ Proxmox 환경에서 pfSense를 설치하고 CARP 기반 이중화까지 구성�
 
 ### 사용 IP 정리
 
-| 항목 | Master | Backup | CARP VIP |
-|---|---|---|---|
-| WAN | 192.168.31.10 | 192.168.31.11 | 192.168.31.100 |
-| LAN | 192.168.10.1 | 192.168.10.2 | 192.168.10.254 |
-| SYNC | 10.10.10.1 | 10.10.10.2 | (CARP 사용 안 함) |
+| 항목 | Master        | Backup        | CARP VIP          |
+| ---- | ------------- | ------------- | ----------------- |
+| WAN  | 192.168.31.10 | 192.168.31.11 | 192.168.31.100    |
+| LAN  | 192.168.10.1  | 192.168.10.2  | 192.168.10.254    |
+| SYNC | 10.10.10.1    | 10.10.10.2    | (CARP 사용 안 함) |
 
 ---
 
@@ -74,11 +74,11 @@ ls -lh
 
 각 노드(pve-node1, pve-node2)에 다음 브리지 필요:
 
-| 브리지 | 용도 | 물리 NIC |
-|---|---|---|
-| vmbr0 | WAN (인터넷) | 외부 연결된 NIC |
-| vmbr1 | LAN (내부망) | 내부 연결된 NIC 또는 가상 |
-| vmbr2 | SYNC (HA 동기화) | 별도 NIC 또는 VLAN |
+| 브리지 | 용도             | 물리 NIC                  |
+| ------ | ---------------- | ------------------------- |
+| vmbr0  | WAN (인터넷)     | 외부 연결된 NIC           |
+| vmbr1  | LAN (내부망)     | 내부 연결된 NIC 또는 가상 |
+| vmbr2  | SYNC (HA 동기화) | 별도 NIC 또는 VLAN        |
 
 #### 브리지 추가 (없으면)
 
@@ -92,7 +92,8 @@ Bridge ports: (해당 NIC 또는 비움)
 
 vmbr2도 동일하게 추가.
 
-**중요**: vmbr2(SYNC)는 노드1과 노드2 간 통신이 가능해야 합니다. 가상 브리지로만 만들면 노드 간 통신 불가하니, **물리 NIC을 같은 스위치에 연결**하거나 **별도 VLAN(예: VLAN 99)을 trunk로** 사용.
+**중요**: vmbr2(SYNC)는 노드1과 노드2 간 통신이 가능해야 합니다. 가상 브리지로만 만들면 노드 간 통신
+불가하니, **물리 NIC을 같은 스위치에 연결**하거나 **별도 VLAN(예: VLAN 99)을 trunk로** 사용.
 
 ---
 
@@ -394,6 +395,7 @@ https://192.168.10.1
 ```
 
 기본 계정:
+
 - ID: `admin`
 - Password: `pfsense`
 
@@ -500,7 +502,7 @@ Admin Password: <Master와 동일하게 설정>
 Interface assignments:
    WAN: vtnet0
    LAN: vtnet1
-   
+
 Available network ports:
    vtnet2 (보임)
    → +Add 클릭 → OPT1 추가됨
@@ -790,6 +792,7 @@ pfsense-master VM → Shutdown
 ```
 
 결과:
+
 - 1~3초 동안 ping 1~2회 timeout
 - 그 후 정상 응답 재개
 - LAN PC는 IP 변경 없이 계속 통신
@@ -803,6 +806,7 @@ pfsense-master VM → Start
 ```
 
 결과:
+
 - Master가 자동으로 다시 MASTER 상태 인계
 - Skew=0이라 우선순위 높음
 - Backup은 다시 BACKUP으로 돌아감
@@ -862,6 +866,7 @@ Diagnostics → Ping → 10.10.10.2 (Backup SYNC IP)
 원인: VIP 비밀번호 또는 VHID 불일치
 
 확인: Master와 Backup의 VIP 설정이 동일한지
+
 - Virtual IP Password
 - VHID Group 번호
 
@@ -870,6 +875,7 @@ Diagnostics → Ping → 10.10.10.2 (Backup SYNC IP)
 원인: XMLRPC 인증 실패
 
 확인:
+
 ```
 System → High Avail. Sync (Master)
 
@@ -879,6 +885,7 @@ Remote System Password: (Backup admin 비번과 일치하는지)
 ```
 
 테스트:
+
 ```
 System → High Avail. Sync 페이지 하단 "Test"
 ```
@@ -888,6 +895,7 @@ System → High Avail. Sync 페이지 하단 "Test"
 원인: 게이트웨이가 CARP VIP가 아님
 
 확인:
+
 ```
 LAN PC에서:
 ipconfig (Windows) 또는 ip route (Linux)
@@ -902,6 +910,7 @@ Default Gateway가 192.168.10.254인지
 원인: Outbound NAT가 실제 IP를 사용 중
 
 확인:
+
 ```
 Firewall → NAT → Outbound
 
@@ -1012,13 +1021,15 @@ pfctl -s state | wc -l
 ```
 설치: VM 생성 → ISO 부팅 → 인터페이스 할당 → LAN IP 설정 → 웹 UI
 
-이중화: 두 pfSense에 SYNC 추가 → CARP VIP 생성 → 
+이중화: 두 pfSense에 SYNC 추가 → CARP VIP 생성 →
         High Avail. Sync 설정 → LAN PC 게이트웨이를 VIP로
 ```
 
-진행하시면서 막히는 단계가 있으면 어느 화면에서 어떤 메시지가 나오는지 알려주세요. 그 단계만 집중해서 도와드릴게요.
+진행하시면서 막히는 단계가 있으면 어느 화면에서 어떤 메시지가 나오는지 알려주세요. 그 단계만
+집중해서 도와드릴게요.
 
 가장 중요한 포인트:
+
 - **SYNC 네트워크가 진짜 통신 가능해야 함** (vmbr2가 양쪽 노드 간 연결돼야)
 - **VIP 비밀번호와 VHID는 양쪽 동일** (CARP 동작 핵심)
 - **LAN PC 게이트웨이는 CARP VIP** (페일오버 시 통신 유지)
