@@ -62,12 +62,7 @@
 
 ## 검증 기준
 
-- Terraform 변경 후 `terraform fmt`, `terraform validate`, `terraform plan` 결과를 확인함.
-- GitHub Actions 변경 후 수동 실행 또는 PR 체크 결과를 확인함.
-- 문서 변경 후 링크와 표가 깨지지 않는지 확인함.
-- Markdown/YAML/JSON 변경 후 가능하면 `pnpm run format:check`를 실행함.
-- 전체 품질 확인은 가능하면 `uv run pre-commit run --all-files`로 수행함.
-- 도구가 설치되지 않았거나 권한 문제로 검증하지 못하면 최종 답변에 명확히 남김.
+- 문서/설정 변경 검증은 `uv run mkdocs build` 기준으로 수행함.
 
 ## AI에게 요청할 때 권장 형식
 
