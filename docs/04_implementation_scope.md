@@ -109,6 +109,13 @@
 - AWS Load Balancer Controller(ALB Ingress Controller) 기반 EKS/클라우드 Kubernetes 외부 노출 검토
 - EKS Hybrid Nodes 검토
 - 운영용 EKS 전환 검토
+- Cloudflare Load Balancing 또는 Global Server Load Balancing(GSLB) 기반 다중 endpoint 분산
+- Argo Rollouts 기반 Blue/Green 또는 Canary 배포
+- KEDA 기반 Kubernetes workload autoscaling 고도화
+- Prometheus remote_write, Thanos, Loki, Ceph RGW 기반 장기 관측성 저장소
+- Redis Sentinel 기반 세션/캐시 고가용성
+- Sentry 기반 애플리케이션 예외 추적
+- AI 기반 장애 로그 요약, 이상 탐지, Runbook 추천
 - Vault, PKI, Keycloak 기반 보안 운영 고도화
 
 ### Kubernetes cloud bursting 구현 경계
@@ -139,3 +146,7 @@ Network Interface(CNI), 노드 bootstrap, VPN, Autoscaler 설계 부담이 크�
 - AWS EC2에 직접 Kubernetes를 설치해 클라우드 worker로 붙이는 구성
 - GitLab self-managed와 Harbor를 MVP 필수로 운영
 - Vault, PKI, Keycloak을 Day 13 MVP 필수로 운영
+- PXC/Galera를 active-active write 구조로 운영
+- PXC 3노드 구성에서 garbd를 필수로 운영
+- Cloudflare GSLB, KEDA, Argo Rollouts, Redis Sentinel, Sentry, Thanos/Loki 장기 저장소를 Day 13 MVP
+  필수로 운영

@@ -65,6 +65,7 @@ nav:
       - MkDocs Guide: 20_mkdocs_guide.md
       - Team Decision Checklist: 21_team_decision_checklist.md
       - Glossary: 22_glossary.md
+      - Technical Questions: 23_technical_questions.md
   - Architecture Build-up:
       - Guide: architecture/build-up/README.md
       - Network / IaC:

@@ -39,3 +39,20 @@ AWS에서 Kubernetes를 운영하는 표준 관리형 선택지는 EKS이므로,
 현재 MVP의 ALB는 Terraform으로 생성한 AWS ALB와 Target Group이며, AWS EC2 ASG의 앱 인스턴스로
 트래픽을 분산함. AWS Load Balancer Controller(ALB Ingress Controller)는 Kubernetes Ingress를 AWS
 ALB와 연동하는 EKS/클라우드 Kubernetes 확장 기능이므로 MVP 경로와 분리함.
+
+## Q8. PXC를 쓰면 active-active DB 구조인가?
+
+PXC는 Galera/wsrep 기반이라 multi-primary 쓰기를 지원하지만, MVP에서는 ProxySQL로 writer를 1대로
+제한하는 Single Writer 운영을 우선함. active-active write는 충돌과 장애 분석이 복잡하므로 발표에서는
+복제와 고가용성 기반으로 설명함.
+
+## Q9. k6, JMeter, iperf는 어디에 쓰나?
+
+k6 또는 JMeter는 ALB endpoint에 HTTP 부하를 만들어 AWS EC2 ASG scale-out과 p95 latency를 확인하는 데
+사용함. iperf는 앱 부하가 아니라 Proxmox/Ceph 스토리지망, VPN 같은 네트워크 대역폭 검증에 사용함.
+
+## Q10. KEDA나 Karpenter를 쓰지 않는 이유는?
+
+KEDA는 Kubernetes workload autoscaling, Karpenter는 주로 EKS node provisioning 고도화에 적합함. 현재
+MVP의 AWS burst는 EC2 ASG/ALB 기준이므로 기본 경로에 넣지 않음. EKS 운영 전환이나 Kubernetes 기반
+autoscaling 고도화 시 선택 확장으로 검토함.

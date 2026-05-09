@@ -11,6 +11,7 @@ Percona XtraDB Cluster, ProxySQL, Ceph RGW 백업 검증 절차
 - DB/ProxySQL EC2는 Private Data Subnet에만 배치하고 Public IP를 부여하지 않음
 - Percona XtraBackup 결과를 Ceph RGW에 저장
 - 장애 발생 시 ProxySQL backend 상태와 PXC 클러스터 상태를 기준으로 복구
+- PXC는 Galera/wsrep 기반이지만 MVP 운영 정책은 active-active write가 아니라 Single Writer로 제한
 - 온프레미스 스토리지는 Proxmox 기반 Ceph를 사용하되, AWS 앱과 DB 백업은 RGW의 S3 호환 API로만 연동
 
 ---
@@ -31,6 +32,13 @@ Percona XtraDB Cluster, ProxySQL, Ceph RGW 백업 검증 절차
 ## 3. 상태 확인
 
 ### PXC 클러스터
+
+PXC는 Galera 계열 동기식 복제를 사용하므로 여러 노드에 쓰기가 가능한 multi-primary 구조를 지원함.
+하지만 MVP에서는 쓰기 충돌과 장애 분석 복잡도를 줄이기 위해 ProxySQL 기준 Single Writer로 운영함.
+별도의 Galera Cluster를 추가로 구축하지 않으며, PXC 패키지 안의 Galera/wsrep 기능을 사용함.
+
+`garbd`는 Galera Arbitrator Daemon으로 데이터를 저장하지 않는 quorum 보조 구성원임. 현재 PXC 3노드
+기준에서는 필수 아님. 2노드 제약이 생기는 경우에만 향후 논의함.
 
 ```sql
 SHOW STATUS LIKE 'wsrep_cluster_status';

@@ -15,7 +15,7 @@
 | AZ             | Availability Zone                    | AWS 리전 안의 독립 데이터센터 영역                               |
 | CloudWatch     | Amazon CloudWatch                    | AWS 로그, 지표, 알람을 수집하고 확인하는 운영 관측 서비스        |
 | EC2            | Elastic Compute Cloud                | AWS 가상 서버 서비스                                             |
-| EKS            | Elastic Kubernetes Service           | AWS 관리형 Kubernetes 서비스                                     |
+| EKS            | Elastic Kubernetes Service           | AWS 관리형 Kubernetes 서비스. MVP에서는 최소 PoC로 사용          |
 | Health Check   | Health Check                         | ALB나 Kubernetes가 앱이 정상 응답하는지 주기적으로 확인하는 검사 |
 | IGW            | Internet Gateway                     | VPC와 인터넷 연결 게이트웨이                                     |
 | NAT            | Network Address Translation          | Private Subnet 리소스의 외부 통신 경로                           |
@@ -41,6 +41,8 @@
 | ECR                   | Elastic Container Registry                   | AWS 관리형 Docker 이미지 저장소. AWS-only 비교안 대체안                     |
 | ECS                   | Elastic Container Service                    | AWS 컨테이너 실행 서비스                                                    |
 | Fargate               | AWS Fargate                                  | 서버를 직접 관리하지 않고 ECS/EKS 컨테이너를 실행하는 방식                  |
+| KEDA                  | Kubernetes Event-driven Autoscaling          | 외부 이벤트나 지표를 기준으로 Kubernetes workload를 자동 확장하는 도구      |
+| Argo Rollouts         | Argo Rollouts                                | Kubernetes Blue/Green, Canary 배포를 지원하는 progressive delivery 도구     |
 | GitOps                | Git Operations                               | Git 저장소 선언 상태를 실제 인프라/클러스터 상태로 동기화하는 운영 방식     |
 | Kubernetes Deployment | Kubernetes Deployment                        | Pod 개수와 배포 버전을 선언하고 rolling update를 수행하는 Kubernetes 리소스 |
 | Kubernetes Ingress    | Kubernetes Ingress                           | 클러스터 외부 HTTP/HTTPS 요청을 Service로 연결하는 Kubernetes 리소스        |
@@ -66,22 +68,28 @@
 
 ## 데이터 / 스토리지
 
-| 약어          | Full name                         | 의미                                                                |
-| :------------ | :-------------------------------- | :------------------------------------------------------------------ |
-| Ceph OSD      | Ceph Object Storage Daemon        | Ceph에서 실제 데이터를 디스크에 저장하고 복제하는 프로세스          |
-| Ceph pool     | Ceph Storage Pool                 | Ceph 객체를 저장하는 논리 저장 공간 묶음                            |
-| Grafana       | Grafana                           | Prometheus, CloudWatch 같은 지표를 대시보드로 보여주는 도구         |
-| JMeter        | Apache JMeter                     | HTTP/API 부하 테스트와 성능 검증 도구                               |
-| Locust        | Locust                            | Python 코드로 사용자 행동을 작성하는 부하 테스트 도구               |
-| Loki          | Grafana Loki                      | Kubernetes와 앱 로그를 label 기반으로 수집하고 조회하는 로그 도구   |
-| PMM           | Percona Monitoring and Management | Percona DB 모니터링 도구                                            |
-| Prometheus    | Prometheus                        | Kubernetes와 앱 지표를 주기적으로 수집하는 오픈소스 모니터링 도구   |
-| Thanos        | Thanos                            | Prometheus 지표 장기 보관, 통합 조회, 고가용성을 제공하는 확장 도구 |
-| PXC           | Percona XtraDB Cluster            | MySQL 호환 동기식 DB 클러스터                                       |
-| RBD           | RADOS Block Device                | Ceph 블록 스토리지                                                  |
-| RGW           | RADOS Gateway                     | Ceph S3 호환 객체 스토리지 게이트웨이                               |
-| Single Writer | Single Writer                     | PXC에서 쓰기 노드를 1대로 정해 쓰기 충돌을 줄이는 운영 방식         |
-| wsrep         | Write Set Replication             | PXC/Galera Cluster의 복제 상태를 보여주는 상태 변수 접두어          |
+| 약어          | Full name                         | 의미                                                                                |
+| :------------ | :-------------------------------- | :---------------------------------------------------------------------------------- |
+| Ceph OSD      | Ceph Object Storage Daemon        | Ceph에서 실제 데이터를 디스크에 저장하고 복제하는 프로세스                          |
+| Ceph pool     | Ceph Storage Pool                 | Ceph 객체를 저장하는 논리 저장 공간 묶음                                            |
+| Grafana       | Grafana                           | Prometheus, CloudWatch 같은 지표를 대시보드로 보여주는 도구                         |
+| garbd         | Galera Arbitrator Daemon          | Galera/PXC quorum 보조용 비저장 투표 구성원. PXC 3노드 MVP에서는 불필요             |
+| GSLB          | Global Server Load Balancing      | 여러 지역 또는 endpoint로 트래픽을 분산하거나 장애 시 우회하는 전역 로드밸런싱 개념 |
+| iperf         | iperf                             | 네트워크 대역폭과 품질을 측정하는 도구                                              |
+| JMeter        | Apache JMeter                     | HTTP/API 부하 테스트와 성능 검증 도구                                               |
+| k6            | k6                                | JavaScript 기반 HTTP/API 부하 테스트 도구                                           |
+| Locust        | Locust                            | Python 코드로 사용자 행동을 작성하는 부하 테스트 도구                               |
+| Loki          | Grafana Loki                      | Kubernetes와 앱 로그를 label 기반으로 수집하고 조회하는 로그 도구                   |
+| PMM           | Percona Monitoring and Management | Percona DB 모니터링 도구                                                            |
+| p95 latency   | 95th percentile latency           | 요청 중 95%가 해당 시간 이하로 응답했다는 지연 시간 지표                            |
+| Prometheus    | Prometheus                        | Kubernetes와 앱 지표를 주기적으로 수집하는 오픈소스 모니터링 도구                   |
+| Thanos        | Thanos                            | Prometheus 지표 장기 보관, 통합 조회, 고가용성을 제공하는 확장 도구                 |
+| PXC           | Percona XtraDB Cluster            | MySQL 호환 동기식 DB 클러스터                                                       |
+| RBD           | RADOS Block Device                | Ceph 블록 스토리지                                                                  |
+| RGW           | RADOS Gateway                     | Ceph S3 호환 객체 스토리지 게이트웨이                                               |
+| Sentry        | Sentry                            | 앱 예외, stack trace, release별 오류 추적 도구                                      |
+| Single Writer | Single Writer                     | PXC에서 쓰기 노드를 1대로 정해 쓰기 충돌을 줄이는 운영 방식                         |
+| wsrep         | Write Set Replication             | PXC/Galera Cluster의 복제 상태를 보여주는 상태 변수 접두어                          |
 
 ## 숙지해야 할 표현
 

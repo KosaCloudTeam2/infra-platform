@@ -21,6 +21,7 @@
 - UnHealthyHostCount 1 이상
 - AWS burst EC2 CPU 80% 이상 5분 지속
 - Kubernetes Pod Ready 실패 또는 rollout timeout
+- 부하 테스트를 수행하는 경우 p95 latency와 5xx 비율을 함께 기록
 
 표현 의미:
 
@@ -66,7 +67,42 @@ Terraform 기준:
 - 장기 보관은 MVP 필수 아님. 필요 시 Ceph RGW 또는 별도 로그 저장소로 아카이브
 - 로그 파일 직접 수정 또는 삭제는 장애 분석 근거 훼손으로 간주
 
-## 5. 발표용 관측 포인트
+## 5. 부하 테스트와 확장 관측 기준
+
+부하 테스트는 AWS EC2 ASG/ALB burst 시연을 안정화하기 위한 선택 검증으로 사용함.
+
+| 도구   | 용도                                                               | 현재 판단                                                |
+| :----- | :----------------------------------------------------------------- | :------------------------------------------------------- |
+| k6     | JavaScript 기반 HTTP/API 부하 테스트, p95 latency와 threshold 확인 | JMeter 대안으로 사용 가능                                |
+| JMeter | GUI/CLI 기반 HTTP/API 부하 테스트                                  | 발표용 부하 테스트 후보                                  |
+| iperf  | 네트워크 대역폭 측정                                               | Ceph 스토리지망, Proxmox 노드 간 네트워크, VPN 검증 보조 |
+
+`p95 latency`는 전체 요청 중 95%가 해당 시간 이하로 응답했다는 뜻임. 예를 들어 p95가 300ms이면 요청
+100개 중 95개는 300ms 이하로 응답했다는 의미임.
+
+KEDA(Kubernetes Event-driven Autoscaling)는 Prometheus, queue, HTTP add-on 같은 외부 지표로
+Kubernetes workload를 autoscaling하는 도구임. 현재 MVP의 AWS burst는 EC2 ASG/ALB 기준이므로 KEDA는
+기본 경로가 아니며, EKS 또는 온프레미스 Kubernetes autoscaling 고도화 시 선택 확장으로 검토함.
+
+## 6. 장기 관측성 저장소 후보
+
+Prometheus remote_write, Thanos Receiver, Loki, Fluent Bit, Ceph RGW를 조합하면 장기 지표/로그 저장
+구조를 만들 수 있음. 다만 MVP에서는 CloudWatch, Kubernetes logs, EC2 Docker logs 중심으로 검증함.
+
+개념 흐름:
+
+```text
+Metrics: Prometheus 또는 Agent → remote_write → Thanos Receiver → Ceph RGW/S3 → Thanos Query → Grafana
+Logs:    Fluent Bit → Loki → Ceph RGW/S3 → Grafana
+```
+
+주의:
+
+- Thanos Receiver 뒤에 다시 Prometheus를 두는 구조는 일반적이지 않음
+- Prometheus local disk는 단기 저장소이고, 장기 보관은 Thanos + object storage가 담당함
+- Loki는 로그 저장/조회 도구이고, Sentry는 앱 예외와 stack trace 추적 도구이므로 목적이 다름
+
+## 7. 발표용 관측 포인트
 
 - 배포 전후 Kubernetes 또는 EC2 Docker 로그에서 같은 image tag가 확인되는지 점검
 - 장애 Pod 또는 AWS burst app이 비정상 Target으로 표시되는지 확인
