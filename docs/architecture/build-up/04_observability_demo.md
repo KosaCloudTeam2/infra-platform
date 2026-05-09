@@ -15,6 +15,8 @@
 - EC2 CPU/Request 기반 Alarm
 - Argo CD Application sync/health 상태
 - Kubernetes Deployment rollout 상태
+- 웹 서버 기동/접속(Ingress/ALB) 검증
+- 앱-DB 연결(ProxySQL endpoint) 검증
 - PXC/ProxySQL/Ceph 상태 확인 Runbook
 - 장애 시나리오 통합
 - 시연 순서 작성
@@ -41,6 +43,7 @@
 3. Argo CD Application sync 확인
 4. Kubernetes Deployment rollout 확인
 5. Service 또는 Ingress URL 접속
+6. 앱-DB 연결 상태(ProxySQL endpoint) 확인
 
 ### 4.2 앱 장애 시연
 
@@ -51,7 +54,7 @@
 
 ### 4.3 DB/백업 시연
 
-1. ProxySQL endpoint 접속 확인
+1. 웹 서버 기동 후 ProxySQL endpoint 접속 확인
 2. PXC 상태 확인
 3. XtraBackup 산출물 확인
 4. Ceph RGW 업로드 파일 확인

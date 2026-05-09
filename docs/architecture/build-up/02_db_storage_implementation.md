@@ -4,8 +4,9 @@
 
 ## 1. 목표
 
-EC2 기반 Percona XtraDB Cluster(PXC), ProxySQL, Percona XtraBackup, Ceph RGW 백업 흐름을 구현함.
-앱은 PXC 노드가 아니라 ProxySQL endpoint로만 DB에 접근하도록 구성함.
+EC2 기반 Percona XtraDB Cluster(PXC), ProxySQL, Percona XtraBackup, Ceph RGW 백업 흐름을 구현함. DB
+관련 온프레미스 네트워크 기준을 함께 정리하고, 앱은 PXC 노드가 아니라 ProxySQL endpoint로만 DB에
+접근하도록 구성함.
 
 ## 2. 사전 조건
 
@@ -16,16 +17,17 @@ EC2 기반 Percona XtraDB Cluster(PXC), ProxySQL, Percona XtraBackup, Ceph RGW �
 
 ## 3. 구현 순서
 
-1. PXC 노드 3대 접속 가능 여부 확인
-2. PXC 설치 및 Galera cluster bootstrap
-3. `wsrep_cluster_status`, `wsrep_cluster_size` 확인
-4. 앱 전용 DB와 계정 생성
-5. ProxySQL 설치 및 Writer/Reader hostgroup 구성
-6. ProxySQL user, backend server, query rule 저장
-7. 앱 담당자에게 ProxySQL endpoint와 DB 접속 Secret 전달 방식 인계
-8. XtraBackup 백업 파일 생성
-9. 체크섬 생성 후 Ceph RGW 업로드
-10. 장애/복구 Runbook에 실제 명령과 결과 반영
+1. DB 관련 온프레미스 네트워크 정책(pfSense/VLAN/라우팅/방화벽) 확인
+2. PXC 노드 3대 접속 가능 여부 확인
+3. PXC 설치 및 Galera cluster bootstrap
+4. `wsrep_cluster_status`, `wsrep_cluster_size` 확인
+5. 앱 전용 DB와 계정 생성
+6. ProxySQL 설치 및 Writer/Reader hostgroup 구성
+7. ProxySQL user, backend server, query rule 저장
+8. Observability 담당자에게 ProxySQL endpoint와 DB 접속 Secret 전달 방식 인계
+9. XtraBackup 백업 파일 생성
+10. 체크섬 생성 후 Ceph RGW 업로드
+11. 장애/복구 Runbook에 실제 명령과 결과 반영
 
 ## 4. PXC 확인 명령
 

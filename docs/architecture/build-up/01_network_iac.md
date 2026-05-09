@@ -2,6 +2,9 @@
 
 담당: 팀원 2
 
+역할 경계 메모: 본 문서의 Network는 AWS 클라우드 네트워크(VPC/Subnet/라우팅/SG) 범위를 의미함.
+온프레미스 DB 관련 네트워크는 DB/Storage 담당 범위임.
+
 ## 1. 목표
 
 AWS 네트워크와 인프라 골격을 Terraform으로 구성함. 앱 실행 영역과 데이터 영역을 분리하고, DB EC2가
@@ -109,7 +112,7 @@ flowchart TB
 
 ### 4.3 DB EC2 골격
 
-Cloud/Network/IaC 담당은 EC2 인스턴스 생성과 네트워크 배치까지만 책임짐.
+Cloud/Network/IaC 담당은 EC2 인스턴스 생성과 클라우드 네트워크 배치까지만 책임짐.
 
 - Public IP 비활성화
 - Data Private Subnet 배치

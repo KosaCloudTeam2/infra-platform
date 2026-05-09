@@ -2,6 +2,8 @@
 
 담당: 팀원 2
 
+역할 경계 메모: 본 문서의 Network는 AWS 클라우드 네트워크 범위(VPC/Subnet/라우팅/SG)만 의미함.
+
 ## 1. 목표
 
 Terraform으로 VPC, Subnet, ALB, Security Group, EC2 Auto Scaling Group, DB용 EC2 골격을 재현

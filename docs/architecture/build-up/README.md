@@ -17,13 +17,13 @@ flowchart TD
 
 ## 2. 문서 목록
 
-| 단계 | 담당                               | 설계/범위 문서                                               | 구현 절차 문서                                                                             | 목표                                                           |
-| :--- | :--------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------------------------------------------- | :------------------------------------------------------------- |
-| 01   | Cloud / Network / IaC              | [01_network_iac.md](./01_network_iac.md)                     | [01_network_iac_implementation.md](./01_network_iac_implementation.md)                     | VPC, ALB, EC2 ASG, WAF, App/Data Private Subnet, DB용 EC2 골격 |
-| 02   | DB / Storage                       | [02_db_storage.md](./02_db_storage.md)                       | [02_db_storage_implementation.md](./02_db_storage_implementation.md)                       | PXC, ProxySQL, XtraBackup, Ceph RGW                            |
-| 03   | CI/CD / App Runtime                | [03_cicd_app_runtime.md](./03_cicd_app_runtime.md)           | [03_cicd_app_runtime_implementation.md](./03_cicd_app_runtime_implementation.md)           | GitHub Actions, Docker Hub, Argo CD, K8s manifest, 앱-DB 연결  |
-| 04   | Observability / Integration / Demo | [04_observability_demo.md](./04_observability_demo.md)       | [04_observability_demo_implementation.md](./04_observability_demo_implementation.md)       | Prometheus/Grafana 또는 CloudWatch, 장애 시나리오, Runbook     |
-| 05   | Presentation / Handover            | [05_presentation_handover.md](./05_presentation_handover.md) | [05_presentation_handover_implementation.md](./05_presentation_handover_implementation.md) | 발표 자료, Q&A, 비용 정리, 리소스 정리                         |
+| 단계 | 담당                               | 설계/범위 문서                                               | 구현 절차 문서                                                                             | 목표                                                                           |
+| :--- | :--------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| 01   | Cloud / Network / IaC              | [01_network_iac.md](./01_network_iac.md)                     | [01_network_iac_implementation.md](./01_network_iac_implementation.md)                     | VPC, ALB, EC2 ASG, WAF, App/Data Private Subnet, DB용 EC2 골격                 |
+| 02   | DB / Storage                       | [02_db_storage.md](./02_db_storage.md)                       | [02_db_storage_implementation.md](./02_db_storage_implementation.md)                       | PXC, ProxySQL, XtraBackup, Ceph RGW                                            |
+| 03   | CI/CD / App Runtime                | [03_cicd_app_runtime.md](./03_cicd_app_runtime.md)           | [03_cicd_app_runtime_implementation.md](./03_cicd_app_runtime_implementation.md)           | GitHub Actions, Docker Hub, Argo CD, K8s manifest, Secret/환경변수 설정        |
+| 04   | Observability / Integration / Demo | [04_observability_demo.md](./04_observability_demo.md)       | [04_observability_demo_implementation.md](./04_observability_demo_implementation.md)       | Prometheus/Grafana 또는 CloudWatch, 웹 서버/앱-DB 검증, 장애 시나리오, Runbook |
+| 05   | Presentation / Handover            | [05_presentation_handover.md](./05_presentation_handover.md) | [05_presentation_handover_implementation.md](./05_presentation_handover_implementation.md) | 발표 자료, Q&A, 비용 정리, 리소스 정리                                         |
 
 ## 3. 공통 원칙
 

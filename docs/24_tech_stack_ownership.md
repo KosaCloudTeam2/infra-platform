@@ -13,18 +13,18 @@
 
 ## 1. 현재 역할 기준
 
-| 팀원   | 현재 담당 방향                            | 핵심 책임                                                                    |
-| :----- | :---------------------------------------- | :--------------------------------------------------------------------------- |
-| 팀원 1 | Observability / Integration / App Runtime | 관측성, 통합 검증, 장애 시나리오, Runbook, 앱 런타임, 부하 테스트, 발표 흐름 |
-| 팀원 2 | Cloud / IaC / AWS Burst                   | AWS IaC, EC2 ASG/ALB burst, IAM/OIDC, WAF, 비용 제한, AWS 리소스 정리        |
-| 팀원 3 | Network / DB / Storage                    | 네트워크, pfSense, PXC, ProxySQL, Ceph, 백업/복구, DB/스토리지 보안 경계     |
-| 팀원 4 | CI/CD / GitOps / Repository               | GitHub Actions, Docker Hub, Argo CD, GitOps manifest, 이미지 태그/배포 흐름  |
+| 팀원   | 현재 담당 방향                     | 핵심 책임                                                                                                     |
+| :----- | :--------------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| 팀원 1 | Observability / Integration / Demo | 관측성, 통합 검증, 웹 서버 기동/접속 검증, 앱-DB 연결 검증, 장애 시나리오, Runbook, 부하 테스트, 발표 흐름    |
+| 팀원 2 | Cloud / Network / IaC / AWS Burst  | AWS IaC, 클라우드 네트워크(VPC/Subnet/Route/SG), EC2 ASG/ALB burst, IAM/OIDC, WAF, 비용 제한, AWS 리소스 정리 |
+| 팀원 3 | DB / Storage / On-prem DB Network  | DB 관련 온프레미스 네트워크, pfSense, PXC, ProxySQL, Ceph, 백업/복구, DB/스토리지 보안 경계                   |
+| 팀원 4 | CI/CD / GitOps / Repository        | GitHub Actions, Docker Hub, Argo CD, GitOps manifest, 이미지 태그/배포 흐름, 앱 Secret/환경변수 설정          |
 
 ---
 
 ## 2. 담당자별 주 기술 스택
 
-### 2.1 팀원 1: Observability / Integration / App Runtime
+### 2.1 팀원 1: Observability / Integration / Demo
 
 | 기술 스택                           | 현재 위치 | 비고                                                  |
 | :---------------------------------- | :-------- | :---------------------------------------------------- |
@@ -34,9 +34,9 @@
 | 통합 검증                           | MVP       | K8s, ALB, DB, Ceph, CI/CD 흐름 연결 확인              |
 | 장애 시나리오                       | MVP       | Pod 장애, 배포 실패, SG 오설정, DB 장애 시나리오 정리 |
 | Runbook 품질 관리                   | MVP       | 배포/롤백/모니터링/장애 대응 문서 검토                |
-| App Runtime                         | MVP       | 앱 실행 조건, health check, 환경변수, 로그 확인       |
-| Kubernetes Secret                   | MVP       | DB 접속 정보, 앱 환경변수 주입                        |
-| 앱-DB 연결                          | MVP       | 팀원 3의 ProxySQL endpoint와 연동                     |
+| 웹 서버 실행(기동/접속 검증)        | MVP       | 기배포 앱의 health check, Ingress/ALB 접속 확인       |
+| Kubernetes Secret                   | MVP       | DB 접속 정보, 앱 환경변수 주입 기준 검증              |
+| 앱-DB 연결                          | MVP       | 팀원 3의 ProxySQL endpoint 연동 검증 주관             |
 | k6 또는 JMeter 부하 테스트          | MVP/검증  | 팀원 1 주 담당. AWS ASG scale-out 시연 지표 생성      |
 | p95 latency 지표                    | MVP/검증  | 부하 테스트 결과 설명용                               |
 | Prometheus/Grafana                  | 선택 확장 | CloudWatch 중심이 어려울 때 또는 발표 보강용          |
@@ -46,12 +46,12 @@
 
 ---
 
-### 2.2 팀원 2: Cloud / IaC / AWS Burst
+### 2.2 팀원 2: Cloud / Network / IaC / AWS Burst
 
 | 기술 스택                         | 현재 위치 | 비고                                                |
 | :-------------------------------- | :-------- | :-------------------------------------------------- |
 | Terraform                         | MVP       | AWS 리소스 IaC 기준                                 |
-| AWS VPC/Subnet/Route Table        | MVP       | 네트워크 상세 운영은 팀원 3과 협업                  |
+| AWS VPC/Subnet/Route Table        | MVP       | 클라우드 네트워크 범위(AWS) 책임                    |
 | Internet Gateway / NAT 선택       | MVP       | 비용 기준 포함                                      |
 | AWS ALB / Target Group / Listener | MVP       | AWS burst 외부 진입점                               |
 | AWS EC2 Auto Scaling Group        | MVP       | AWS burst scale-out/scale-in                        |
@@ -69,46 +69,46 @@
 
 ---
 
-### 2.3 팀원 3: Network / DB / Storage
+### 2.3 팀원 3: DB / Storage / On-prem DB Network
 
-| 기술 스택                   | 현재 위치      | 비고                                              |
-| :-------------------------- | :------------- | :------------------------------------------------ |
-| 네트워크 설계/운영          | MVP            | 온프레미스, pfSense, VLAN, 라우팅, 방화벽 기준    |
-| pfSense 설치/설정           | MVP/운영 기반  | 현재 팀원 3 담당. VPN/방화벽/NAT/라우팅 기준 정리 |
-| 온프레미스-AWS 연결 방식    | MVP 문서화     | VPN, WireGuard, 제한된 HTTPS 중 선택 필요         |
-| Proxmox 네트워크            | MVP            | 관리망/스토리지망 구분, MTU, bridge 확인          |
-| Ceph 스토리지망             | MVP/선택 구현  | RBD/CephFS/RGW 구성과 네트워크 검증               |
-| iperf                       | 검증 보조      | Proxmox/Ceph망, VPN 대역폭 검증                   |
-| Percona XtraDB Cluster(PXC) | MVP            | 3노드 기준                                        |
-| Galera/wsrep                | MVP 설명       | PXC 내부 복제 기반. 별도 Galera 구축 아님         |
-| Single Writer 운영          | MVP            | active-active write는 채택하지 않음               |
-| ProxySQL                    | MVP            | 앱 DB 접근 단일화                                 |
-| DB 계정/권한                | MVP            | 앱 계정, 백업 계정, 운영 계정 분리                |
-| Percona XtraBackup          | MVP            | DB 백업 산출물 생성                               |
-| Ceph RGW                    | MVP            | DB 백업 저장소                                    |
-| Ceph RBD / CephFS           | 선택 구현      | Proxmox VM/K8s 볼륨 고급 활용                     |
-| garbd                       | 제외/향후 논의 | PXC 3노드 기준 불필요. 2노드 제약 시 검토         |
-| Redis Sentinel              | 선택 확장      | 앱 세션/캐시 요구가 생길 때 검토                  |
-| ProxySQL 2대 + Internal NLB | 선택 확장      | 팀원 2와 협업 필요                                |
+| 기술 스택                             | 현재 위치      | 비고                                                       |
+| :------------------------------------ | :------------- | :--------------------------------------------------------- |
+| DB 관련 온프레미스 네트워크 설계/운영 | MVP            | DB 트래픽 기준의 pfSense, VLAN, 라우팅, 방화벽 기준        |
+| pfSense 설치/설정                     | MVP/운영 기반  | DB 접근 경로 중심의 VPN/방화벽/NAT/라우팅 기준 정리        |
+| 온프레미스-AWS 연결 방식              | MVP 문서화     | DB 접근 경로 기준으로 VPN, WireGuard, 제한된 HTTPS 중 선택 |
+| Proxmox 네트워크                      | MVP            | 관리망/스토리지망 구분, MTU, bridge 확인                   |
+| Ceph 스토리지망                       | MVP/선택 구현  | RBD/CephFS/RGW 구성과 네트워크 검증                        |
+| iperf                                 | 검증 보조      | Proxmox/Ceph망, VPN 대역폭 검증                            |
+| Percona XtraDB Cluster(PXC)           | MVP            | 3노드 기준                                                 |
+| Galera/wsrep                          | MVP 설명       | PXC 내부 복제 기반. 별도 Galera 구축 아님                  |
+| Single Writer 운영                    | MVP            | active-active write는 채택하지 않음                        |
+| ProxySQL                              | MVP            | 앱 DB 접근 단일화                                          |
+| DB 계정/권한                          | MVP            | 앱 계정, 백업 계정, 운영 계정 분리                         |
+| Percona XtraBackup                    | MVP            | DB 백업 산출물 생성                                        |
+| Ceph RGW                              | MVP            | DB 백업 저장소                                             |
+| Ceph RBD / CephFS                     | 선택 구현      | Proxmox VM/K8s 볼륨 고급 활용                              |
+| garbd                                 | 제외/향후 논의 | PXC 3노드 기준 불필요. 2노드 제약 시 검토                  |
+| Redis Sentinel                        | 선택 확장      | 앱 세션/캐시 요구가 생길 때 검토                           |
+| ProxySQL 2대 + Internal NLB           | 선택 확장      | 팀원 2와 협업 필요                                         |
 
 ---
 
 ### 2.4 팀원 4: CI/CD / GitOps / Repository
 
-| 기술 스택                     | 현재 위치 | 비고                                                                 |
-| :---------------------------- | :-------- | :------------------------------------------------------------------- |
-| GitHub Actions                | MVP       | 이미지 빌드, push, 배포 workflow                                     |
-| Docker Hub                    | MVP       | 기본 이미지 저장소                                                   |
-| Dockerfile / 이미지 태그 전략 | MVP       | `git-sha`, `latest` 기준                                             |
-| Argo CD                       | MVP       | 온프레미스 Kubernetes GitOps 배포                                    |
-| Kubernetes manifest           | MVP       | Deployment, Service, Ingress 중심. Secret과 앱-DB 연결은 팀원 1 담당 |
-| GitOps Application 구성       | MVP       | Argo CD sync/health 확인                                             |
-| 앱 배포 rollback              | MVP       | 이전 image tag 또는 Git revision 복구                                |
-| AWS burst 앱 bootstrap 지원   | MVP       | 팀원 2의 Launch Template/user data와 협업                            |
-| Private Registry / Harbor     | 선택 확장 | Docker Hub 대체 후보                                                 |
-| Argo Rollouts                 | 선택 확장 | Blue/Green, Canary 배포 고도화                                       |
-| KEDA                          | 선택 확장 | Kubernetes workload autoscaling 고도화                               |
-| AWS Load Balancer Controller  | 선택 확장 | EKS 고도화 시 팀원 2와 협업                                          |
+| 기술 스택                     | 현재 위치 | 비고                                                                                                  |
+| :---------------------------- | :-------- | :---------------------------------------------------------------------------------------------------- |
+| GitHub Actions                | MVP       | 이미지 빌드, push, 배포 workflow                                                                      |
+| Docker Hub                    | MVP       | 기본 이미지 저장소                                                                                    |
+| Dockerfile / 이미지 태그 전략 | MVP       | `git-sha`, `latest` 기준                                                                              |
+| Argo CD                       | MVP       | 온프레미스 Kubernetes GitOps 배포                                                                     |
+| Kubernetes manifest           | MVP       | Deployment, Service, Ingress 중심. Secret/환경변수 설정은 팀원 4가 수행하고 연결 검증은 팀원 1이 담당 |
+| GitOps Application 구성       | MVP       | Argo CD sync/health 확인                                                                              |
+| 앱 배포 rollback              | MVP       | 이전 image tag 또는 Git revision 복구                                                                 |
+| AWS burst 앱 bootstrap 지원   | MVP       | 팀원 2의 Launch Template/user data와 협업                                                             |
+| Private Registry / Harbor     | 선택 확장 | Docker Hub 대체 후보                                                                                  |
+| Argo Rollouts                 | 선택 확장 | Blue/Green, Canary 배포 고도화                                                                        |
+| KEDA                          | 선택 확장 | Kubernetes workload autoscaling 고도화                                                                |
+| AWS Load Balancer Controller  | 선택 확장 | EKS 고도화 시 팀원 2와 협업                                                                           |
 
 ---
 
@@ -189,13 +189,13 @@ EKS 최소 PoC 결정 필요:
 
 ## 6. 담당 경계 요약
 
-| 영역             | 주 담당        | 협업                        |
-| :--------------- | :------------- | :-------------------------- |
-| 네트워크/pfSense | 팀원 3         | 팀원 2                      |
-| AWS IaC/burst    | 팀원 2         | 팀원 1, 팀원 4              |
-| DB/Storage       | 팀원 3         | 팀원 2, 팀원 1              |
-| CI/CD/GitOps     | 팀원 4         | 팀원 1                      |
-| App Runtime/검증 | 팀원 1         | 팀원 4                      |
-| 관측성/장애 대응 | 팀원 1         | 전원                        |
-| 발표/시연        | 전원           | 팀원 1 통합                 |
-| EKS 최소 PoC     | 담당 논의 필요 | 팀원 2, 팀원 4, 팀원 1 협업 |
+| 영역                            | 주 담당        | 협업                        |
+| :------------------------------ | :------------- | :-------------------------- |
+| 온프레미스 DB 네트워크/pfSense  | 팀원 3         | 팀원 2                      |
+| AWS IaC/클라우드 네트워크/burst | 팀원 2         | 팀원 1, 팀원 4              |
+| DB/Storage                      | 팀원 3         | 팀원 2, 팀원 1              |
+| CI/CD/GitOps                    | 팀원 4         | 팀원 1                      |
+| 웹 서버 기동/접속 및 앱-DB 검증 | 팀원 1         | 팀원 4, 팀원 3              |
+| 관측성/장애 대응                | 팀원 1         | 전원                        |
+| 발표/시연                       | 전원           | 팀원 1 통합                 |
+| EKS 최소 PoC                    | 담당 논의 필요 | 팀원 2, 팀원 4, 팀원 1 협업 |

@@ -9,6 +9,7 @@ XtraBackup으로 수행하고 Ceph RGW에 저장함.
 
 ## 2. 구현 범위
 
+- DB 관련 온프레미스 네트워크(pfSense/VLAN/라우팅/방화벽) 기준
 - PXC 3노드 구성
 - ProxySQL 1대 기본 구성
 - 일정 여유 시 ProxySQL 2대 + Internal NLB 구성
@@ -34,6 +35,12 @@ flowchart TB
 ```
 
 ## 4. 세부 구현
+
+### 4.0 DB 관련 온프레미스 네트워크
+
+- DB 트래픽 기준으로 온프레미스 네트워크 정책을 정의함
+- Cloud/Network/IaC 담당의 AWS 네트워크와 접점(허용 CIDR, 라우팅 경로)을 공동 검토함
+- 앱은 DB 노드 직접 접근이 아니라 ProxySQL endpoint만 허용함
 
 ### 4.1 PXC
 

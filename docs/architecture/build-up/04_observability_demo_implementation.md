@@ -5,7 +5,8 @@
 ## 1. 목표
 
 Prometheus/Grafana 또는 CloudWatch 기반 최소 관측 체계를 구성하고 발표에서 보여줄 정상 배포, 앱
-장애, DB/백업 확인 시나리오를 안정적으로 준비함.
+장애, DB/백업 확인 시나리오를 안정적으로 준비함. 웹 서버 기동/접속과 앱-DB 연결 검증을 통합 책임으로
+수행함.
 
 ## 2. 사전 조건
 
@@ -19,14 +20,16 @@ Prometheus/Grafana 또는 CloudWatch 기반 최소 관측 체계를 구성하고
 
 1. Argo CD Application sync/health 상태 확인
 2. Kubernetes Deployment rollout과 pod ready 상태 확인
-3. ALB Target 5xx, UnHealthyHostCount 지표 확인
-4. EC2 CPU/Request 기반 지표 확인
-5. 최소 알람 기준을 Terraform 또는 콘솔 설정으로 확인
-6. PXC/ProxySQL/Ceph 상태 확인 명령을 Runbook에 연결
-7. 정상 배포 시연 순서 작성
-8. 앱 장애/롤백 시연 순서 작성
-9. DB/백업 확인 시연 순서 작성
-10. 발표용 캡처와 예상 질문 정리
+3. Service/Ingress/ALB 경로 기준 웹 서버 기동/접속 확인
+4. 앱-DB 연결(ProxySQL endpoint) 확인
+5. ALB Target 5xx, UnHealthyHostCount 지표 확인
+6. EC2 CPU/Request 기반 지표 확인
+7. 최소 알람 기준을 Terraform 또는 콘솔 설정으로 확인
+8. PXC/ProxySQL/Ceph 상태 확인 명령을 Runbook에 연결
+9. 정상 배포 시연 순서 작성
+10. 앱 장애/롤백 시연 순서 작성
+11. DB/백업 확인 시연 순서 작성
+12. 발표용 캡처와 예상 질문 정리
 
 ## 4. CloudWatch 확인 항목
 
@@ -48,6 +51,7 @@ Prometheus/Grafana 또는 CloudWatch 기반 최소 관측 체계를 구성하고
 3. Argo CD Application sync 확인
 4. Kubernetes rollout 확인
 5. Service 또는 Ingress URL로 앱 응답 확인
+6. ProxySQL endpoint 기준 앱-DB 연결 확인
 
 ### 5.2 앱 장애와 롤백
 
@@ -58,7 +62,7 @@ Prometheus/Grafana 또는 CloudWatch 기반 최소 관측 체계를 구성하고
 
 ### 5.3 DB/백업 확인
 
-1. 앱이 ProxySQL endpoint를 사용함을 확인
+1. 웹 서버 기동 상태에서 앱이 ProxySQL endpoint를 사용함을 확인
 2. PXC `wsrep` 상태 확인
 3. ProxySQL backend status 확인
 4. XtraBackup 산출물과 Ceph RGW 업로드 파일 확인

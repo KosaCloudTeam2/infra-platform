@@ -6,7 +6,8 @@
 
 GitHub Actions 기반으로 Docker 이미지를 Docker Hub에 push하고, Argo CD 기반 GitOps로 온프레미스
 Kubernetes Deployment를 갱신함. AWS burst 영역은 EC2 ASG instance refresh를 수동 실행하는 방식으로
-분리함.
+분리함. 앱-DB 연결은 설정값 준비와 전달까지 담당하고 최종 검증은 Observability / Integration / Demo
+담당이 주관함.
 
 ## 2. 사전 조건
 
@@ -33,7 +34,7 @@ Kubernetes Deployment를 갱신함. AWS burst 영역은 EC2 ASG instance refresh
 11. Argo CD Application sync 실행
 12. Kubernetes Deployment rollout 확인
 13. 앱 로그 확인
-14. 앱에서 ProxySQL endpoint 접속 확인
+14. Observability 담당 검증용으로 ProxySQL endpoint/Secret 설정값 전달
 15. AWS burst app image 반영 필요 시 `Refresh AWS Burst ASG` workflow 수동 실행
 16. 실패 배포 롤백 절차를 Runbook에 반영
 
@@ -79,7 +80,7 @@ kubectl rollout status deployment/<app-deployment-name> -n <app-namespace>
 - Service 또는 Ingress URL에서 앱 응답 확인
 - AWS burst fallback 사용 시 Target Group health가 `healthy`
 
-## 7. 앱-DB 연결 기준
+## 7. 앱-DB 연결 설정 기준
 
 환경변수/Secret 기준:
 
@@ -88,7 +89,8 @@ kubectl rollout status deployment/<app-deployment-name> -n <app-namespace>
 - `DB_USER`: 앱 전용 계정
 - `DB_PASSWORD`: Kubernetes Secret 또는 선택 확장 Secrets Manager secret
 
-앱은 PXC 노드 private IP를 직접 참조하지 않음.
+앱은 PXC 노드 private IP를 직접 참조하지 않음. 웹 서버 기동/접속과 DB 연결 최종 검증은 Observability
+/ Integration / Demo 담당이 수행함.
 
 ## 8. 산출물
 
@@ -98,7 +100,7 @@ kubectl rollout status deployment/<app-deployment-name> -n <app-namespace>
 - Kubernetes rollout 결과
 - 필요 시 ASG instance refresh와 ALB Target Group health 결과
 - Kubernetes 또는 EC2 Docker logs 캡처
-- 앱-DB 연결 확인 결과
+- 앱-DB 연결 설정값 전달 결과
 - 롤백 Runbook 업데이트
 
 ## 9. 주의 사항

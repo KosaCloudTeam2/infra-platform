@@ -5,7 +5,8 @@
 ## 1. 목표
 
 애플리케이션 이미지를 자동으로 빌드하고 Docker Hub에 업로드한 뒤 Argo CD 기반 GitOps로 온프레미스
-Kubernetes에 배포함. 앱은 ProxySQL endpoint를 통해 DB에 연결함.
+Kubernetes에 배포함. 앱-DB 연결에 필요한 Secret/환경변수 설정을 제공하고, 연결 검증은 Observability
+/ Integration / Demo 담당과 공동 수행함.
 
 ## 2. 구현 범위
 
@@ -17,7 +18,7 @@ Kubernetes에 배포함. 앱은 ProxySQL endpoint를 통해 DB에 연결함.
 - Argo CD sync 기반 Kubernetes 배포
 - AWS burst ASG refresh workflow는 수동 실행으로 분리
 - Kubernetes Secret 기반 앱 환경변수 주입
-- 앱-DB 연결 확인
+- 앱-DB 연결에 필요한 설정값 전달 및 검증 지원
 - 롤백 Runbook 작성
 
 ## 3. 배포 흐름
@@ -65,13 +66,14 @@ sequenceDiagram
 - ALB Target Group Health 확인
 - 비용 보호를 위해 자동 refresh는 선택 확장으로 유지
 
-### 4.4 앱-DB 연결
+### 4.4 앱-DB 연결 설정 지원
 
 - `DB_HOST`: ProxySQL endpoint
 - `DB_PORT`: `6033`
 - `DB_USER`: 앱 전용 계정
 - `DB_PASSWORD`: Kubernetes Secret 또는 선택 확장 Secrets Manager에서 주입
 - 앱은 PXC 노드 IP를 직접 알지 않음
+- 웹 서버 기동/접속 및 DB 연결 최종 검증 주체는 Observability / Integration / Demo 담당임
 
 ## 5. 완료 기준
 
@@ -79,7 +81,7 @@ sequenceDiagram
 - [ ] Argo CD Application sync 성공
 - [ ] Kubernetes Deployment rollout 성공
 - [ ] ALB Health Check 정상
-- [ ] 앱 컨테이너에서 ProxySQL endpoint 접속 성공
+- [ ] 앱 컨테이너에서 ProxySQL endpoint 접속 설정 준비 완료
 - [ ] 배포 실패 롤백 절차 문서화
 
 ## 6. 인계 자료
