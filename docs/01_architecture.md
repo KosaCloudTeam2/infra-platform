@@ -50,6 +50,17 @@
 기존 ECS Fargate 구성은 AWS-only 배포 플랫폼을 빠르게 검증하기 위한 비교안으로만 유지함. Terraform,
 CI/CD, Runbook의 기본 경로는 온프레미스 Kubernetes와 AWS EC2 Auto Scaling 기준으로 재정렬함.
 
+## 1.4 다이어그램 읽기 경로
+
+- 전원 필독: [Overall System Context](./architecture/diagrams/00_system_context.md)
+- 역할별 심화:
+  - [Cloud / Network / IaC View](./architecture/diagrams/01_cloud_network_iac.md)
+  - [DB / Storage View](./architecture/diagrams/02_db_storage.md)
+  - [CI/CD / App Runtime View](./architecture/diagrams/03_cicd_app_runtime.md)
+  - [Observability / Integration / Demo View](./architecture/diagrams/04_observability_integration_demo.md)
+
+전체 다이어그램 인덱스는 [Architecture Diagram Guide](./architecture/diagrams/README.md)에서 관리함.
+
 ### MVP 하이브리드 목표 구조
 
 ```mermaid

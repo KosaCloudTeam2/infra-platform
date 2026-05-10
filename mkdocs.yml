@@ -35,30 +35,30 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:
-  - Home: index.md
-  - Project:
-      - Overview: 00_project_overview.md
-      - Architecture: 01_architecture.md
-      - Schedule 13+3: 02_schedule_13_plus_3.md
-      - Roles and Work Packages: 03_roles_and_work_packages.md
-      - Implementation Scope: 04_implementation_scope.md
-      - Security Policy: 05_security_policy.md
-      - Demo Presentation Plan: 06_demo_presentation_plan.md
-      - Definition of Done: 07_definition_of_done.md
-      - Risk Register: 08_risk_register.md
-      - Cleanup Plan: 09_cleanup_plan.md
-  - Team Operations:
+  - "[필독] Home": index.md
+  - "[필독] Project Core":
+      - "[필독] Overview": 00_project_overview.md
+      - "[필독] Architecture": 01_architecture.md
+      - "[필독] Schedule 13+3": 02_schedule_13_plus_3.md
+      - "[필독] Roles and Work Packages": 03_roles_and_work_packages.md
+      - "[필독] Implementation Scope": 04_implementation_scope.md
+      - "[필독] Security Policy": 05_security_policy.md
+      - "[필독] Demo Presentation Plan": 06_demo_presentation_plan.md
+      - "[필독] Definition of Done": 07_definition_of_done.md
+      - "[필독] Risk Register": 08_risk_register.md
+      - "[필독] Cleanup Plan": 09_cleanup_plan.md
+  - "[심화] Team Operations":
       - Commit Strategy: 10_commit_strategy.md
       - GitHub Setup: 11_github_setup.md
       - Repository Sharing Policy: 12_repository_sharing_policy.md
       - Environment Setup: ENVIRONMENT_SETUP.md
       - Daily Notice: daily_notice/README.md
-  - Reviews and History:
+  - "[심화] Reviews and History":
       - Ceph Usage Strategy: 13_ceph_usage_strategy.md
       - Existing Project Comparison: 14_existing_project_comparison.md
       - Structure Review: 15_structure_review.md
       - Change Log: 16_change_log.md
-  - Collaboration and Quality:
+  - "[심화] Collaboration and Quality":
       - AI Collaboration Guide: 17_ai_collaboration_guide.md
       - Quality Checks: 18_quality_checks.md
       - Tool Troubleshooting: 19_tool_troubleshooting.md
@@ -67,7 +67,14 @@ nav:
       - Glossary: 22_glossary.md
       - Technical Questions: 23_technical_questions.md
       - Tech Stack Ownership: 24_tech_stack_ownership.md
-  - Architecture Build-up:
+  - "[심화] Architecture Diagrams":
+      - "[필독] Diagram Guide": architecture/diagrams/README.md
+      - "[필독] Overall System Context": architecture/diagrams/00_system_context.md
+      - "[심화] Cloud / Network / IaC View": architecture/diagrams/01_cloud_network_iac.md
+      - "[심화] DB / Storage View": architecture/diagrams/02_db_storage.md
+      - "[심화] CI/CD / App Runtime View": architecture/diagrams/03_cicd_app_runtime.md
+      - "[심화] Observability / Integration / Demo View": architecture/diagrams/04_observability_integration_demo.md
+  - "[심화] Architecture Build-up":
       - Guide: architecture/build-up/README.md
       - Network / IaC:
           - Scope: architecture/build-up/01_network_iac.md
@@ -86,18 +93,18 @@ nav:
       - Presentation / Handover:
           - Scope: architecture/build-up/05_presentation_handover.md
           - Implementation: architecture/build-up/05_presentation_handover_implementation.md
-  - Runbooks:
+  - "[심화] Runbooks":
       - Deployment: runbooks/deployment.md
       - Rollback: runbooks/rollback.md
       - Monitoring: runbooks/monitoring.md
       - Database and Storage: runbooks/database_storage.md
       - Incident Scenarios: runbooks/incident_scenarios.md
-  - Presentation:
+  - "[심화] Presentation":
       - Outline: presentation/outline.md
       - Slides: presentation/presentation.md
       - Demo Script: presentation/demo_script.md
       - Q&A: presentation/qna.md
-  - Decisions:
+  - "[심화] Decisions":
       - Summary: architecture/decisions/README.md
       - Superseded ECS Fargate MVP: architecture/decisions/ADR-001-ecs-fargate-mvp.md
       - RDS Exclusion and PXC/ProxySQL: architecture/decisions/ADR-002-rds-exclusion-pxc-proxysql.md

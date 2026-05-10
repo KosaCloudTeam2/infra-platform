@@ -2,6 +2,9 @@
 
 담당: 팀원 1, 전원 보조
 
+역할 다이어그램:
+[Observability / Integration / Demo View](../diagrams/04_observability_integration_demo.md)
+
 ## 1. 목표
 
 서비스 상태를 확인할 수 있는 최소 관측 체계를 구성하고, 발표에서 보여줄 장애 대응 시나리오를

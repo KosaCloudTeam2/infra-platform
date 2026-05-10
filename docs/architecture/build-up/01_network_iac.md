@@ -2,6 +2,8 @@
 
 담당: 팀원 2
 
+역할 다이어그램: [Cloud / Network / IaC View](../diagrams/01_cloud_network_iac.md)
+
 역할 경계 메모: 본 문서의 Network는 AWS 클라우드 네트워크(VPC/Subnet/라우팅/SG) 범위를 의미함.
 온프레미스 DB 관련 네트워크는 DB/Storage 담당 범위임.
 

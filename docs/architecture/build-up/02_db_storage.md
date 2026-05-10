@@ -2,6 +2,8 @@
 
 담당: 팀원 3
 
+역할 다이어그램: [DB / Storage View](../diagrams/02_db_storage.md)
+
 ## 1. 목표
 
 AWS RDS를 사용하지 않고 EC2 기반 Percona XtraDB Cluster와 ProxySQL을 구성함. 백업은 Percona

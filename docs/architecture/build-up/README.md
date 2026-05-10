@@ -25,7 +25,15 @@ flowchart TD
 | 04   | Observability / Integration / Demo | [04_observability_demo.md](./04_observability_demo.md)       | [04_observability_demo_implementation.md](./04_observability_demo_implementation.md)       | Prometheus/Grafana 또는 CloudWatch, 웹 서버/앱-DB 검증, 장애 시나리오, Runbook |
 | 05   | Presentation / Handover            | [05_presentation_handover.md](./05_presentation_handover.md) | [05_presentation_handover_implementation.md](./05_presentation_handover_implementation.md) | 발표 자료, Q&A, 비용 정리, 리소스 정리                                         |
 
-## 3. 공통 원칙
+## 3. 역할별 다이어그램 빠른 이동
+
+- Cloud / Network / IaC: [01_cloud_network_iac.md](../diagrams/01_cloud_network_iac.md)
+- DB / Storage: [02_db_storage.md](../diagrams/02_db_storage.md)
+- CI/CD / App Runtime: [03_cicd_app_runtime.md](../diagrams/03_cicd_app_runtime.md)
+- Observability / Integration / Demo:
+  [04_observability_integration_demo.md](../diagrams/04_observability_integration_demo.md)
+
+## 4. 공통 원칙
 
 - DB와 ProxySQL은 Data Private Subnet에만 배치함
 - DB 관련 포트는 인터넷에 열지 않음

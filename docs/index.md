@@ -1,24 +1,30 @@
 # Cloud Infra Platform Docs
 
-이 문서는 13일 시스템 구축 + 3일 발표 준비를 위한 문서 홈임. 처음 보는 팀원은 아래 순서대로 읽고,
-담당자는 자기 영역 문서와 구현 절차 문서를 함께 확인함.
+이 문서는 13일 시스템 구축 + 3일 발표 준비를 위한 문서 홈임.
 
-## 1. 처음 읽는 순서
+## 1. 읽기 경계(필독/심화)
 
-| 순서 | 문서                                                       | 목적                                        |
-| :--- | :--------------------------------------------------------- | :------------------------------------------ |
-| 1    | [Project Overview](./00_project_overview.md)               | 프로젝트 목표와 성공 기준 확인              |
-| 2    | [Architecture](./01_architecture.md)                       | 전체 하이브리드 아키텍처와 설계 고정점 확인 |
-| 3    | [Schedule 13+3](./02_schedule_13_plus_3.md)                | 13일 구축 + 3일 발표 일정 확인              |
-| 4    | [Roles and Work Packages](./03_roles_and_work_packages.md) | 팀원별 책임과 작업 패키지 확인              |
-| 5    | [Implementation Scope](./04_implementation_scope.md)       | MVP와 선택 확장 범위 확인                   |
-| 6    | [Security Policy](./05_security_policy.md)                 | OIDC, SG, WAF, Secret 기준 확인             |
-| 7    | [Demo Presentation Plan](./06_demo_presentation_plan.md)   | 발표/시연 흐름 확인                         |
-| 8    | [Definition of Done](./07_definition_of_done.md)           | 완료 기준 확인                              |
-| 9    | [Risk Register](./08_risk_register.md)                     | 주요 리스크와 대응 확인                     |
-| 10   | [Cleanup Plan](./09_cleanup_plan.md)                       | 발표 후 비용 정리 계획 확인                 |
+| 구분        | 대상        | 읽기 목표                                                | 기준 시간           |
+| :---------- | :---------- | :------------------------------------------------------- | :------------------ |
+| 전원 필독   | 모든 팀원   | 프로젝트 공통 기준, 책임 경계, 일정, 보안/운영 원칙 이해 | 5~7분(필요 시 확장) |
+| 역할별 심화 | 담당자 중심 | 자기 역할의 상세 구현/Runbook/시연 절차 이해             | 역할별 상이         |
 
-## 2. 팀 운영 문서
+### 1.1 전원 필독(우선순위 순)
+
+1. [Project Overview](./00_project_overview.md)
+2. [Architecture](./01_architecture.md)
+3. [Schedule 13+3](./02_schedule_13_plus_3.md)
+4. [Roles and Work Packages](./03_roles_and_work_packages.md)
+5. [Implementation Scope](./04_implementation_scope.md)
+6. [Security Policy](./05_security_policy.md)
+7. [Demo Presentation Plan](./06_demo_presentation_plan.md)
+8. [Definition of Done](./07_definition_of_done.md)
+9. [Risk Register](./08_risk_register.md)
+10. [Cleanup Plan](./09_cleanup_plan.md)
+
+역할 경계의 단일 기준 문서는 [Roles and Work Packages](./03_roles_and_work_packages.md)임.
+
+## 2. 심화: 팀 운영 문서
 
 | 문서                                                           | 목적                                       |
 | :------------------------------------------------------------- | :----------------------------------------- |
@@ -36,7 +42,7 @@
 | [Technical Questions](./23_technical_questions.md)             | 회의 중 나온 기술 질문과 적용 판단 확인    |
 | [Tech Stack Ownership](./24_tech_stack_ownership.md)           | 기술 스택별 담당자와 협업 경계 확인        |
 
-## 3. 설계 보완 문서
+## 3. 심화: 설계 보완 문서
 
 | 문서                                                               | 목적                               |
 | :----------------------------------------------------------------- | :--------------------------------- |
@@ -46,7 +52,7 @@
 | [Change Log](./16_change_log.md)                                   | 주요 변경 이력                     |
 | [Architecture Decisions](./architecture/decisions/README.md)       | 주요 설계 결정과 근거              |
 
-## 4. 역할별 구축 문서
+## 4. 심화: 역할별 구축 문서
 
 역할별 설계/범위 문서와 실제 구현 절차 문서는 [Build-up Guide](./architecture/build-up/README.md)를
 기준으로 확인함.
@@ -59,7 +65,7 @@
 | Observability / Integration / Demo | [04 Observability / Integration / Demo](./architecture/build-up/04_observability_demo.md), [Implementation](./architecture/build-up/04_observability_demo_implementation.md)                                                                                                                                     |
 | Presentation / Handover            | [05 Presentation / Handover](./architecture/build-up/05_presentation_handover.md), [Implementation](./architecture/build-up/05_presentation_handover_implementation.md)                                                                                                                                          |
 
-## 5. 운영 Runbook
+## 5. 심화: 운영 Runbook
 
 | Runbook                                                | 목적                                         |
 | :----------------------------------------------------- | :------------------------------------------- |
@@ -69,7 +75,7 @@
 | [Database Storage](./runbooks/database_storage.md)     | PXC, ProxySQL, Ceph 백업 점검                |
 | [Incident Scenarios](./runbooks/incident_scenarios.md) | 장애 시나리오                                |
 
-## 6. 발표 자료
+## 6. 심화: 발표 자료
 
 | 문서                                           | 목적           |
 | :--------------------------------------------- | :------------- |
@@ -78,7 +84,18 @@
 | [Demo Script](./presentation/demo_script.md)   | 시연 스크립트  |
 | [Q&A](./presentation/qna.md)                   | 예상 질문      |
 
-## 7. MkDocs 도입 기준
+## 7. 아키텍처 다이어그램 읽기
+
+전체/역할별 다이어그램은 [Architecture Diagram Guide](./architecture/diagrams/README.md)에서 확인함.
+
+- 전원 필독: [Overall System Context](./architecture/diagrams/00_system_context.md)
+- 역할별 심화:
+  - [Cloud / Network / IaC View](./architecture/diagrams/01_cloud_network_iac.md)
+  - [DB / Storage View](./architecture/diagrams/02_db_storage.md)
+  - [CI/CD / App Runtime View](./architecture/diagrams/03_cicd_app_runtime.md)
+  - [Observability / Integration / Demo View](./architecture/diagrams/04_observability_integration_demo.md)
+
+## 8. MkDocs 도입 기준
 
 현재는 번호 기반 루트 문서를 유지함. 이유는 첫 커밋과 팀 온보딩 단계에서 읽는 순서가 명확하기
 때문임. MkDocs를 도입할 때도 파일을 대규모 이동하기보다 `mkdocs.yml`의 `nav`를 번호 흐름에 맞춰

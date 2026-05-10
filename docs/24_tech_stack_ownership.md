@@ -102,7 +102,7 @@
 | Dockerfile / 이미지 태그 전략 | MVP       | `git-sha`, `latest` 기준                                                                              |
 | Argo CD                       | MVP       | 온프레미스 Kubernetes GitOps 배포                                                                     |
 | Kubernetes manifest           | MVP       | Deployment, Service, Ingress 중심. Secret/환경변수 설정은 팀원 4가 수행하고 연결 검증은 팀원 1이 담당 |
-| GitOps Application 구성       | MVP       | Argo CD sync/health 확인                                                                              |
+| GitOps Application 구성       | MVP       | Argo CD 수동 sync/health 확인                                                                         |
 | 앱 배포 rollback              | MVP       | 이전 image tag 또는 Git revision 복구                                                                 |
 | AWS burst 앱 bootstrap 지원   | MVP       | 팀원 2의 Launch Template/user data와 협업                                                             |
 | Private Registry / Harbor     | 선택 확장 | Docker Hub 대체 후보                                                                                  |
@@ -116,18 +116,18 @@
 
 아래 항목은 특정 팀원에게 고정하지 않고 별도 논의가 필요함.
 
-| 기술 스택             | 현재 위치       | 논의가 필요한 이유                                     | 협업 후보                |
-| :-------------------- | :-------------- | :----------------------------------------------------- | :----------------------- |
-| EKS 최소 PoC          | MVP 보조 산출물 | AWS/IAM/비용, Kubernetes 배포, 검증/캡처가 함께 필요함 | 팀원 2 + 팀원 4 + 팀원 1 |
-| Cloudflare/GSLB       | 선택 확장       | 네트워크 라우팅과 외부 DNS/클라우드 연동이 겹침        | 팀원 3 + 팀원 2          |
-| Prometheus/Grafana    | 선택 확장       | 관측성 기준과 Kubernetes 배포가 겹침                   | 팀원 1 + 팀원 4          |
-| Loki/Fluent Bit       | 선택 확장       | 로그 관측성과 Kubernetes DaemonSet 배포가 겹침         | 팀원 1 + 팀원 4          |
-| AWS S3 2차 백업       | 선택 확장       | 백업 정책과 AWS bucket/IAM 구성이 겹침                 | 팀원 3 + 팀원 2          |
-| ProxySQL Internal NLB | 선택 확장       | ProxySQL 운영과 AWS NLB/Terraform이 겹침               | 팀원 3 + 팀원 2          |
+| 기술 스택             | 현재 위치       | 논의가 필요한 이유                                     | 협업 후보                          |
+| :-------------------- | :-------------- | :----------------------------------------------------- | :--------------------------------- |
+| EKS 최소 PoC          | MVP 보조 산출물 | AWS/IAM/비용, Kubernetes 배포, 검증/캡처가 함께 필요함 | 팀원 2 (주 담당) + 팀원 4 + 팀원 1 |
+| Cloudflare/GSLB       | 선택 확장       | 네트워크 라우팅과 외부 DNS/클라우드 연동이 겹침        | 팀원 3 + 팀원 2                    |
+| Prometheus/Grafana    | 선택 확장       | 관측성 기준과 Kubernetes 배포가 겹침                   | 팀원 1 + 팀원 4                    |
+| Loki/Fluent Bit       | 선택 확장       | 로그 관측성과 Kubernetes DaemonSet 배포가 겹침         | 팀원 1 + 팀원 4                    |
+| AWS S3 2차 백업       | 선택 확장       | 백업 정책과 AWS bucket/IAM 구성이 겹침                 | 팀원 3 + 팀원 2                    |
+| ProxySQL Internal NLB | 선택 확장       | ProxySQL 운영과 AWS NLB/Terraform이 겹침               | 팀원 3 + 팀원 2                    |
 
-EKS 최소 PoC 결정 필요:
+EKS 최소 PoC 실행 기준:
 
-- [ ] EKS 최소 PoC 주 담당을 팀원 2, 팀원 4, 또는 공동 담당 중 하나로 정함
+- [x] EKS 최소 PoC 주 담당은 팀원 2로 고정함
 - [ ] PoC에 사용할 샘플 앱과 이미지 태그를 정함
 - [ ] 생성 후 삭제 확인 체크리스트를 정함
 
@@ -189,13 +189,13 @@ EKS 최소 PoC 결정 필요:
 
 ## 6. 담당 경계 요약
 
-| 영역                            | 주 담당        | 협업                        |
-| :------------------------------ | :------------- | :-------------------------- |
-| 온프레미스 DB 네트워크/pfSense  | 팀원 3         | 팀원 2                      |
-| AWS IaC/클라우드 네트워크/burst | 팀원 2         | 팀원 1, 팀원 4              |
-| DB/Storage                      | 팀원 3         | 팀원 2, 팀원 1              |
-| CI/CD/GitOps                    | 팀원 4         | 팀원 1                      |
-| 웹 서버 기동/접속 및 앱-DB 검증 | 팀원 1         | 팀원 4, 팀원 3              |
-| 관측성/장애 대응                | 팀원 1         | 전원                        |
-| 발표/시연                       | 전원           | 팀원 1 통합                 |
-| EKS 최소 PoC                    | 담당 논의 필요 | 팀원 2, 팀원 4, 팀원 1 협업 |
+| 영역                            | 주 담당        | 협업                |
+| :------------------------------ | :------------- | :------------------ |
+| 온프레미스 DB 네트워크/pfSense  | 팀원 3         | 팀원 2              |
+| AWS IaC/클라우드 네트워크/burst | 팀원 2         | 팀원 1, 팀원 4      |
+| DB/Storage                      | 팀원 3         | 팀원 2, 팀원 1      |
+| CI/CD/GitOps                    | 팀원 4         | 팀원 1              |
+| 웹 서버 기동/접속 및 앱-DB 검증 | 팀원 1         | 팀원 4, 팀원 3      |
+| 관측성/장애 대응                | 팀원 1         | 전원                |
+| 발표/시연                       | 전원           | 팀원 1 통합         |
+| EKS 최소 PoC                    | 팀원 2 주 담당 | 팀원 4, 팀원 1 협업 |

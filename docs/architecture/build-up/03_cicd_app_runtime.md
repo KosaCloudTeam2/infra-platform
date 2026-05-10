@@ -2,6 +2,8 @@
 
 담당: 팀원 4
 
+역할 다이어그램: [CI/CD / App Runtime View](../diagrams/03_cicd_app_runtime.md)
+
 ## 1. 목표
 
 애플리케이션 이미지를 자동으로 빌드하고 Docker Hub에 업로드한 뒤 Argo CD 기반 GitOps로 온프레미스
@@ -55,8 +57,8 @@ sequenceDiagram
 
 - 온프레미스 Kubernetes 클러스터에 설치
 - Application은 저장소의 `k8s/` 또는 Helm chart 경로 추적
-- MVP는 수동 sync 또는 auto-sync 중 하나 선택
-- 발표 안정화 기간에는 수동 sync 우선
+- MVP와 발표 준비 기간 모두 Argo CD 수동 sync를 기본 운영 기준으로 고정
+- auto-sync는 선택 확장으로만 검토
 
 ### 4.3 AWS burst ASG refresh
 

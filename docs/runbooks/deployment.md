@@ -106,8 +106,8 @@ GitOps 운영 기준:
 - Git 저장소를 Kubernetes 배포 상태의 기준으로 둠
 - 클러스터에서 직접 `kubectl edit`로 수정한 내용은 임시 조치로만 기록
 - 환경별 설정은 `values-dev.yaml`, `values-onprem.yaml`, `values-cloud.yaml`처럼 분리 가능
-- Day 13 전에는 수동 sync를 기본으로 둠
-- 발표 당일에는 수동 sync 또는 auto-sync 중 하나로 고정함
+- Day 13 전부터 발표 당일까지 수동 sync를 기본 운영 기준으로 고정함
+- auto-sync 전환은 선택 확장으로만 검토함
 - Reloader Operator, Argo Rollouts, Blue/Green, Canary는 선택 확장
 
 예시:
