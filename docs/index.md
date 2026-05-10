@@ -67,13 +67,14 @@
 
 ## 5. 심화: 운영 Runbook
 
-| Runbook                                                | 목적                                         |
-| :----------------------------------------------------- | :------------------------------------------- |
-| [Deployment](./runbooks/deployment.md)                 | Argo CD GitOps 배포 확인                     |
-| [Rollback](./runbooks/rollback.md)                     | 배포 실패/서비스 장애 롤백                   |
-| [Monitoring](./runbooks/monitoring.md)                 | CloudWatch 또는 Prometheus/Grafana 기반 관측 |
-| [Database Storage](./runbooks/database_storage.md)     | PXC, ProxySQL, Ceph 백업 점검                |
-| [Incident Scenarios](./runbooks/incident_scenarios.md) | 장애 시나리오                                |
+| Runbook                                                                 | 목적                                            |
+| :---------------------------------------------------------------------- | :---------------------------------------------- |
+| [Deployment](./runbooks/deployment.md)                                  | Argo CD GitOps 배포 확인                        |
+| [Rollback](./runbooks/rollback.md)                                      | 배포 실패/서비스 장애 롤백                      |
+| [Monitoring](./runbooks/monitoring.md)                                  | CloudWatch 또는 Prometheus/Grafana 기반 관측    |
+| [Database Storage](./runbooks/database_storage.md)                      | PXC, ProxySQL, Ceph 백업 점검                   |
+| [On-prem Port/VLAN/VM Layout](./runbooks/onprem_port_vlan_vm_layout.md) | 온프레미스 스위치 포트/VLAN/VM 배치 실행안 확인 |
+| [Incident Scenarios](./runbooks/incident_scenarios.md)                  | 장애 시나리오                                   |
 
 ## 6. 심화: 발표 자료
 

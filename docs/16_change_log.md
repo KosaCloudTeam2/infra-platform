@@ -23,7 +23,13 @@
 
 | ID                 | 유형                     | 요약                                                                   | 영향/이유                                                                                                        | 주요 파일                                                                                                                                                                                    | 검증/상태                             |
 | :----------------- | :----------------------- | :--------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------ |
-| CHANGE-20260511-01 | docs/navigation/build-up | DB Storage 세부 가이드를 `_workspace` 밖으로 이동하고 nav/index에 반영 | `_workspace` 제외 규칙으로 노출되지 않던 문서를 공식 문서 경로로 이동해 Build-up에서 바로 탐색 가능하도록 정리함 | `docs/architecture/build-up/db_storage/01_rbd_register_guide.md`, `docs/architecture/build-up/db_storage/02_template_clone_guide.md`, `mkdocs.yml`, `docs/index.md`, `docs/16_change_log.md` | 문서 변경. `uv run mkdocs build` 통과 |
+| CHANGE-20260511-00 | docs/navigation/build-up | DB Storage 세부 가이드를 `_workspace` 밖으로 이동하고 nav/index에 반영 | `_workspace` 제외 규칙으로 노출되지 않던 문서를 공식 문서 경로로 이동해 Build-up에서 바로 탐색 가능하도록 정리함 | `docs/architecture/build-up/db_storage/01_rbd_register_guide.md`, `docs/architecture/build-up/db_storage/02_template_clone_guide.md`, `mkdocs.yml`, `docs/index.md`, `docs/16_change_log.md` | 문서 변경. `uv run mkdocs build` 통과 |
+
+## 2026-05-10
+
+| ID                 | 유형                | 요약                                          | 영향/이유                                                                                                                                                                      | 주요 파일                                                                                             | 검증/상태                             |
+| :----------------- | :------------------ | :-------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- | :------------------------------------ |
+| CHANGE-20260510-01 | docs/onprem/runbook | 온프레미스 포트/VLAN/VM 배치 실행안 문서 추가 | 4대 Proxmox 호스트 기반 VM 역할 분리(control-plane/worker/pfSense), VLAN 10/20/30/40 경계, pfSense 2대 MVP 전제를 재확인할 수 있도록 실행안 표와 검증 체크리스트 문서를 신설함 | `docs/runbooks/onprem_port_vlan_vm_layout.md`, `mkdocs.yml`, `docs/index.md`, `docs/16_change_log.md` | 문서 변경. `uv run mkdocs build` 예정 |
 
 ## 2026-05-09
 
