@@ -75,6 +75,8 @@ nav:
       - DB / Storage:
           - Scope: architecture/build-up/02_db_storage.md
           - Implementation: architecture/build-up/02_db_storage_implementation.md
+          - RBD Register Guide: architecture/build-up/db_storage/01_rbd_register_guide.md
+          - Template Clone Guide: architecture/build-up/db_storage/02_template_clone_guide.md
       - CI/CD / App Runtime:
           - Scope: architecture/build-up/03_cicd_app_runtime.md
           - Implementation: architecture/build-up/03_cicd_app_runtime_implementation.md

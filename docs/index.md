@@ -51,13 +51,13 @@
 역할별 설계/범위 문서와 실제 구현 절차 문서는 [Build-up Guide](./architecture/build-up/README.md)를
 기준으로 확인함.
 
-| 담당                               | 핵심 문서                                                                                                                                                                    |
-| :--------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cloud / Network / IaC              | [01 Cloud / Network / IaC](./architecture/build-up/01_network_iac.md), [Implementation](./architecture/build-up/01_network_iac_implementation.md)                            |
-| DB / Storage                       | [02 DB / Storage](./architecture/build-up/02_db_storage.md), [Implementation](./architecture/build-up/02_db_storage_implementation.md)                                       |
-| CI/CD / App Runtime                | [03 CI/CD / App Runtime](./architecture/build-up/03_cicd_app_runtime.md), [Implementation](./architecture/build-up/03_cicd_app_runtime_implementation.md)                    |
-| Observability / Integration / Demo | [04 Observability / Integration / Demo](./architecture/build-up/04_observability_demo.md), [Implementation](./architecture/build-up/04_observability_demo_implementation.md) |
-| Presentation / Handover            | [05 Presentation / Handover](./architecture/build-up/05_presentation_handover.md), [Implementation](./architecture/build-up/05_presentation_handover_implementation.md)      |
+| 담당                               | 핵심 문서                                                                                                                                                                                                                                                                                                        |
+| :--------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloud / Network / IaC              | [01 Cloud / Network / IaC](./architecture/build-up/01_network_iac.md), [Implementation](./architecture/build-up/01_network_iac_implementation.md)                                                                                                                                                                |
+| DB / Storage                       | [02 DB / Storage](./architecture/build-up/02_db_storage.md), [Implementation](./architecture/build-up/02_db_storage_implementation.md), [RBD Register Guide](./architecture/build-up/db_storage/01_rbd_register_guide.md), [Template Clone Guide](./architecture/build-up/db_storage/02_template_clone_guide.md) |
+| CI/CD / App Runtime                | [03 CI/CD / App Runtime](./architecture/build-up/03_cicd_app_runtime.md), [Implementation](./architecture/build-up/03_cicd_app_runtime_implementation.md)                                                                                                                                                        |
+| Observability / Integration / Demo | [04 Observability / Integration / Demo](./architecture/build-up/04_observability_demo.md), [Implementation](./architecture/build-up/04_observability_demo_implementation.md)                                                                                                                                     |
+| Presentation / Handover            | [05 Presentation / Handover](./architecture/build-up/05_presentation_handover.md), [Implementation](./architecture/build-up/05_presentation_handover_implementation.md)                                                                                                                                          |
 
 ## 5. 운영 Runbook
 
