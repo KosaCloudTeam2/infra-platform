@@ -6,9 +6,9 @@ Percona XtraDB Cluster, ProxySQL, Ceph RGW 백업 검증 절차
 
 ## 1. 구성 목표
 
-- AWS RDS 없이 EC2 기반 Percona XtraDB Cluster 3노드 구성
+- AWS RDS 없이 Proxmox VM 기반 Percona XtraDB Cluster 3노드 구성
 - 애플리케이션은 ProxySQL을 통해서만 DB 접근
-- DB/ProxySQL EC2는 Private Data Subnet에만 배치하고 Public IP를 부여하지 않음
+- DB/ProxySQL VM은 온프레미스 전용 관리망에 배치하고 Public IP를 부여하지 않음
 - Percona XtraBackup 결과를 Ceph RGW에 저장
 - 장애 발생 시 ProxySQL backend 상태와 PXC 클러스터 상태를 기준으로 복구
 - PXC는 Galera/wsrep 기반이지만 MVP 운영 정책은 active-active write가 아니라 Single Writer로 제한
@@ -18,18 +18,35 @@ Percona XtraDB Cluster, ProxySQL, Ceph RGW 백업 검증 절차
 
 ## 2. 책임 경계
 
-| 작업                    | 주 담당                                | 설명                                                     |
-| :---------------------- | :------------------------------------- | :------------------------------------------------------- |
-| DB용 EC2 Terraform 골격 | Cloud/Network/IaC                      | Data Private Subnet, SG, SSM Role, EC2 생성              |
-| PXC 설치/클러스터 구성  | DB/Storage                             | DB 패키지, Galera 설정, 계정/권한                        |
-| ProxySQL 구성           | DB/Storage                             | hostgroup, query rule, backend health                    |
-| 앱-DB 연결              | CI/CD/App Runtime + DB/Storage         | Kubernetes Secret/환경변수와 ProxySQL endpoint 접속 검증 |
-| DB 포트 정책            | Cloud/Network/IaC + DB/Storage         | `6033`, `3306`, `4567/4568/4444`, `6032` 허용 범위 리뷰  |
-| Proxmox/Ceph 운영 경계  | DB/Storage + Observability/Integration | Proxmox 관리 UI 비공개, RGW endpoint 접근 경로 결정      |
+| 작업                     | 주 담당                                | 설명                                                         |
+| :----------------------- | :------------------------------------- | :----------------------------------------------------------- |
+| DB용 Proxmox VM/Ceph RBD | DB/Storage + Cloud/Network/IaC         | Proxmox VM 생성, Ceph RBD 풀 연결, 온프레 네트워크 경계 확정 |
+| PXC 설치/클러스터 구성   | DB/Storage                             | DB 패키지, Galera 설정, 계정/권한                            |
+| ProxySQL 구성            | DB/Storage                             | hostgroup, query rule, backend health                        |
+| 앱-DB 연결               | CI/CD/App Runtime + DB/Storage         | Kubernetes Secret/환경변수와 ProxySQL endpoint 접속 검증     |
+| DB 포트 정책             | Cloud/Network/IaC + DB/Storage         | `6033`, `3306`, `4567/4568/4444`, `6032` 허용 범위 리뷰      |
+| Proxmox/Ceph 운영 경계   | DB/Storage + Observability/Integration | Proxmox 관리 UI 비공개, RGW endpoint 접근 경로 결정          |
 
 ---
 
 ## 3. 상태 확인
+
+### 최소 권장 지표 세트
+
+| 영역      | 최소 지표                                                                         | 기준                                   |
+| :-------- | :-------------------------------------------------------------------------------- | :------------------------------------- |
+| 쿼리 지연 | p95 query latency, p99 query latency                                              | 읽기/쓰기 분리 측정                    |
+| PXC 복제  | `wsrep_cluster_status`, `wsrep_flow_control_paused`, `wsrep_local_recv_queue_avg` | `Primary` 유지, Flow control 급증 감지 |
+| ProxySQL  | `runtime_mysql_servers` 상태, 연결/오류 추이                                      | Writer `ONLINE` 유지                   |
+| Ceph 백업 | RGW 오류율, 업로드 재시도 횟수                                                    | 백업 실패 조기 탐지                    |
+
+### 운영 트리거 예시(초기값)
+
+- p95 query latency가 기준치(예: 50~100ms, 서비스 특성별 조정) 초과 상태로 5~10분 지속
+- p99 query latency가 평시 대비 2배 이상 급증
+- `wsrep_flow_control_paused`가 0.1(10%) 이상으로 5분 이상 지속
+- Writer backend가 `ONLINE`에서 이탈하거나 `SHUNNED` 반복 발생
+- RGW 백업 업로드 실패 재시도 3회 이상 또는 오류율 1% 이상
 
 ### PXC 클러스터
 
@@ -155,7 +172,7 @@ SELECT rule_id, active, match_pattern, destination_hostgroup FROM runtime_mysql_
 ## 6. 발표 시연 체크리스트
 
 - [ ] 앱이 ProxySQL endpoint로 DB에 접근함
-- [ ] DB EC2와 ProxySQL EC2에 Public IP가 없음
+- [ ] DB VM과 ProxySQL VM에 Public IP가 없음
 - [ ] DB 관련 포트가 인터넷에 열려 있지 않음
 - [ ] PXC 클러스터 상태가 `Primary`, `Synced`임
 - [ ] Percona XtraBackup 산출물이 생성됨

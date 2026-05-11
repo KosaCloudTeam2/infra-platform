@@ -39,9 +39,10 @@
 ### 데이터베이스
 
 - AWS RDS 제외
-- EC2 기반 Percona XtraDB Cluster 3노드
+- Proxmox VM 기반 Percona XtraDB Cluster 3노드
+- DB VM 디스크는 Ceph RBD 사용
 - ProxySQL 1대 기본 MVP
-- ProxySQL 2대 + Internal NLB는 Terraform 변수로 전환 가능한 안정성 보완 항목
+- ProxySQL 2대 + Internal NLB는 선택 확장(일정 여유 시)
 - Percona XtraBackup 기반 백업
 - 백업 파일 Ceph RGW 업로드
 
@@ -81,7 +82,7 @@
 ### 스토리지
 
 - Ceph RGW 기반 S3 호환 백업 저장소
-- Proxmox 기반 Ceph RBD 온프레미스 VM/K8s 볼륨은 선택 구현
+- Proxmox 기반 Ceph RBD를 DB VM 디스크와 온프레미스 VM/K8s 볼륨에 사용
 - CephFS 기반 공유 파일 시스템은 선택 구현
 
 ## 2. 선택 구현 항목

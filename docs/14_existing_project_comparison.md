@@ -39,7 +39,7 @@
 - GitHub Actions OIDC 기반 키 없는 배포
 - Public/App Private/Data Private 계층 분리
 - DB 포트 인터넷 공개 금지 원칙
-- SSM Session Manager 기반 DB EC2 운영 접속 원칙
+- Bastion/VPN 기반 온프레 DB VM 운영 접속 원칙
 - PXC + ProxySQL + Ceph RGW 백업 전략
 - Runbook 기반 배포/롤백/DB 장애/백업 검증
 - Marp CLI 기반 발표 PDF 생성
@@ -62,8 +62,8 @@
 
 ### 5.1 SSM 우선 운영 접속
 
-DB EC2와 ProxySQL EC2는 SSH 포트를 열지 않고 SSM Session Manager로 접속함. 이는 기존 프로젝트의 SSH
-하드닝 원칙을 AWS에 맞게 적용한 방식임.
+DB VM과 ProxySQL VM은 SSH 포트를 외부에 열지 않고 Bastion/VPN 경유로 접속함. 이는 기존 프로젝트의
+SSH 하드닝 원칙을 AWS에 맞게 적용한 방식임.
 
 ### 5.2 백업 복구 리허설
 
@@ -79,7 +79,7 @@ DB EC2와 ProxySQL EC2는 SSH 포트를 열지 않고 SSM Session Manager로 접
 
 발표 전 다음 항목을 캡처 또는 명령 결과로 확보함.
 
-- DB EC2 Public IP 없음
+- DB VM Public IP 없음
 - ProxySQL `6033`은 앱 SG 또는 허용된 온프레미스 CIDR에서만 허용
 - PXC `3306`은 ProxySQL SG에서만 허용
 - Galera `4567/4568/4444`는 PXC SG self 참조만 허용

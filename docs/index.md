@@ -41,6 +41,7 @@
 | [Glossary](./22_glossary.md)                                   | AWS와 인프라 약어 확인                     |
 | [Technical Questions](./23_technical_questions.md)             | 회의 중 나온 기술 질문과 적용 판단 확인    |
 | [Tech Stack Ownership](./24_tech_stack_ownership.md)           | 기술 스택별 담당자와 협업 경계 확인        |
+| [WBS Execution Mapping](./25_wbs_execution_mapping.md)         | 순차/독립 작업표와 실행 방법 매핑          |
 
 ## 3. 심화: 설계 보완 문서
 

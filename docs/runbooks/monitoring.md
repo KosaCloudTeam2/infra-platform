@@ -23,6 +23,25 @@
 - Kubernetes Pod Ready 실패 또는 rollout timeout
 - 부하 테스트를 수행하는 경우 p95 latency와 5xx 비율을 함께 기록
 
+### 최소 권장 지표 세트
+
+| 영역                   | 최소 지표                                                                         | 목적                                  |
+| :--------------------- | :-------------------------------------------------------------------------------- | :------------------------------------ |
+| 애플리케이션           | p95 latency(읽기/쓰기 API 분리), 5xx 비율                                         | 사용자 체감 지연과 오류율을 함께 확인 |
+| 데이터베이스           | p95 query latency, p99 query latency                                              | 평균값이 숨기는 꼬리 지연을 조기 탐지 |
+| PXC(Galera/wsrep)      | `wsrep_cluster_status`, `wsrep_flow_control_paused`, `wsrep_local_recv_queue_avg` | 복제 병목/쿼럼 이상 감지              |
+| ProxySQL               | backend 상태, 연결 수, 오류율                                                     | 앱→DB 단일 경로의 장애 조기 감지      |
+| 스토리지(Ceph RBD/RGW) | 디스크 지연(await/latency), pool 사용량, RGW 오류율                               | DB I/O 병목과 백업 업로드 실패 탐지   |
+
+### 운영 트리거 예시(초기값)
+
+- p95 API latency가 기준치(예: 300ms) 초과 상태로 5~10분 지속
+- p99 query latency가 평시 대비 2배 이상 급증
+- `wsrep_flow_control_paused`가 0.1(10%) 이상으로 5분 이상 지속
+- ProxySQL backend 중 Writer가 `ONLINE`이 아니거나 `SHUNNED` 전환이 반복됨
+- Ceph RGW 업로드 오류율이 1% 이상이거나 백업 업로드 재시도가 3회 이상 발생
+- 디스크 지연(await) 급증과 함께 앱/DB p95가 동시 악화되면 저장소 병목으로 우선 분류
+
 표현 의미:
 
 - ALB Target 5xx: ALB 뒤의 앱이 반환한 `500`번대 서버 오류 수
@@ -52,13 +71,13 @@ Terraform 기준:
 
 ## 4. 로그 보존 기준
 
-| 로그 유형      | 기본 위치                            | MVP 보존 기준  | 목적                   |
-| :------------- | :----------------------------------- | :------------- | :--------------------- |
-| 앱 로그        | Kubernetes logs 또는 EC2 Docker logs | 발표 기간 유지 | 장애 분석, 발표 캡처   |
-| ALB/WAF 지표   | CloudWatch Metrics                   | 발표 기간 유지 | 트래픽과 차단 근거     |
-| DB 로그        | EC2 local + 필요 시 CloudWatch Agent | 발표 기간 유지 | PXC/ProxySQL 장애 분석 |
-| Ceph RGW 로그  | 온프레미스 로그 또는 Grafana         | 발표 기간 유지 | 백업 업로드 실패 분석  |
-| 보안 감사 로그 | SSM/audit 로그 또는 GitHub Actions   | 필요 시 캡처   | 접근 추적              |
+| 로그 유형      | 기본 위치                                 | MVP 보존 기준  | 목적                   |
+| :------------- | :---------------------------------------- | :------------- | :--------------------- |
+| 앱 로그        | Kubernetes logs 또는 EC2 Docker logs      | 발표 기간 유지 | 장애 분석, 발표 캡처   |
+| ALB/WAF 지표   | CloudWatch Metrics                        | 발표 기간 유지 | 트래픽과 차단 근거     |
+| DB 로그        | Proxmox VM local + 필요 시 Exporter       | 발표 기간 유지 | PXC/ProxySQL 장애 분석 |
+| Ceph RGW 로그  | 온프레미스 로그 또는 Grafana              | 발표 기간 유지 | 백업 업로드 실패 분석  |
+| 보안 감사 로그 | Bastion/VPN 접속 로그 또는 GitHub Actions | 필요 시 캡처   | 접근 추적              |
 
 운영 기준:
 

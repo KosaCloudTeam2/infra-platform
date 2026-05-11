@@ -14,8 +14,8 @@ Proxmox 기반 온프레미스 분산 스토리지 계층**으로 사용함.
 - **세 번째 우선순위:** 온프레미스 Kubernetes Persistent Volume
 - **고급 확장:** 로그 장기 보관, AWS S3 2차 복제, DR 복구 시나리오
 
-Proxmox 도입은 현재 온프레미스 Kubernetes + AWS EC2 burst + EC2 PXC 아키텍처와 충돌하지 않음. 단,
-Proxmox는 온프레미스 VM/스토리지 운영 계층이고 AWS burst 앱의 런타임 계층이 아니므로 역할을 섞지
+Proxmox 도입은 현재 온프레미스 Kubernetes + AWS EC2 burst + 온프레미스 PXC 아키텍처와 충돌하지 않음.
+단, Proxmox는 온프레미스 VM/스토리지 운영 계층이고 AWS burst 앱의 런타임 계층이 아니므로 역할을 섞지
 않음.
 
 ---
@@ -136,7 +136,7 @@ CloudWatch는 AWS 앱 로그의 기본 관측 체계로 사용하고, 장기 보
 | 로그 유형         | 기본 위치                                  | 장기 보관                 |
 | :---------------- | :----------------------------------------- | :------------------------ |
 | AWS burst 앱 로그 | EC2 Docker logs 또는 선택 CloudWatch Agent | 필요 시 Ceph RGW로 export |
-| DB 로그           | EC2 local + CloudWatch Agent               | Ceph RGW 아카이브         |
+| DB 로그           | Proxmox VM local + 선택 Exporter           | Ceph RGW 아카이브         |
 | Loki/ELK 로그     | 선택 구축                                  | Ceph Object/File Storage  |
 
 ---
@@ -165,7 +165,7 @@ flowchart LR
 | 방식                                       | 비추천 이유                                             |
 | :----------------------------------------- | :------------------------------------------------------ |
 | AWS burst 앱이 Ceph RBD 직접 사용          | AWS-온프레미스 지연과 블록 디바이스 운영 복잡도가 큼    |
-| DB 실시간 데이터 디스크를 원격 Ceph에 배치 | AWS-온프레미스 지연 시간과 장애 영향이 큼               |
+| DB 실시간 데이터 디스크를 원격 Ceph에 배치 | 지연 시간과 장애 영향이 커져 예측 가능한 운영이 어려움  |
 | Ceph RGW를 인증 없이 인터넷 공개           | 객체 저장소 전체 유출 위험                              |
 | Proxmox 관리 UI를 인터넷 공개              | 관리 계층 탈취 시 VM과 스토리지 전체가 위험해짐         |
 | Proxmox VM 백업을 DB 논리 백업처럼 설명    | DB 일관성과 시점 복구 관점에서 XtraBackup과 역할이 다름 |

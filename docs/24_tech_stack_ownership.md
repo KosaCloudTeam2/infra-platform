@@ -59,7 +59,7 @@
 | Security Group                    | MVP       | 팀원 3의 네트워크/DB 요구사항 반영 필요             |
 | WAF Managed Rule                  | MVP       | Count/Block 정책 설명                               |
 | IAM / GitHub OIDC Role            | MVP       | 장기 Access Key 미사용 기준                         |
-| SSM 접근 경로                     | MVP       | DB/운영 EC2 접근 시 팀원 3과 협업                   |
+| Bastion/VPN 접근 경로             | MVP       | DB/운영 VM 접근 시 팀원 3과 협업                    |
 | CloudWatch Alarm Terraform        | MVP       | 팀원 1의 관측 기준 반영                             |
 | 비용 제한/리소스 정리             | MVP       | NAT, ALB, WAF, EC2, EKS PoC 삭제 기준 포함          |
 | Route 53 / ACM / HTTPS            | 선택 확장 | 발표 완성도 보강 후보                               |

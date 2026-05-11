@@ -9,7 +9,8 @@
 - 일정은 13일 시스템 구축 + 3일 발표 준비를 기준으로 유지함.
 - MVP는 비용 우선 하이브리드 구조로 정의함. 기본 런타임은 온프레미스 Proxmox 기반 Kubernetes이며,
   AWS는 EC2 Auto Scaling Group, Launch Template, ALB 기반 burst 영역으로 사용함.
-- DB는 AWS RDS를 제외하고 EC2 기반 Percona XtraDB Cluster(PXC), ProxySQL, Ceph RGW 백업을 사용함.
+- DB는 AWS RDS를 제외하고 온프레미스 Proxmox VM 기반 Percona XtraDB Cluster(PXC), ProxySQL,
+  Ceph(RBD/RGW) 구조를 사용함.
 - EKS 최소 PoC는 AWS 관리형 Kubernetes 경험 확보용 MVP 보조 산출물로 포함함.
 - EKS Hybrid Nodes, 운영용 EKS 전환 검토, CloudFront, Blue/Green 배포, Route 53/ACM HTTPS,
   PMM/Prometheus는 선택 확장으로 분리함.
@@ -49,12 +50,12 @@
 - AWS burst 영역의 외부 진입점은 ALB와 WAF로 제한함.
 - 온프레미스 앱은 Kubernetes Ingress/Service를 통해 노출하고, AWS burst 앱은 ALB Target Group 뒤에
   배치함.
-- ProxySQL과 PXC EC2는 Data Private Subnet에 배치하고 Public IP를 부여하지 않음.
+- ProxySQL과 PXC는 온프레미스 Proxmox VM으로 분리 배치하고, Public IP를 부여하지 않음.
 - 앱은 PXC 노드에 직접 접속하지 않고 ProxySQL endpoint로만 접속함.
 - ProxySQL 1대는 MVP 기준이며 단일 장애점(SPoF)임을 문서에 명시함.
 - ProxySQL 이중화가 필요하면 `proxysql_count = 2`, `enable_proxysql_internal_nlb = true`를 사용함.
 - PXC는 3노드와 Single Writer 운영 기준을 우선함.
-- Ceph는 주 DB 디스크가 아니라 RGW 백업 저장소, RBD, CephFS 용도로 분리해서 설명함.
+- Ceph는 DB VM 디스크(RBD)와 백업(RGW) 용도를 분리해서 설명함.
 - Terraform state는 MVP에서 로컬 기준이지만, 팀 apply는 담당자 1명으로 제한함. 협업 고도화 시 S3
   Backend와 DynamoDB Lock Table을 사용함.
 - 기존 ECS Fargate 구조는 AWS-only fallback 또는 비교안으로만 유지함. 비용 우선 하이브리드 MVP와

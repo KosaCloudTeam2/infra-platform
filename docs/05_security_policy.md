@@ -7,8 +7,8 @@
   사용
 - Public Subnet에는 ALB만 배치함
 - 애플리케이션 런타임은 Private Subnet 또는 온프레미스 Kubernetes 내부 배치를 기본값으로 함
-- ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 Private Data Subnet에만 배치하고 Public IP를
-  부여하지 않음
+- ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 온프레미스 VM으로 분리 배치하고 Public IP를 부여하지
+  않음
 - Security Group(SG)은 출발지 SG 기준으로 최소 허용함
 - Secret 값은 Terraform 변수 또는 코드에 직접 저장하지 않음
 
@@ -17,8 +17,8 @@
 | Role             | 용도           | 주요 권한                                         |
 | :--------------- | :------------- | :------------------------------------------------ |
 | GitHubDeployRole | CI/CD 배포     | AWS burst ASG instance refresh, ALB/ASG 상태 조회 |
-| EC2InstanceRole  | AWS burst 실행 | SSM Session Manager, 필요한 최소 AWS API 접근     |
-| DBEC2Role        | DB 운영 접속   | SSM Session Manager                               |
+| EC2InstanceRole  | AWS burst 실행 | 필요한 최소 AWS API 접근                          |
+| (온프레 DB 접근) | DB 운영 접속   | Bastion/VPN 기반 제한 접근                        |
 
 ## 3. 팀원 AWS 접근 원칙
 
@@ -50,13 +50,13 @@
 
 13일 MVP에서는 과도한 권한 분산보다 안전한 운영 경계를 우선함.
 
-| 대상                             | 권장 접근                                          | 설명                                     |
-| :------------------------------- | :------------------------------------------------- | :--------------------------------------- |
-| 팀원 1 Observability/Integration | ReadOnly + 제한된 운영 확인 권한                   | 관측성, 통합 검증, 발표 캡처 확인 중심   |
-| 팀원 2 Cloud/Network/IaC         | Terraform plan 중심, apply는 합의된 담당자만       | VPC, ALB, SG, WAF, EC2 ASG 변경 책임     |
-| 팀원 3 DB/Storage                | EC2 Systems Manager(SSM) 접속, CloudWatch/EC2 확인 | PXC/ProxySQL/Ceph 구성 책임              |
-| 팀원 4 CI/CD/App Runtime         | Docker Hub, Argo CD, GitHub Actions 확인           | 이미지 빌드, GitOps 배포, 앱 런타임 책임 |
-| Terraform apply 담당자           | 별도 관리자 승인 또는 임시 상승 권한               | 팀 apply는 1명으로 제한                  |
+| 대상                             | 권장 접근                                           | 설명                                     |
+| :------------------------------- | :-------------------------------------------------- | :--------------------------------------- |
+| 팀원 1 Observability/Integration | ReadOnly + 제한된 운영 확인 권한                    | 관측성, 통합 검증, 발표 캡처 확인 중심   |
+| 팀원 2 Cloud/Network/IaC         | Terraform plan 중심, apply는 합의된 담당자만        | VPC, ALB, SG, WAF, EC2 ASG 변경 책임     |
+| 팀원 3 DB/Storage                | Bastion/VPN 기반 DB 운영 접속, 온프레 모니터링 확인 | PXC/ProxySQL/Ceph 구성 책임              |
+| 팀원 4 CI/CD/App Runtime         | Docker Hub, Argo CD, GitHub Actions 확인            | 이미지 빌드, GitOps 배포, 앱 런타임 책임 |
+| Terraform apply 담당자           | 별도 관리자 승인 또는 임시 상승 권한                | 팀 apply는 1명으로 제한                  |
 
 ### 3.2 실습용 단일 그룹 예외
 
@@ -111,8 +111,8 @@ IAM User 생성 기준:
 | PXC SG           | 3306 from ProxySQL SG, 4567/4568/4444 from PXC SG      | 제한                         |
 | Ceph RGW         | HTTPS from allowed CIDR/VPN only                       | 제한                         |
 
-DB 관련 포트는 인터넷 전체(`0.0.0.0/0`)에 열지 않음. 운영 접속은 Secure Shell(SSH) 공개보다 SSM
-Session Manager 또는 제한된 Bastion 접근을 우선함.
+DB 관련 포트는 인터넷 전체(`0.0.0.0/0`)에 열지 않음. 운영 접속은 Secure Shell(SSH) 공개보다 제한된
+Bastion/VPN 접근을 우선함.
 
 ## 5. WAF 정책
 

@@ -16,13 +16,13 @@
 - **반복 가능성:** 콘솔 수작업보다 Terraform과 GitHub Actions 기반 자동화를 우선함
 - **최소 노출:** 외부 진입점은 애플리케이션 로드 밸런서(Application Load Balancer, ALB)로 제한하고
   AWS burst 앱은 Private Subnet에 배치함
-- **DB 내부망 고정:** ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 Data Private Subnet에만 배치하고
+- **DB 내부망 고정:** ProxySQL과 Percona XtraDB Cluster(PXC) 노드는 온프레미스 VM으로 분리 배치하고
   Public IP를 부여하지 않음
 - **키 없는 배포:** 장기 Access Key 대신 GitHub Actions OpenID Connect(OIDC) 기반 임시 권한 사용
 - **운영 가시성:** CloudWatch Metrics/Alarm과 Kubernetes/EC2 로그 확인 절차를 기본 관측 체계로
   구성함
-- **관리형 DB 제외:** AWS Relational Database Service(RDS)는 사용하지 않고 Elastic Compute
-  Cloud(EC2) 기반 Percona XtraDB Cluster와 ProxySQL로 DB 운영 경험을 확보함
+- **관리형 DB 제외:** AWS Relational Database Service(RDS)는 사용하지 않고 온프레미스 Proxmox VM
+  기반 Percona XtraDB Cluster와 ProxySQL로 DB 운영 경험을 확보함
 - **스토리지 역할 분리:** Ceph는 Proxmox 기반 온프레미스 분산 스토리지로 두고, 백업·파일·온프레미스
   VM/Kubernetes 볼륨 용도를 구분해 활용함
 - **비용 우선 하이브리드:** Elastic Kubernetes Service(EKS) 상시 비용을 피하고, 온프레미스
@@ -42,7 +42,7 @@
 - Identity and Access Management(IAM) OIDC, Security Group(SG), 웹 방화벽(Web Application Firewall,
   WAF) 기반 보안
 - CloudWatch 기반 로그/지표/알람
-- EC2 기반 Percona XtraDB Cluster(PXC) 3노드
+- Proxmox VM 기반 Percona XtraDB Cluster(PXC) 3노드 (Ceph RBD 디스크)
 - ProxySQL 1대 기본, 변수 변경 시 2대 + Internal NLB 전환
 - Percona XtraBackup 기반 DB 백업
 - 온프레미스 Ceph RADOS Gateway(RGW)/RADOS Block Device(RBD)/CephFS 활용 전략
@@ -176,7 +176,7 @@ flowchart TD
         CW --> ASG
     end
 
-    subgraph Data["Data Private Subnets"]
+    subgraph Data["On-prem Data Layer"]
         ProxySQL["ProxySQL<br/>MVP 1 node"]
         ProxyNLB["Optional Internal NLB"]
         PXC["PXC 3 nodes"]
@@ -201,8 +201,7 @@ flowchart TD
 - ALB Target Group은 ASG 인스턴스 health check를 기준으로 정상 인스턴스에만 트래픽을 전달함
 - 애플리케이션은 ProxySQL을 통해서만 DB에 접근하고, DB 노드에 직접 접근하지 않음
 - PXC는 3노드 동기식 복제 구조로 구성해 단일 DB 노드 장애에 대비함
-- Ceph는 AWS 실행 경로의 주 DB 디스크가 아니라 백업·객체 저장소·온프레미스 Kubernetes PV 후보로
-  사용함
+- Ceph는 DB VM 디스크(RBD)와 백업(RGW) 역할을 분리해 사용함
 - ProxySQL 1대는 MVP 기준이고, 일정 여유가 있으면 Internal NLB를 통해 ProxySQL 2대 구성으로 확장함
 - GitHub Actions는 Docker Hub에 이미지를 push하고, AWS ASG instance refresh가 필요할 때 OIDC Role을
   사용함
@@ -216,21 +215,21 @@ flowchart TD
 
 ### 구성 요소
 
-| 구성 요소           | 역할                                       | MVP 구현                    |
-| :------------------ | :----------------------------------------- | :-------------------------- |
-| VPC                 | 전체 네트워크 격리 단위                    | `10.20.0.0/16`              |
-| Public Subnet       | 인터넷 진입점 배치                         | 2개 AZ                      |
-| Private App Subnet  | AWS burst 앱 EC2 실행                      | 2개 AZ                      |
-| Private Data Subnet | ProxySQL, Percona DB 노드 배치             | 3개 AZ 권장                 |
-| Internet Gateway    | Public Subnet 인터넷 연결                  | 필수                        |
-| NAT Gateway         | Private 리소스의 외부 API/이미지 pull 접근 | MVP 포함, 비용 이슈 시 논의 |
-| Route Table         | Public/Private 라우팅 분리                 | 필수                        |
+| 구성 요소          | 역할                                       | MVP 구현                    |
+| :----------------- | :----------------------------------------- | :-------------------------- |
+| VPC                | 전체 네트워크 격리 단위                    | `10.20.0.0/16`              |
+| Public Subnet      | 인터넷 진입점 배치                         | 2개 AZ                      |
+| Private App Subnet | AWS burst 앱 EC2 실행                      | 2개 AZ                      |
+| On-prem Data VLAN  | ProxySQL, PXC VM 노드 배치                 | VLAN 분리 운영              |
+| Internet Gateway   | Public Subnet 인터넷 연결                  | 필수                        |
+| NAT Gateway        | Private 리소스의 외부 API/이미지 pull 접근 | MVP 포함, 비용 이슈 시 논의 |
+| Route Table        | Public/Private 라우팅 분리                 | 필수                        |
 
 ### 설계 설명
 
-Public Subnet에는 ALB와 NAT Gateway만 배치함. AWS burst 앱 EC2는 Private App Subnet에 두고,
-ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는 “외부 진입점, 애플리케이션 실행
-영역, 데이터 영역을 분리했다”는 메시지를 명확하게 보여줌.
+Public Subnet에는 ALB와 NAT Gateway만 배치함. AWS burst 앱 EC2는 Private App Subnet에 두고, DB
+계층(ProxySQL/PXC)은 온프레미스 Proxmox VM + Ceph RBD로 분리 배치함. 이 구조는 “외부 진입점,
+애플리케이션 실행 영역, 데이터 영역을 분리했다”는 메시지를 명확하게 보여줌.
 
 온프레미스와 AWS 연결은 MVP에서 VPN, WireGuard, 제한된 HTTPS 중 하나로 정함. 어떤 방식을 택하더라도
 온프레미스 CIDR과 AWS VPC CIDR은 겹치지 않아야 하며, ProxySQL `6033`, Ceph RGW HTTPS, 관리 접속
@@ -244,7 +243,7 @@ ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는
 - VPN 또는 WireGuard 터널을 사용할 경우 터널 상태와 라우팅 장애 감지 기준 필요
 - 제한된 HTTPS를 사용할 경우 허용 IP, 인증서, RGW endpoint 공개 범위 관리 필요
 - HTTPS까지 구현할 경우 Route 53과 ACM 인증서 작업을 Day 10 이전에 끝내야 함
-- PXC 3노드를 3개 AZ에 둘지, 비용 절감을 위해 2개 AZ + garbd 또는 3 EC2 최소 사양으로 둘지 결정 필요
+- PXC 3노드를 서로 다른 Proxmox 호스트로 분산 배치할지와 VM 자원 할당 기준을 결정할 필요
 - Proxmox 기반 Ceph RGW와 AWS VPC 간 백업 전송을 VPN으로 할지, 제한된 IP 기반 HTTPS(S3 호환
   엔드포인트)로 할지 결정 필요
 - Proxmox 관리 UI와 Ceph 관리망은 인터넷에 공개하지 않고, AWS 앱은 RGW의 S3 호환 API만 사용하도록
@@ -252,12 +251,12 @@ ProxySQL과 Percona DB 노드는 Private Data Subnet에 배치함. 이 구조는
 
 ### DB 내부망 원칙
 
-- DB EC2와 ProxySQL EC2는 Public IP를 부여하지 않음
+- DB VM과 ProxySQL VM에는 Public IP를 부여하지 않음
 - DB 포트 `3306`, ProxySQL Client 포트 `6033`, Galera 포트 `4567/4568/4444`는 `0.0.0.0/0`에 열지
   않음
 - 앱은 PXC 노드에 직접 접근하지 않고 ProxySQL `6033`으로만 접근함
 - PXC 노드는 ProxySQL SG와 PXC SG 자기 자신에서 오는 트래픽만 허용함
-- 운영 접속은 SSH 공개보다 SSM Session Manager 또는 제한된 Bastion 경유를 우선함
+- 운영 접속은 SSH 공개보다 제한된 Bastion/VPN 경유를 우선함
 
 ### 온프레미스 운영망 참고 구성
 
@@ -365,18 +364,18 @@ GitHub Actions는 커밋 SHA 기반 태그로 Docker Hub에 이미지를 저장�
 ### 선택 기준
 
 AWS RDS는 관리형 서비스라 구축 속도와 안정성은 좋지만, 이번 프로젝트에서는 직접 운영 경험과 비용
-통제, 장애 대응 시연을 위해 제외함. 대신 EC2 기반 **Percona XtraDB Cluster(PXC)**와 **ProxySQL**을
-사용함.
+통제, 장애 대응 시연을 위해 제외함. 대신 Proxmox VM 기반 **Percona XtraDB Cluster(PXC)**와
+**ProxySQL**을 사용함.
 
 ### 구성 요소
 
 | 구성 요소              | 역할                                                  | MVP 기준                       |
 | :--------------------- | :---------------------------------------------------- | :----------------------------- |
-| Percona XtraDB Cluster | MySQL 호환 동기식 DB 클러스터                         | EC2 3노드                      |
+| Percona XtraDB Cluster | MySQL 호환 동기식 DB 클러스터                         | Proxmox VM 3노드 (RBD 디스크)  |
 | ProxySQL               | 앱의 DB 접근 단일화, 읽기/쓰기 라우팅, 장애 노드 제외 | 기본 1대, 확장 시 2대          |
 | Percona XtraBackup     | 온라인 백업 수행                                      | 일 단위 또는 발표 시 수동 백업 |
 | Internal NLB           | ProxySQL 이중화 시 단일 진입점 제공                   | 선택 확장                      |
-| CloudWatch Agent/PMM   | DB 노드 지표 관측                                     | CloudWatch 우선, PMM 선택      |
+| PMM/Exporter           | DB 노드 지표 관측                                     | PMM 선택, Prometheus 연계      |
 
 ### DB 아키텍처
 
@@ -386,7 +385,7 @@ flowchart TB
     App -. "HA option" .-> NLB["Internal NLB<br/>ProxySQL Endpoint"]
     NLB -. "TCP 6033" .-> Proxy
 
-    subgraph DataSubnets["Private Data Subnets"]
+    subgraph DataSubnets["On-prem Proxmox DB VM"]
         Proxy --> PXC1["PXC Node 1<br/>Primary Writer"]
         Proxy --> PXC2["PXC Node 2<br/>Reader / Failover Candidate"]
         Proxy --> PXC3["PXC Node 3<br/>Reader / Failover Candidate"]
@@ -408,13 +407,12 @@ flowchart TB
 - PXC는 Multi-Primary가 가능하지만, 쓰기 충돌과 지연 문제가 생길 수 있으므로 프로젝트에서는 Single
   Writer 방식이 더 설명하기 쉬움
 - DB 백업은 Percona XtraBackup으로 수행하고, 백업 산출물은 Ceph RGW 또는 S3 호환 저장소에 업로드함
-- DB 노드 접속은 SSH 직접 접속보다 SSM Session Manager 또는 Bastion을 통한 제한 접근을 우선함
+- DB 노드 접속은 SSH 직접 공개보다 Bastion/VPN을 통한 제한 접근을 우선함
 
 ### 역할 경계
 
-- Cloud/Network/IaC 담당은 DB EC2가 배치될 Data Private Subnet, Security Group, SSM Role, EC2
-  Terraform 골격을 책임짐
-- DB/Storage 담당은 EC2 위의 PXC, ProxySQL, DB 계정/권한, 백업/복구를 책임짐
+- DB/Storage 담당은 Proxmox VM, Ceph RBD, PXC/ProxySQL, DB 계정/권한, 백업/복구를 책임짐
+- Cloud/Network/IaC 담당은 AWS burst와 온프레 DB 경계(접속 정책/라우팅)를 공동 검토함
 - CI/CD/App Runtime 담당은 Kubernetes Secret, 환경변수, AWS burst bootstrap을 통해 ProxySQL
   endpoint에 접속하는 부분을 책임짐
 - DB Security Group과 포트 정책은 Cloud/Network/IaC 담당과 DB/Storage 담당이 공동 리뷰함
@@ -444,9 +442,9 @@ ProxySQL 1대는 운영 권장 구성이 아니라 13일 구축 일정의 MVP �
 ### 토론 포인트
 
 - ProxySQL을 MVP 1대로 유지할지, Day 9 이후 2대 + Internal NLB로 확장할지 결정
-- DB 노드를 AWS EC2에 둘지, 온프레미스에 두고 AWS 앱과 VPN으로 연결할지 결정
+- DB 노드는 온프레미스 Proxmox VM + Ceph RBD로 고정하고, AWS 앱은 VPN/WireGuard 경유로 연결
 - 백업 저장소를 Ceph RGW만 사용할지, AWS S3를 보조 복제 대상으로 둘지 결정
-- DB 모니터링을 CloudWatch Agent만으로 할지, PMM(Percona Monitoring and Management)을 추가할지 결정
+- DB 모니터링을 PMM/Exporter 중심으로 운영할지, 추가 관측 도구를 붙일지 결정
 
 ## 3.6 Ceph 스토리지 영역
 
@@ -649,15 +647,15 @@ flowchart LR
 
 ### 비용 발생 요소
 
-| 리소스      | 비용 영향                        | 절감 방법                        |
-| :---------- | :------------------------------- | :------------------------------- |
-| NAT Gateway | 시간당 비용과 처리량 비용        | 단일 NAT 사용, 발표 후 즉시 삭제 |
-| ALB         | 시간당 비용                      | 발표 후 삭제                     |
-| EC2 ASG     | burst 인스턴스 실행 시간         | Min/Desired/Max 낮게 설정        |
-| WAF         | Web ACL/Rule/요청 수             | Managed Rule 최소 구성           |
-| CloudWatch  | 로그 저장/알람                   | 로그 보존 7일                    |
-| EC2 DB      | PXC/ProxySQL 인스턴스 실행 시간  | 작은 인스턴스, 발표 후 정리      |
-| Ceph        | 온프레미스 디스크/전력/운영 비용 | 백업/파일/PV 용도 우선순위화     |
+| 리소스        | 비용 영향                        | 절감 방법                         |
+| :------------ | :------------------------------- | :-------------------------------- |
+| NAT Gateway   | 시간당 비용과 처리량 비용        | 단일 NAT 사용, 발표 후 즉시 삭제  |
+| ALB           | 시간당 비용                      | 발표 후 삭제                      |
+| EC2 ASG       | burst 인스턴스 실행 시간         | Min/Desired/Max 낮게 설정         |
+| WAF           | Web ACL/Rule/요청 수             | Managed Rule 최소 구성            |
+| CloudWatch    | 로그 저장/알람                   | 로그 보존 7일                     |
+| On-prem DB VM | PXC/ProxySQL VM 자원 사용량      | VM 자원 상한과 백업 정책으로 통제 |
+| Ceph          | 온프레미스 디스크/전력/운영 비용 | 백업/파일/PV 용도 우선순위화      |
 
 ### 팀 결정 필요
 
@@ -718,8 +716,8 @@ Route 53 Hosted Zone과 ACM 인증서를 추가하면 ALB HTTPS Listener를 구�
 
 ## 5.3 DB 고도화
 
-RDS는 제외하고 EC2 기반 PXC + ProxySQL을 기본 데이터 계층으로 사용함. 안정성 보완 단계에서는
-ProxySQL 2대와 Internal NLB를 추가하고, 백업은 Ceph RGW에 저장한 뒤 중요 백업만 AWS S3로 2차 복제함.
+RDS는 제외하고 Proxmox VM 기반 PXC + ProxySQL을 기본 데이터 계층으로 사용함. 안정성 보완 단계에서는
+ProxySQL 2대(또는 내부 LB)를 추가하고, 백업은 Ceph RGW에 저장한 뒤 중요 백업만 AWS S3로 2차 복제함.
 
 ## 5.4 EKS 최소 PoC와 관리형 Kubernetes 비교안
 
@@ -804,7 +802,7 @@ flowchart LR
 - [ ] [Team Decision Checklist](./21_team_decision_checklist.md)의 핵심 결정 항목을 회의에서 검토
 - [ ] MVP 기준 온프레미스와 AWS는 별도 런타임으로 두고, 단일 Kubernetes 클러스터 확장은 제외했는지
       확인
-- [ ] 온프레미스에 웹앱과 DB를 모두 둘지, DB는 AWS EC2에 둘지 결정
+- [ ] DB는 온프레미스 Proxmox VM + Ceph RBD 기준으로 운영하고, AWS burst 앱 연결 경로를 확정
 - [ ] AWS burst EC2를 일반 앱 서버 ASG/ALB로 두고, EC2 직접 Kubernetes 구성은 제외했는지 확인
 - [ ] 파일/백업 저장소를 Ceph RGW로 둘지, AWS S3로 둘지 결정
 - [ ] EKS는 최소 PoC로 수행하고, ECS/Fargate는 AWS-only 비교안으로만 설명하는지 확인

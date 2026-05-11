@@ -67,6 +67,7 @@ nav:
       - Glossary: 22_glossary.md
       - Technical Questions: 23_technical_questions.md
       - Tech Stack Ownership: 24_tech_stack_ownership.md
+      - WBS Execution Mapping: 25_wbs_execution_mapping.md
   - "[심화] Architecture Diagrams":
       - "[필독] Diagram Guide": architecture/diagrams/README.md
       - "[필독] Overall System Context": architecture/diagrams/00_system_context.md
