@@ -64,7 +64,13 @@ Prettier는 모든 파일에 적용하지 않고 Prettier가 안정적으로 다
 | Python                 | `ruff format --check` + `ruff check`                 |
 | INI, `.env`, lock 파일 | Prettier 대상 아님                                   |
 
-## 5. pre-push 또는 CI로 분리할 검사
+## 5. 문제 해결
+
+- 리베이스 중 충돌이 발생한 경우 [Git rebase 충돌 해결 가이드](./runbooks/git_rebase_conflict.md)
+  참조.
+- 로컬 도구 또는 Hook 관련 문제는 [Tool Troubleshooting](./19_tool_troubleshooting.md)을 확인.
+
+## 6. pre-push 또는 CI로 분리할 검사
 
 커밋 단계는 빠른 피드백을 목표로 함. 시간이 오래 걸리거나 AWS 인증이 필요한 검사는 pre-push 또는
 CI로 분리함.
