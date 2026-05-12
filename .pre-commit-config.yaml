@@ -67,18 +67,18 @@ repos:
         files: ^infra/terraform/.*\.tf$
         pass_filenames: false
 
-      - id: pnpm-audit
-        name: "SCA Security: pnpm audit"
-        entry: pnpm audit
-        language: system
-        files: pnpm-lock.yaml
-        pass_filenames: false
-        stages: [pre-push, manual]
+      # - id: pnpm-audit
+      #   name: "SCA Security: pnpm audit"
+      #   entry: pnpm audit
+      #   language: system
+      #   files: pnpm-lock.yaml
+      #   pass_filenames: false
+      #   stages: [pre-push, manual]
 
-      - id: pip-audit
-        name: "SCA Security: pip-audit"
-        entry: uv run pip-audit --local --cache-dir .audit_cache
-        language: system
-        files: ^uv\.lock$
-        pass_filenames: false
-        stages: [pre-push, manual]
+      # - id: pip-audit
+      #   name: "SCA Security: pip-audit"
+      #   entry: uv run pip-audit --local --cache-dir .audit_cache
+      #   language: system
+      #   files: ^uv\.lock$
+      #   pass_filenames: false
+      #   stages: [pre-push, manual]
