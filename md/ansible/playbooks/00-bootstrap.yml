@@ -1,0 +1,66 @@
+---
+###############################################################################
+# 00-bootstrap.yml
+# 모든 VM의 OS 기본 설정 — K8s/도구 설치 이전 단계
+# - hostname, timezone, swap off, 기본 패키지, NTP
+###############################################################################
+
+- name: Bootstrap all VMs
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Hostname을 inventory name으로 설정
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: /etc/hosts에 자기 hostname 추가
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "^127\\.0\\.1\\.1"
+        line: "127.0.1.1 {{ inventory_hostname }}"
+        state: present
+
+    - name: Timezone 설정
+      community.general.timezone:
+        name: "{{ timezone }}"
+
+    - name: APT 캐시 갱신 (24시간 이내 갱신)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 86400
+
+    - name: 기본 패키지 설치
+      ansible.builtin.apt:
+        name:
+          - curl
+          - wget
+          - vim
+          - net-tools
+          - dnsutils
+          - htop
+          - jq
+          - chrony           # NTP
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - software-properties-common
+        state: present
+
+    - name: Swap 비활성화 (K8s 필수 조건)
+      ansible.builtin.command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+      changed_when: true
+
+    - name: /etc/fstab에서 swap 라인 주석 처리
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#].*\sswap\s.*)$'
+        replace: '# \1'
+
+    - name: Chrony 활성화 (NTP 동기화)
+      ansible.builtin.systemd:
+        name: chrony
+        enabled: true
+        state: started

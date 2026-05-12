@@ -1,0 +1,37 @@
+###############################################################################
+# terraform.tfvars.example
+#
+# 사용법:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # terraform.tfvars 편집해서 실제 값 입력
+#   # terraform.tfvars 는 .gitignore에 포함되어 있어 커밋되지 않음
+###############################################################################
+
+# Proxmox API 엔드포인트 (kosa1 또는 클러스터 VIP)
+proxmox_endpoint = "https://192.168.21.2:8006/"
+
+# Proxmox API 토큰
+# Datacenter > Permissions > API Tokens에서 발급
+# 형식: <user>@<realm>!<token_id>=<uuid_secret>
+proxmox_api_token = "root@pam!terraform=00000000-0000-0000-0000-000000000000"
+
+# Proxmox host 접근용 SSH 키 (bpg provider가 일부 작업에 사용)
+proxmox_ssh_private_key_path = "~/.ssh/id_ed25519"
+
+# 생성된 VM에 주입할 SSH 공개키 (cloud-init으로 ubuntu 사용자에 등록)
+# `cat ~/.ssh/kosa_iac.pub` 결과 붙여넣기
+ssh_public_key = "ssh-ed25519 AAAAC3Nz... kosa-iac"
+
+###############################################################################
+# 아래 항목들은 기본값이 정해져 있으므로 환경 맞을 때만 override
+###############################################################################
+
+# 템플릿 VMID/노드 (기본 9000 on kosa1)
+# template_vm_id   = 9000
+# template_vm_node = "kosa1"
+
+# VLAN/네트워크 — 기본값 사용 시 생략 가능
+# internal_vlan_tag = 30
+# mgmt_vlan_tag     = 40
+# internal_gateway  = "172.16.23.1"
+# mgmt_gateway      = "172.16.24.1"

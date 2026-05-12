@@ -1,0 +1,13 @@
+# Ansible 캐시 / 임시 파일
+.ansible_facts/
+*.retry
+
+# 실제 inventory (Terraform output에서 생성됨)
+inventory/hosts.yml
+
+# Ansible vault 패스워드 파일
+.vault_pass
+.vault_password*
+
+# 다운로드된 collection
+collections/ansible_collections/

@@ -1,0 +1,47 @@
+###############################################################################
+# hosts.yml.example
+# Ansible inventory 예제 — Terraform output에서 자동 생성하는 게 편리
+#
+# 자동 생성:
+#   cd terraform
+#   terraform output -raw ansible_inventory > ../ansible/inventory/hosts.yml
+#
+# 수동 작성 시 이 파일을 참고
+###############################################################################
+
+all:
+  vars:
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ~/.ssh/kosa_iac
+    ansible_python_interpreter: /usr/bin/python3
+
+  children:
+    # 관리망에 있는 Bastion (Ansible 실행 + kubectl 위치)
+    bastion:
+      hosts:
+        bastion:
+          ansible_host: 172.16.24.10
+
+    # K8s Control Plane (3대, HA etcd)
+    k8s_control_plane:
+      hosts:
+        k8s-cp1:
+          ansible_host: 172.16.23.10
+        k8s-cp2:
+          ansible_host: 172.16.23.11
+        k8s-cp3:
+          ansible_host: 172.16.23.12
+
+    # K8s Worker
+    k8s_workers:
+      hosts:
+        k8s-w1:
+          ansible_host: 172.16.23.20
+        k8s-w2:
+          ansible_host: 172.16.23.21
+
+    # K8s 전체 (CP + Worker)
+    k8s_cluster:
+      children:
+        k8s_control_plane:
+        k8s_workers:

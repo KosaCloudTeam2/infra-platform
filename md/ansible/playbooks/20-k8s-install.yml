@@ -1,0 +1,58 @@
+---
+###############################################################################
+# 20-k8s-install.yml
+# kubeadm, kubelet, kubectl 패키지 설치
+# - Kubernetes 공식 apt repo 사용
+# - apt-mark hold로 자동 업그레이드 방지
+###############################################################################
+
+- name: Install kubeadm/kubelet/kubectl
+  hosts: k8s_cluster
+  become: true
+
+  tasks:
+    - name: Kubernetes GPG 키 디렉토리 생성
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Kubernetes GPG 키 다운로드
+      ansible.builtin.shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key \
+          | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Kubernetes apt repo 등록
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /
+        mode: "0644"
+
+    - name: APT 캐시 갱신
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: kubelet, kubeadm, kubectl 설치
+      ansible.builtin.apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+
+    - name: 자동 업그레이드 방지 (apt-mark hold)
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: kubelet 활성화 (init 전엔 실패해도 OK)
+      ansible.builtin.systemd:
+        name: kubelet
+        enabled: true

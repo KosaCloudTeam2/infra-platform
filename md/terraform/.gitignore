@@ -1,0 +1,19 @@
+# Terraform state — 절대 커밋하지 말 것 (시크릿 포함될 수 있음)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# 실제 환경 변수값 (API 토큰 등)
+terraform.tfvars
+*.auto.tfvars
+
+# CLI crash 로그
+crash.log
+crash.*.log
+
+# Override 파일들
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

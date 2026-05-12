@@ -1,0 +1,82 @@
+---
+###############################################################################
+# 10-k8s-prepare.yml
+# K8s 노드(CP + Worker)에만 적용 — containerd 설치 및 커널 설정
+###############################################################################
+
+- name: Prepare K8s nodes (containerd + kernel)
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+
+  tasks:
+    #############################################
+    # 커널 모듈 (K8s 네트워킹 필수)
+    #############################################
+    - name: 필요한 커널 모듈 로드 (즉시)
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: 부팅 시에도 자동 로드되도록 설정
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+        mode: "0644"
+
+    #############################################
+    # sysctl 파라미터 (K8s 네트워킹/라우팅)
+    #############################################
+    - name: K8s용 sysctl 설정 파일 생성
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/k8s.conf
+        content: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward                 = 1
+        mode: "0644"
+
+    - name: sysctl 적용
+      ansible.builtin.command: sysctl --system
+      changed_when: false
+
+    #############################################
+    # containerd 설치 (Ubuntu 22.04 기본 repo)
+    #############################################
+    - name: containerd 설치
+      ansible.builtin.apt:
+        name: containerd
+        state: present
+        update_cache: true
+
+    - name: containerd 기본 config 생성
+      ansible.builtin.shell: |
+        mkdir -p /etc/containerd
+        containerd config default > /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+
+    - name: containerd가 systemd cgroup 쓰도록 설정 (K8s 권장)
+      ansible.builtin.replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+      notify: restart containerd
+
+    - name: containerd 시작 및 활성화
+      ansible.builtin.systemd:
+        name: containerd
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: restart containerd
+      ansible.builtin.systemd:
+        name: containerd
+        state: restarted

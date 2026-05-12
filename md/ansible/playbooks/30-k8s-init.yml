@@ -1,0 +1,136 @@
+---
+###############################################################################
+# 30-k8s-init.yml
+# K8s 클러스터 초기화
+# - 1st CP: kubeadm init
+# - 다른 CP: kubeadm join --control-plane
+# - Workers: kubeadm join
+#
+# 주의: 멱등성 유지를 위해 /etc/kubernetes/admin.conf 존재 여부로 체크
+###############################################################################
+
+#############################################
+# Phase 1: 첫 번째 CP — kubeadm init
+#############################################
+- name: Initialize the first control plane
+  hosts: "{{ primary_control_plane }}"
+  become: true
+  tasks:
+    - name: 이미 init 되어 있는지 확인
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: kubeconfig_check
+
+    - name: kubeadm init 실행
+      ansible.builtin.shell: |
+        kubeadm init \
+          --control-plane-endpoint "{{ kubernetes_api_endpoint }}:{{ kubernetes_api_port }}" \
+          --upload-certs \
+          --pod-network-cidr={{ pod_subnet }} \
+          --service-cidr={{ service_subnet }} \
+          --kubernetes-version=v{{ kubernetes_version }}.0 \
+          --node-name={{ inventory_hostname }}
+      when: not kubeconfig_check.stat.exists
+      register: kubeadm_init
+
+    - name: kubectl config 디렉토리 생성 (root 외 사용자용)
+      ansible.builtin.file:
+        path: /home/ubuntu/.kube
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: admin.conf을 ubuntu 사용자에 복사
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: true
+        owner: ubuntu
+        group: ubuntu
+        mode: "0600"
+
+    #############################################
+    # join 토큰 생성 (다른 CP / Worker가 사용)
+    #############################################
+    - name: Worker용 join 명령어 생성
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: worker_join_cmd
+      changed_when: false
+
+    - name: CP용 certificate key 생성
+      ansible.builtin.command: kubeadm init phase upload-certs --upload-certs
+      register: cert_key_raw
+      changed_when: false
+
+    - name: certificate key 추출
+      ansible.builtin.set_fact:
+        cp_cert_key: "{{ cert_key_raw.stdout_lines[-1] }}"
+
+    - name: 다른 노드들에게 join 정보 전달
+      ansible.builtin.set_fact:
+        worker_join: "{{ worker_join_cmd.stdout }}"
+        cp_join: "{{ worker_join_cmd.stdout }} --control-plane --certificate-key {{ cp_cert_key }}"
+
+#############################################
+# Phase 2: 나머지 Control Plane들 join
+#############################################
+- name: Join other control planes
+  hosts: k8s_control_plane:!{{ hostvars[groups['k8s_control_plane'][0]].primary_control_plane | default('k8s-cp1') }}
+  become: true
+  tasks:
+    - name: 이미 join되었는지 확인
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_check
+
+    - name: CP join 실행
+      ansible.builtin.shell: |
+        {{ hostvars[groups['k8s_control_plane'][0]].cp_join }} \
+          --node-name={{ inventory_hostname }}
+      when: not kubelet_check.stat.exists
+
+#############################################
+# Phase 3: Worker들 join
+#############################################
+- name: Join workers
+  hosts: k8s_workers
+  become: true
+  tasks:
+    - name: 이미 join되었는지 확인
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_check
+
+    - name: Worker join 실행
+      ansible.builtin.shell: |
+        {{ hostvars[groups['k8s_control_plane'][0]].worker_join }} \
+          --node-name={{ inventory_hostname }}
+      when: not kubelet_check.stat.exists
+
+#############################################
+# Phase 4: Bastion에 kubeconfig 복사 (kubectl 사용 위함)
+#############################################
+- name: Copy kubeconfig to bastion
+  hosts: bastion
+  become: false
+  tasks:
+    - name: 디렉토리 생성
+      ansible.builtin.file:
+        path: ~/.kube
+        state: directory
+        mode: "0755"
+
+    - name: 1st CP에서 admin.conf 가져오기
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: /tmp/admin.conf
+        flat: true
+      delegate_to: "{{ hostvars[groups['k8s_control_plane'][0]].inventory_hostname }}"
+      become: true
+
+    - name: Bastion에 kubeconfig 배치
+      ansible.builtin.copy:
+        src: /tmp/admin.conf
+        dest: ~/.kube/config
+        mode: "0600"
