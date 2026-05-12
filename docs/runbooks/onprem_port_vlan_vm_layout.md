@@ -84,12 +84,12 @@ Ceph는 별도 구성으로 제외.
 
 ### 6.2 최소 배치안(필수 VM만)
 
-| 물리 호스트 | 최소 VM 배치(필수)                           | 합계(vCPU/RAM)   | 비고                |
-| :---------- | :------------------------------------------- | :--------------- | :------------------ |
-| Node1       | pfSense-A, k8s-control-plane-1, PXC-1        | 10 vCPU / 16 GiB | 네트워크/DB 분산    |
-| Node2       | pfSense-B, k8s-control-plane-2, PXC-2        | 10 vCPU / 16 GiB | pfSense HA 페어     |
-| Node3       | k8s-control-plane-3, k8s-worker-1, PXC-3     | 12 vCPU / 22 GiB | K8s + DB 분산       |
-| Node4       | k8s-worker-2, ProxySQL-1, HAProxy-1, Bastion | 8 vCPU / 16 GiB  | 접속 경계/운영 집중 |
+| 물리 호스트 | 최소 VM 배치(필수)                                | 합계(vCPU/RAM)   | 비고                      |
+| :---------- | :------------------------------------------------ | :--------------- | :------------------------ |
+| Node1       | pfSense-A, k8s-control-plane-1, PXC-1, Bastion    | 11 vCPU / 18 GiB | 관리 경계/DB 분산         |
+| Node2       | pfSense-B, k8s-control-plane-2, PXC-2, ProxySQL-1 | 12 vCPU / 20 GiB | pfSense HA + DB 중계 분산 |
+| Node3       | k8s-control-plane-3, k8s-worker-1                 | 8 vCPU / 14 GiB  | K8s 제어/앱 워커          |
+| Node4       | k8s-worker-2, HAProxy-1, PXC-3                    | 9 vCPU / 18 GiB  | DMZ + DB 분산             |
 
 ### 6.3 Flask 테스트 웹 3개 배치안(Kubernetes 기본)
 
@@ -97,8 +97,8 @@ Flask 테스트 웹은 **별도 VM을 만들지 않고**, Kubernetes Worker 위�
 
 | 물리 호스트 | 배치 대상    | 권장 수량     | 네트워크 |
 | :---------- | :----------- | :------------ | :------- |
-| Node3       | k8s-worker-1 | Flask Pod 1개 | VLAN 30  |
-| Node4       | k8s-worker-2 | Flask Pod 2개 | VLAN 30  |
+| Node3       | k8s-worker-1 | Flask Pod 2개 | VLAN 30  |
+| Node4       | k8s-worker-2 | Flask Pod 1개 | VLAN 30  |
 
 운영 메모:
 
@@ -124,6 +124,8 @@ HAProxy 운영 기준:
 - MVP 기본: 1대(단일 구성)
 - 선택 확장: 2대(이중화)로 전환
 - MVP 1대 운영 시 SPoF와 이중화 필요 사항을 문서/발표에 명시
+- ProxySQL 고가용성 확장 경로는 `proxysql_count = 2`, `enable_proxysql_internal_nlb = true` 기준을
+  우선함
 
 ## 7. ACL/방화벽 최소 허용 정책 (초안)
 
