@@ -18,6 +18,5 @@ proxysql_count   = 1
 db_node_count    = 3
 db_volume_size   = 40
 
-# 13일 MVP 기본값은 false.
 # ProxySQL 고가용성을 시연하려면 proxysql_count = 2로 올리고 true로 변경한다.
 enable_proxysql_internal_nlb = false

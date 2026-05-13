@@ -1,6 +1,36 @@
 # 용어집
 
-프로젝트 문서에서 반복 사용되는 AWS, 인프라, 배포 약어 정리
+프로젝트 문서에서 반복 사용되는 AWS, 인프라, 배포 약어 및 핵심 개념 정리
+
+---
+
+## 프로젝트 핵심 개념 (쉽게 알아보기)
+
+| 용어                    | 쉽게 말하면                                                    | 이 프로젝트에서의 의미                        |
+| :---------------------- | :------------------------------------------------------------- | :-------------------------------------------- |
+| 온프레미스(On-premises) | 직접 소유하거나 직접 관리하는 서버 환경                        | Proxmox 장비와 그 위의 VM, Kubernetes, Ceph   |
+| Proxmox                 | 서버 한 대 또는 여러 대에서 VM을 만들고 관리하는 가상화 플랫폼 | 온프레미스 VM과 Ceph 운영 기반                |
+| Kubernetes(K8s)         | 여러 서버 위에 컨테이너 앱을 배포하고 자동 복구하는 플랫폼     | 온프레미스 앱 실행의 중심 후보                |
+| Cluster                 | 여러 서버를 하나의 묶음처럼 관리하는 단위                      | Kubernetes 클러스터 또는 DB 클러스터          |
+| Node                    | 클러스터에 참여하는 서버 또는 VM                               | Kubernetes worker node, AWS EC2 node 등       |
+| Pod                     | Kubernetes에서 앱 컨테이너가 실행되는 가장 작은 단위           | 웹앱 컨테이너 실행 단위                       |
+| Ingress                 | Kubernetes 내부 앱을 외부에서 접근 가능하게 하는 입구          | 온프레미스 웹앱 진입점                        |
+| EC2                     | AWS에서 빌려 쓰는 가상 서버                                    | 부하 증가 시 추가 실행되는 burst 서버         |
+| ALB                     | HTTP/HTTPS 요청을 여러 서버로 나누어 보내는 AWS 로드밸런서     | AWS burst 영역의 외부 진입점                  |
+| Auto Scaling Group(ASG) | 조건에 따라 EC2를 자동으로 늘리거나 줄이는 AWS 기능            | 부하 증가 시 AWS EC2 생성, 부하 감소 시 종료  |
+| Launch Template         | 새 EC2를 만들 때 사용할 서버 설정 템플릿                       | AMI, 인스턴스 타입, user data, 보안그룹 정의  |
+| CloudWatch              | AWS 로그, 지표, 알람 서비스                                    | CPU, 요청 수, 장애 감지와 scale-out 기준      |
+| ECS                     | AWS의 컨테이너 실행 서비스                                     | 기존 fallback 구조. Kubernetes는 아님         |
+| Fargate                 | 서버를 직접 관리하지 않고 컨테이너만 실행하는 AWS 방식         | ECS fallback에서 사용 가능                    |
+| EKS                     | AWS가 관리해주는 Kubernetes 서비스                             | 비용과 관리 편의성 사이의 선택지              |
+| EKS Hybrid Nodes        | 온프레미스 서버를 EKS 클러스터 노드처럼 붙이는 AWS 기능        | 정석적인 hybrid Kubernetes 후보지만 비용 증가 |
+| S3                      | AWS 객체 저장소 서비스                                         | 파일, 백업, 정적 자산 저장 후보               |
+| Ceph                    | 직접 운영하는 분산 스토리지                                    | 온프레미스 저장소                             |
+| Ceph RGW                | Ceph를 S3처럼 사용할 수 있게 해주는 게이트웨이                 | 온프레미스 S3 호환 저장소                     |
+| RBD                     | Ceph의 블록 스토리지                                           | Proxmox VM 디스크, Kubernetes PV 후보         |
+| CephFS                  | Ceph의 공유 파일 시스템                                        | 여러 노드가 공유하는 파일 저장 후보           |
+| PXC                     | MySQL 호환 DB를 여러 노드로 묶는 Percona DB 클러스터           | RDS 대신 직접 운영하는 DB 후보                |
+| ProxySQL                | 앱과 DB 사이에서 DB 접속을 중계하는 프록시                     | 앱은 DB 노드가 아니라 ProxySQL로 접속         |
 
 ---
 

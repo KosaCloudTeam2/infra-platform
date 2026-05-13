@@ -5,55 +5,6 @@
 
 ---
 
-## 1. PXC나 Galera를 쓰면 무조건 active-active인가?
-
-Percona XtraDB Cluster(PXC)는 Galera/wsrep 기반 동기식 복제 클러스터이므로 여러 노드가 쓰기 가능한
-multi-primary 구조를 지원함. 하지만 지원한다고 해서 운영 정책이 반드시 active-active여야 하는 것은
-아님.
-
-현재 프로젝트 기준은 **PXC 3노드 + ProxySQL + Single Writer**임.
-
-| 구분                   | 판단                                                           |
-| :--------------------- | :------------------------------------------------------------- |
-| 기술적으로 가능한 구조 | multi-primary 또는 active-active 쓰기 가능                     |
-| MVP 운영 정책          | Single Writer 우선                                             |
-| 이유                   | 쓰기 충돌, auto-increment 충돌, 장애 분석 복잡도를 줄이기 위함 |
-
-정리:
-
-> PXC는 Galera 기반이지만, MVP에서는 ProxySQL로 writer를 1대로 제한해 운영한다. Galera 기능은 복제와
-> 고가용성 기반으로 사용하고, 앱이 여러 DB 노드에 동시에 쓰는 active-active 구조는 채택하지 않는다.
-
----
-
-## 2. Ingress API의 단점과 현재 프로젝트 적용 여부
-
-Kubernetes Ingress API는 HTTP/HTTPS 라우팅을 선언하는 표준 리소스임. 현재 온프레미스 Kubernetes 앱
-노출에는 Ingress 또는 Service를 사용할 수 있음.
-
-단점:
-
-- 구현체가 필요함. 예: NGINX Ingress Controller, Traefik 등
-- Controller별 annotation 차이가 있어 이식성이 떨어질 수 있음
-- TCP/UDP, 고급 트래픽 정책, Gateway 수준 정책 표현에는 한계가 있음
-- AWS ALB와 직접 연동하려면 AWS Load Balancer Controller(ALB Ingress Controller)가 필요하고, 이는
-  IAM/OIDC/서브넷 태그/권한 설정이 추가됨
-
-현재 프로젝트 적용 판단:
-
-| 위치                  | 판단                                                        |
-| :-------------------- | :---------------------------------------------------------- |
-| 온프레미스 Kubernetes | Ingress 사용 가능                                           |
-| AWS burst ASG/ALB     | Kubernetes Ingress가 아니라 Terraform ALB/Target Group 사용 |
-| EKS 최소 PoC          | 기본 범위에서는 Ingress Controller까지 확장하지 않음        |
-
-정리:
-
-> 온프레미스 앱 진입점에는 Ingress를 사용할 수 있지만, EKS에서 AWS Load Balancer Controller까지
-> 붙이는 것은 MVP 최소 PoC 범위를 넘는 확장 기능이다.
-
----
-
 ## 3. Cloudflare GSLB 개념
 
 Global Server Load Balancing(GSLB)은 여러 지역 또는 여러 환경의 endpoint 중 어디로 트래픽을 보낼지
