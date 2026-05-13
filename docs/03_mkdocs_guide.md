@@ -33,16 +33,30 @@ uv sync --group dev
 
 ## 3. 로컬 미리보기
 
-기본 `8000` 포트 충돌을 피하기 위해 `8010` 포트를 사용함.
+기본 `8000` 포트 충돌을 피하기 위해 공식 문서는 `8010`, 학습용 문서는 `8020`을 사용함.
+
+### 3.1 공식 문서(`docs/`)
 
 ```powershell
 uv run mkdocs serve -a 127.0.0.1:8010 --livereload
 ```
 
-브라우저에서 확인:
+브라우저:
 
 ```text
 http://127.0.0.1:8010
+```
+
+### 3.2 학습 문서(`Learning_Project/`)
+
+```powershell
+uv run mkdocs serve -f Learning_Project/mkdocs.yml -a 127.0.0.1:8020 --livereload
+```
+
+브라우저:
+
+```text
+http://127.0.0.1:8020
 ```
 
 ## 4. 정적 사이트 빌드

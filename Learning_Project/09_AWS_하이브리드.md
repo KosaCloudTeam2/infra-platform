@@ -6,11 +6,11 @@
 
 ## 1) 왜 하이브리드인가
 
-| 옵션 | 장점 | 단점 | 우리 시나리오 |
-|---|---|---|---|
-| **풀 온프레** | 비용 0 | Burst 처리 불가, 글로벌 latency ↑ | 평상시엔 OK, 티켓 오픈 시 X |
-| **풀 클라우드** | 무한 확장, 글로벌 | 비용 ↑ (평소에도 결제) | 비효율 |
-| **하이브리드** | 평소 0, burst만 결제 | 운영 복잡 | ✅ |
+| 옵션            | 장점                 | 단점                              | 우리 시나리오               |
+| --------------- | -------------------- | --------------------------------- | --------------------------- |
+| **풀 온프레**   | 비용 0               | Burst 처리 불가, 글로벌 latency ↑ | 평상시엔 OK, 티켓 오픈 시 X |
+| **풀 클라우드** | 무한 확장, 글로벌    | 비용 ↑ (평소에도 결제)            | 비효율                      |
+| **하이브리드**  | 평소 0, burst만 결제 | 운영 복잡                         | ✅                          |
 
 ---
 
@@ -52,13 +52,13 @@
 
 ## 3) Site-to-Site VPN vs Direct Connect
 
-| | **VPN** | Direct Connect |
-|---|---|---|
-| 연결 | 인터넷 + IPsec | 전용 회선 |
-| 비용 | $36/월 | $200+/월 |
-| 속도 | ~100Mbps | 1~10Gbps |
-| latency | ~30ms | ~5ms |
-| **우리 선택** | ✅ (학습 + 비용) | - |
+|               | **VPN**          | Direct Connect |
+| ------------- | ---------------- | -------------- |
+| 연결          | 인터넷 + IPsec   | 전용 회선      |
+| 비용          | $36/월           | $200+/월       |
+| 속도          | ~100Mbps         | 1~10Gbps       |
+| latency       | ~30ms            | ~5ms           |
+| **우리 선택** | ✅ (학습 + 비용) | -              |
 
 학습 환경엔 VPN 충분. 운영 환경에선 트래픽 양에 따라 Direct Connect.
 
@@ -110,14 +110,15 @@ K8s를 AWS가 매니지드로 제공. Control Plane은 AWS가 운영, Worker만 
 
 ### Karpenter vs Cluster Autoscaler
 
-| | **Karpenter** | Cluster Autoscaler |
-|---|---|---|
-| Pod 미스케줄 → 노드 추가 | 1~2분 | 5~10분 |
-| 인스턴스 타입 | 자동 선택 (cheapest) | 수동 설정 |
-| Spot 통합 | 강력 | 가능 |
-| **선택 이유** | 빠른 burst + Spot 자동 | - |
+|                          | **Karpenter**          | Cluster Autoscaler |
+| ------------------------ | ---------------------- | ------------------ |
+| Pod 미스케줄 → 노드 추가 | 1~2분                  | 5~10분             |
+| 인스턴스 타입            | 자동 선택 (cheapest)   | 수동 설정          |
+| Spot 통합                | 강력                   | 가능               |
+| **선택 이유**            | 빠른 burst + Spot 자동 | -                  |
 
 Karpenter NodePool 예:
+
 ```yaml
 spec:
   template:
@@ -128,7 +129,7 @@ spec:
           values: [c, m, r]
         - key: karpenter.sh/capacity-type
           operator: In
-          values: [spot]    # Spot만
+          values: [spot] # Spot만
 ```
 
 Spot 인스턴스는 정가의 30~70%. AWS가 회수할 수 있지만 K8s가 Pod 재배치 처리.
@@ -179,6 +180,7 @@ record: api.kosa-tickets.com
 ## 9) 비용 분석
 
 ### Phase 1 (Day 8): VPC + NLB + EC2 HAProxy
+
 ```
 VPC, IGW, RT       무료
 NAT Gateway        $33/월
@@ -190,6 +192,7 @@ EBS gp3 20GB × 2   $3/월
 ```
 
 ### Phase 2-5 추가 시
+
 ```
 VPN                +$36/월
 RDS db.t3.micro    +$15/월
@@ -205,7 +208,9 @@ Karpenter Spot     burst 시간만 결제 (~$1~3/시간)
 
 ## 10) 발표 어필
 
-> *"평상시엔 온프레미스만 운영해 비용이 0에 가깝고, 티켓 오픈 1시간 동안만 AWS Karpenter Spot으로 burst하여 시간당 $3 미만으로 100배 부하를 처리합니다. EventBridge → Lambda 자동화로 사람 개입 없이 burst 시작/종료가 이루어지며, Route 53 weighted routing이 트래픽을 동적으로 분산합니다."*
+> _"평상시엔 온프레미스만 운영해 비용이 0에 가깝고, 티켓 오픈 1시간 동안만 AWS Karpenter Spot으로
+> burst하여 시간당 $3 미만으로 100배 부하를 처리합니다. EventBridge → Lambda 자동화로 사람 개입 없이
+> burst 시작/종료가 이루어지며, Route 53 weighted routing이 트래픽을 동적으로 분산합니다."_
 
 ---
 

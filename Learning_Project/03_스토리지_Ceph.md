@@ -38,20 +38,20 @@
 
 ## 2) Ceph vs 대안
 
-| 항목 | **Ceph** | NFS | GlusterFS | Longhorn | MinIO |
-|---|---|---|---|---|---|
-| 종류 | 통합 (Block/File/Object) | File | File | Block | Object |
-| 분산 | 완전 분산 | 중앙 서버 | 분산 | K8s 노드 디스크 | 분산 |
-| HA | 자동 (3-replica) | 별도 | 가능 | 가능 | 가능 |
-| 학습 곡선 | 가파름 | 쉬움 | 중 | 쉬움 | 쉬움 |
-| **선택 이유** | 통합 + 이미 보유 | 단일 SPOF | 덜 활성화 | 노드 디스크 부담 | Block 안 됨 |
+| 항목          | **Ceph**                 | NFS       | GlusterFS | Longhorn         | MinIO       |
+| ------------- | ------------------------ | --------- | --------- | ---------------- | ----------- |
+| 종류          | 통합 (Block/File/Object) | File      | File      | Block            | Object      |
+| 분산          | 완전 분산                | 중앙 서버 | 분산      | K8s 노드 디스크  | 분산        |
+| HA            | 자동 (3-replica)         | 별도      | 가능      | 가능             | 가능        |
+| 학습 곡선     | 가파름                   | 쉬움      | 중        | 쉬움             | 쉬움        |
+| **선택 이유** | 통합 + 이미 보유         | 단일 SPOF | 덜 활성화 | 노드 디스크 부담 | Block 안 됨 |
 
 ---
 
 ## 3) BlueStore (OSD 백엔드)
 
-이전: FileStore (XFS + journal) — 성능 ↓
-현재: **BlueStore** — 로컬 디스크에 직접 쓰기 (XFS 안 거침). 30% 빠름.
+이전: FileStore (XFS + journal) — 성능 ↓ 현재: **BlueStore** — 로컬 디스크에 직접 쓰기 (XFS 안
+거침). 30% 빠름.
 
 OSD당 권장 RAM: 4~8GB (메타데이터 캐시).
 
@@ -69,10 +69,10 @@ OSD당 권장 RAM: 4~8GB (메타데이터 캐시).
 
 ## 5) replicas vs erasure coding
 
-| 모드 | 예시 | 디스크 효율 | 적합 |
-|---|---|---|---|
-| **3-replica** (우리) | 데이터 1GB → 3GB 사용 | 33% | 고성능, 자주 읽음 |
-| EC 4+2 | 데이터 4GB → 6GB 사용 | 67% | 대용량 archive |
+| 모드                 | 예시                  | 디스크 효율 | 적합              |
+| -------------------- | --------------------- | ----------- | ----------------- |
+| **3-replica** (우리) | 데이터 1GB → 3GB 사용 | 33%         | 고성능, 자주 읽음 |
+| EC 4+2               | 데이터 4GB → 6GB 사용 | 67%         | 대용량 archive    |
 
 6노드 환경에선 EC도 가능하지만 권장 9+ 노드. 학습용은 3-replica로.
 
@@ -121,20 +121,22 @@ Pod에 mount
 - **CSI** = "어떻게 연결할지" (드라이버 규격)
 - **RBD / CephFS / RGW** = "Ceph의 어떤 스토리지를 쓸지"
 
-→ K8s에서 Ceph를 쓰려면 **무조건 CSI 드라이버를 거침**. 진짜 선택지는 **`ceph-csi-rbd` vs `ceph-csi-cephfs`**.
+→ K8s에서 Ceph를 쓰려면 **무조건 CSI 드라이버를 거침**. 진짜 선택지는 **`ceph-csi-rbd` vs
+`ceph-csi-cephfs`**.
 
 ### RBD vs CephFS — 우리는 왜 RBD?
 
-| 항목 | RBD (Block) | CephFS (File) |
-|---|---|---|
-| Access Mode | **RWO** (Pod 1개만) | **RWX** (여러 Pod 동시) |
-| 성능 | 빠름 | 메타데이터 거쳐서 느림 |
-| 추가 데몬 | 없음 | **MDS(Metadata Server) 필요** |
-| 추가 Pool | 데이터 pool 1개 | 데이터 + 메타데이터 2개 |
-| 운영 복잡도 | 낮음 | 높음 |
-| 적합 워크로드 | DB, Redis, Prometheus (stateful 단일 Pod) | 공유 파일, 다중 Pod 로그 |
+| 항목          | RBD (Block)                               | CephFS (File)                 |
+| ------------- | ----------------------------------------- | ----------------------------- |
+| Access Mode   | **RWO** (Pod 1개만)                       | **RWX** (여러 Pod 동시)       |
+| 성능          | 빠름                                      | 메타데이터 거쳐서 느림        |
+| 추가 데몬     | 없음                                      | **MDS(Metadata Server) 필요** |
+| 추가 Pool     | 데이터 pool 1개                           | 데이터 + 메타데이터 2개       |
+| 운영 복잡도   | 낮음                                      | 높음                          |
+| 적합 워크로드 | DB, Redis, Prometheus (stateful 단일 Pod) | 공유 파일, 다중 Pod 로그      |
 
-우리 워크로드(Percona PXC, Redis, Prometheus)는 전부 **RWO 단일 Pod**이라 RBD가 자연스러움. CephFS는 시간 남으면 보너스로 추가.
+우리 워크로드(Percona PXC, Redis, Prometheus)는 전부 **RWO 단일 Pod**이라 RBD가 자연스러움. CephFS는
+시간 남으면 보너스로 추가.
 
 ---
 
@@ -165,24 +167,27 @@ Pod에 mount
 
 ### 핵심 차이
 
-| 항목 | Proxmox RBD | K8s CSI RBD |
-|---|---|---|
+| 항목       | Proxmox RBD                       | K8s CSI RBD                 |
+| ---------- | --------------------------------- | --------------------------- |
 | 클라이언트 | Proxmox 호스트(하이퍼바이저 커널) | K8s 워커 노드(VM 내부 커널) |
-| 매핑 대상 | VM의 가상 디스크 `/dev/vdX` | Pod 안의 디렉토리 `/data` |
-| 용도 | **VM OS/디스크 자체** | **Pod의 영구 볼륨(PV)** |
-| 관리 주체 | Proxmox UI / `pvesm` | `kubectl` + PVC |
-| Pool | `ceph-rbd-team2` | `team2-k8s-pvc-rbd` |
-| 인증 user | (Proxmox 기본 user) | `client.team2-k8s-csi` |
-| 생명주기 | VM 생성/삭제 시 | PVC 생성/삭제 시 |
-| 프로비저닝 | 수동 (VM 생성 시) | 자동 (PVC 요청 시) |
+| 매핑 대상  | VM의 가상 디스크 `/dev/vdX`       | Pod 안의 디렉토리 `/data`   |
+| 용도       | **VM OS/디스크 자체**             | **Pod의 영구 볼륨(PV)**     |
+| 관리 주체  | Proxmox UI / `pvesm`              | `kubectl` + PVC             |
+| Pool       | `ceph-rbd-team2`                  | `team2-k8s-pvc-rbd`         |
+| 인증 user  | (Proxmox 기본 user)               | `client.team2-k8s-csi`      |
+| 생명주기   | VM 생성/삭제 시                   | PVC 생성/삭제 시            |
+| 프로비저닝 | 수동 (VM 생성 시)                 | 자동 (PVC 요청 시)          |
 
 ### "K8s가 Proxmox RBD를 그냥 쓰면 안 되나?"
 
 기술적으론 가능하지만 **안 함**:
 
-1. **레이어 위반** — K8s가 Proxmox API에 종속되면 더 이상 클러스터 매니저가 아니라 Proxmox 종속 시스템이 됨. AWS hybrid burst 같은 다중 환경도 깨짐.
-2. **Pod 이동성 손실** — Pod이 `w1`→`w3`로 옮겨갈 때 PV도 따라가야 함. CSI는 자동 detach/attach. Proxmox RBD는 VM 단위라 Pod 단위 이동 불가.
-3. **권한/quota 격리** — `client.team2-k8s-csi`는 `team2-k8s-pvc-rbd` pool만 r/w. K8s 폭주가 Proxmox VM 디스크에 영향 못 주게 격리.
+1. **레이어 위반** — K8s가 Proxmox API에 종속되면 더 이상 클러스터 매니저가 아니라 Proxmox 종속
+   시스템이 됨. AWS hybrid burst 같은 다중 환경도 깨짐.
+2. **Pod 이동성 손실** — Pod이 `w1`→`w3`로 옮겨갈 때 PV도 따라가야 함. CSI는 자동 detach/attach.
+   Proxmox RBD는 VM 단위라 Pod 단위 이동 불가.
+3. **권한/quota 격리** — `client.team2-k8s-csi`는 `team2-k8s-pvc-rbd` pool만 r/w. K8s 폭주가 Proxmox
+   VM 디스크에 영향 못 주게 격리.
 
 ---
 
@@ -211,21 +216,21 @@ Ceph 모니터는 **Paxos 기반 쿼럼**으로 클러스터 상태를 합의함
 
 ### Ceph 측 리소스
 
-| 리소스 | 이름 | 풀어쓰면 |
-|---|---|---|
-| 기존 Pool (Proxmox) | `ceph-rbd-team2` | Proxmox VM 디스크용 (이미 사용 중) |
-| K8s PVC용 Pool | `team2-k8s-pvc-rbd` | team2의 K8s PVC용 RBD pool |
-| K8s CSI 전용 User | `client.team2-k8s-csi` | team2의 K8s CSI 클라이언트 |
-| Keyring 파일 | `/etc/ceph/ceph.client.team2-k8s-csi.keyring` | 위 user 키 |
+| 리소스              | 이름                                          | 풀어쓰면                           |
+| ------------------- | --------------------------------------------- | ---------------------------------- |
+| 기존 Pool (Proxmox) | `ceph-rbd-team2`                              | Proxmox VM 디스크용 (이미 사용 중) |
+| K8s PVC용 Pool      | `team2-k8s-pvc-rbd`                           | team2의 K8s PVC용 RBD pool         |
+| K8s CSI 전용 User   | `client.team2-k8s-csi`                        | team2의 K8s CSI 클라이언트         |
+| Keyring 파일        | `/etc/ceph/ceph.client.team2-k8s-csi.keyring` | 위 user 키                         |
 
 ### K8s 측 리소스
 
-| 리소스 | 이름 | 풀어쓰면 |
-|---|---|---|
-| StorageClass | `team2-rbd-block` (default) | team2의 RBD 기반 블록 SC |
-| Secret | `team2-rbd-csi-secret` | team2 RBD CSI 자격증명 |
-| Secret userID | `team2-k8s-csi` | `client.` 제외한 user 이름 |
-| 테스트 PVC | `team2-rbd-test-pvc` | 검증용 임시 PVC |
+| 리소스        | 이름                        | 풀어쓰면                   |
+| ------------- | --------------------------- | -------------------------- |
+| StorageClass  | `team2-rbd-block` (default) | team2의 RBD 기반 블록 SC   |
+| Secret        | `team2-rbd-csi-secret`      | team2 RBD CSI 자격증명     |
+| Secret userID | `team2-k8s-csi`             | `client.` 제외한 user 이름 |
+| 테스트 PVC    | `team2-rbd-test-pvc`        | 검증용 임시 PVC            |
 
 ### 미래 확장 패턴
 
@@ -251,7 +256,10 @@ team2-loki-logs-rbd        ← Loki 로그 저장 (선택)
 
 ## 10) 발표 어필
 
-> *"별도 6대 Ceph 클러스터를 K8s의 영구 스토리지 백엔드로 통합했습니다. 같은 클러스터를 Proxmox VM 디스크용(`ceph-rbd-team2`)과 K8s PVC용(`team2-k8s-pvc-rbd`)으로 pool 단위 격리해, 권한과 quota를 분리했습니다. CSI driver를 통해 PVC 요청 시 동적으로 RBD 볼륨이 생성되며, 3-replica로 노드 장애에도 데이터가 보존됩니다."*
+> _"별도 6대 Ceph 클러스터를 K8s의 영구 스토리지 백엔드로 통합했습니다. 같은 클러스터를 Proxmox VM
+> 디스크용(`ceph-rbd-team2`)과 K8s PVC용(`team2-k8s-pvc-rbd`)으로 pool 단위 격리해, 권한과 quota를
+> 분리했습니다. CSI driver를 통해 PVC 요청 시 동적으로 RBD 볼륨이 생성되며, 3-replica로 노드
+> 장애에도 데이터가 보존됩니다."_
 
 ---
 

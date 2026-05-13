@@ -44,13 +44,13 @@ metadata:
   name: pii-isolation
   namespace: pii-protected
 spec:
-  podSelector: {}           # 이 namespace의 모든 Pod
+  podSelector: {} # 이 namespace의 모든 Pod
   policyTypes: [Ingress, Egress]
   ingress:
     - from:
         - namespaceSelector:
             matchLabels:
-              name: kosa-tickets    # kosa-tickets namespace만 허용
+              name: kosa-tickets # kosa-tickets namespace만 허용
       ports:
         - protocol: TCP
           port: 3306
@@ -61,18 +61,19 @@ spec:
               name: kosa-tickets
 ```
 
-회원/예약 DB(`pii-protected`)는 앱 namespace(`kosa-tickets`)에서만 접근 가능. 모니터링/ArgoCD 등 다른 namespace는 차단.
+회원/예약 DB(`pii-protected`)는 앱 namespace(`kosa-tickets`)에서만 접근 가능. 모니터링/ArgoCD 등
+다른 namespace는 차단.
 
 ---
 
 ## 3) Calico vs Cilium NetworkPolicy
 
-| | **Calico (우리)** | Cilium |
-|---|---|---|
-| 표준 NetworkPolicy | ✅ | ✅ |
-| L7 정책 | 별도 (extension) | 기본 (eBPF) |
-| 성능 | 우수 | 최고 |
-| 학습 자료 | 풍부 | 점차 늘어남 |
+|                    | **Calico (우리)** | Cilium      |
+| ------------------ | ----------------- | ----------- |
+| 표준 NetworkPolicy | ✅                | ✅          |
+| L7 정책            | 별도 (extension)  | 기본 (eBPF) |
+| 성능               | 우수              | 최고        |
+| 학습 자료          | 풍부              | 점차 늘어남 |
 
 L4까지로 충분하면 Calico. L7 (URL 경로별 차단) 필요하면 Cilium.
 
@@ -86,13 +87,13 @@ L4까지로 충분하면 Calico. L7 (URL 경로별 차단) 필요하면 Cilium.
 
 ### 막아주는 공격
 
-| 공격 | 예시 | 룰 |
-|---|---|---|
-| SQL Injection | `' OR 1=1 --` | AWSManagedRulesSQLiRuleSet |
-| XSS | `<script>...</script>` | AWSManagedRulesKnownBadInputsRuleSet |
-| 봇 | 비정상 트래픽 | Bot Control |
-| Rate limit | 한 IP 100 req/s | Rate-based rule |
-| OWASP Top 10 | 다양 | CoreRuleSet |
+| 공격          | 예시                   | 룰                                   |
+| ------------- | ---------------------- | ------------------------------------ |
+| SQL Injection | `' OR 1=1 --`          | AWSManagedRulesSQLiRuleSet           |
+| XSS           | `<script>...</script>` | AWSManagedRulesKnownBadInputsRuleSet |
+| 봇            | 비정상 트래픽          | Bot Control                          |
+| Rate limit    | 한 IP 100 req/s        | Rate-based rule                      |
+| OWASP Top 10  | 다양                   | CoreRuleSet                          |
 
 ### 우리 적용
 
@@ -115,11 +116,11 @@ Role-Based Access Control. 누가 어떤 K8s 리소스에 무엇을 할 수 있�
 
 ### 4가지 객체
 
-| | 범위 | 예시 |
-|---|---|---|
-| **Role** | namespace | 한 namespace 안 Pod read |
-| **ClusterRole** | 클러스터 전체 | 모든 Node read |
-| **RoleBinding** | namespace | User X에게 Role Y |
+|                        | 범위          | 예시                     |
+| ---------------------- | ------------- | ------------------------ |
+| **Role**               | namespace     | 한 namespace 안 Pod read |
+| **ClusterRole**        | 클러스터 전체 | 모든 Node read           |
+| **RoleBinding**        | namespace     | User X에게 Role Y        |
 | **ClusterRoleBinding** | 클러스터 전체 | User X에게 ClusterRole Y |
 
 ### 예시 — 개발자에게 kosa-tickets namespace만 read-write
@@ -131,12 +132,12 @@ metadata:
   namespace: kosa-tickets
   name: developer
 rules:
-- apiGroups: [""]
-  resources: [pods, services, configmaps]
-  verbs: [get, list, watch, create, update, patch, delete]
-- apiGroups: [apps]
-  resources: [deployments, replicasets]
-  verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [pods, services, configmaps]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch, create, update, patch, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -144,8 +145,8 @@ metadata:
   namespace: kosa-tickets
   name: dev-binding
 subjects:
-- kind: User
-  name: dev@kosa.team
+  - kind: User
+    name: dev@kosa.team
 roleRef:
   kind: Role
   name: developer
@@ -158,14 +159,11 @@ roleRef:
 
 PSP (Pod Security Policy)가 deprecated 되고 PSS로.
 
-3단계:
-| 레벨 | 의미 |
-|---|---|
-| `privileged` | 제한 없음 (legacy) |
-| `baseline` | 일반적 제한 |
+3단계: | 레벨 | 의미 | |---|---| | `privileged` | 제한 없음 (legacy) | | `baseline` | 일반적 제한 |
 | `restricted` | 강력 제한 (root, hostPath 등 X) |
 
 namespace 라벨로 적용:
+
 ```yaml
 metadata:
   labels:
@@ -173,6 +171,7 @@ metadata:
 ```
 
 우리 환경:
+
 - `metallb-system` → `privileged` (MetalLB는 root 필요)
 - `kosa-tickets` → `baseline`
 - `pii-protected` → `restricted`
@@ -184,6 +183,7 @@ metadata:
 K8s `Secret`은 **base64 인코딩일 뿐 암호화 X**. etcd에 평문 저장.
 
 대안:
+
 - **Sealed Secrets** — Git에 암호화된 채로 커밋
 - **External Secrets Operator** — AWS Secrets Manager / HashiCorp Vault에서 가져옴
 - **SOPS** — 파일 단위 암호화
@@ -194,13 +194,16 @@ K8s `Secret`은 **base64 인코딩일 뿐 암호화 X**. etcd에 평문 저장.
 
 ## 8) 발표 어필
 
-> *"Defense in Depth 원칙으로 5계층 보안을 적용했습니다: AWS WAF (L7), pfSense (L3/4), K8s NetworkPolicy (Pod 통신), Pod Security Standards (Container 권한), RBAC (API 권한). 회원 데이터는 별도 namespace(pii-protected)에 격리되고 NetworkPolicy로 외부 접근 100% 차단됩니다."*
+> _"Defense in Depth 원칙으로 5계층 보안을 적용했습니다: AWS WAF (L7), pfSense (L3/4), K8s
+> NetworkPolicy (Pod 통신), Pod Security Standards (Container 권한), RBAC (API 권한). 회원 데이터는
+> 별도 namespace(pii-protected)에 격리되고 NetworkPolicy로 외부 접근 100% 차단됩니다."_
 
 ---
 
 ## 학습 완료
 
 11개 단원 모두 학습했다면:
+
 - 본인 담당 단원 🔴 (설계 가능)
 - 그 외 🟡 (운영 가능)
 - 발표 시 모든 단원 🟢 (설명 가능)

@@ -33,15 +33,16 @@
 
 ### Pull vs Push
 
-| | **Prometheus (Pull)** | StatsD / InfluxDB (Push) |
-|---|---|---|
-| 방식 | Prometheus가 주기적으로 가져옴 | 앱이 메트릭 전송 |
-| 발견 | Service Discovery (K8s 자동) | 수동 등록 |
-| 우리 사용 | ✅ K8s native | - |
+|           | **Prometheus (Pull)**          | StatsD / InfluxDB (Push) |
+| --------- | ------------------------------ | ------------------------ |
+| 방식      | Prometheus가 주기적으로 가져옴 | 앱이 메트릭 전송         |
+| 발견      | Service Discovery (K8s 자동)   | 수동 등록                |
+| 우리 사용 | ✅ K8s native                  | -                        |
 
 ### kube-prometheus-stack
 
 Helm chart 하나로 묶음:
+
 - Prometheus
 - Grafana
 - Alertmanager
@@ -50,6 +51,7 @@ Helm chart 하나로 묶음:
 - prometheus-operator (CR 관리)
 
 설치:
+
 ```bash
 helm install kube-prom prometheus-community/kube-prometheus-stack \
   -n monitoring --create-namespace \
@@ -83,16 +85,17 @@ topk(10, container_memory_working_set_bytes)
 
 ### 우리 대시보드
 
-| 대시보드 | 핵심 패널 |
-|---|---|
-| **Cluster Overview** | 노드 6대 CPU/Mem, Pod 수, etcd 상태 |
+| 대시보드             | 핵심 패널                                       |
+| -------------------- | ----------------------------------------------- |
+| **Cluster Overview** | 노드 6대 CPU/Mem, Pod 수, etcd 상태             |
 | **kosa-tickets App** | RPS, p99 latency, 5xx 에러율, JVM/Python 메모리 |
-| **PXC** | 노드 상태, replication lag, query QPS |
-| **Burst (AWS)** | NLB request, EKS 노드 수, Spot 가격 |
+| **PXC**              | 노드 상태, replication lag, query QPS           |
+| **Burst (AWS)**      | NLB request, EKS 노드 수, Spot 가격             |
 
 ### 발표용 시연 대시보드
 
 대시보드 1개에 모든 핵심 지표 모아두기:
+
 - 좌상단: 노드 상태 (6/6 Ready)
 - 우상단: RPS 그래프 (burst 시 spike 보임)
 - 좌하단: Pod 수 (HPA 동작 시 증가)
@@ -109,6 +112,7 @@ topk(10, container_memory_working_set_bytes)
 ### 우리 시나리오
 
 #### `ticket-burst.jmx`
+
 ```
 Thread Group:
   Threads: 1000
@@ -125,6 +129,7 @@ Headers:
 ```
 
 실행:
+
 ```bash
 jmeter -n -t ticket-burst.jmx \
   -l results.jtl \
@@ -135,12 +140,12 @@ jmeter -n -t ticket-burst.jmx \
 
 ### JMeter vs 대안
 
-| | **JMeter** | Locust | k6 | Gatling |
-|---|---|---|---|---|
-| 언어 | Java GUI | Python | JavaScript | Scala |
-| 학습 곡선 | 중 | 낮음 | 중 | 높음 |
-| 시각화 | 풍부 | 보통 | CLI/Cloud | 풍부 |
-| **선택 이유** | 기술스택 명시 + KOSA 자료 | - | - | - |
+|               | **JMeter**                | Locust | k6         | Gatling |
+| ------------- | ------------------------- | ------ | ---------- | ------- |
+| 언어          | Java GUI                  | Python | JavaScript | Scala   |
+| 학습 곡선     | 중                        | 낮음   | 중         | 높음    |
+| 시각화        | 풍부                      | 보통   | CLI/Cloud  | 풍부    |
+| **선택 이유** | 기술스택 명시 + KOSA 자료 | -      | -          | -       |
 
 ---
 
@@ -161,13 +166,14 @@ iperf3 -c kosa1
 
 ## 7) SLI / SLO / SLA
 
-| 용어 | 정의 | 예시 |
-|---|---|---|
-| **SLI** | 지표 (Service Level Indicator) | p99 latency = 500ms |
-| **SLO** | 목표 (Objective) | p99 < 200ms 99% 시간 |
-| **SLA** | 약속 (Agreement) | 가용성 99.9% — 안 지키면 보상 |
+| 용어    | 정의                           | 예시                          |
+| ------- | ------------------------------ | ----------------------------- |
+| **SLI** | 지표 (Service Level Indicator) | p99 latency = 500ms           |
+| **SLO** | 목표 (Objective)               | p99 < 200ms 99% 시간          |
+| **SLA** | 약속 (Agreement)               | 가용성 99.9% — 안 지키면 보상 |
 
 우리 SLO:
+
 - 평시 p99 < 200ms
 - Burst p99 < 1s
 - 가용성 99.9% (월 43분 다운타임 허용)
@@ -176,7 +182,9 @@ iperf3 -c kosa1
 
 ## 8) 발표 어필
 
-> *"Prometheus + Grafana로 노드/Pod/앱 메트릭을 실시간 시각화하며, 발표용 통합 대시보드에 RPS, latency, Pod 수, AWS 비용을 한 화면에 모았습니다. JMeter로 10K RPS 부하 시나리오를 자동화했으며, iperf로 10GbE Spine-Leaf 패브릭의 9.4Gbps 실측을 검증했습니다."*
+> _"Prometheus + Grafana로 노드/Pod/앱 메트릭을 실시간 시각화하며, 발표용 통합 대시보드에 RPS,
+> latency, Pod 수, AWS 비용을 한 화면에 모았습니다. JMeter로 10K RPS 부하 시나리오를 자동화했으며,
+> iperf로 10GbE Spine-Leaf 패브릭의 9.4Gbps 실측을 검증했습니다."_
 
 ---
 
