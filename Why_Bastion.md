@@ -1,7 +1,6 @@
 # 왜 Bastion에서 Ansible을 돌리는가
 
-> KOSA Infra Project — kosa-tickets
-> 우리 환경 기준으로 풀어 쓴 설명
+> KOSA Infra Project — kosa-tickets 우리 환경 기준으로 풀어 쓴 설명
 
 ---
 
@@ -9,7 +8,8 @@
 
 **우리 환경에선 "기술적으론 필수 아님, 운영적으로 강력 추천"이야.**
 
-노트북에서 직접 ansible-playbook 돌리는 것도 가능해. 그런데 그렇게 안 하고 Bastion 경유로 가는 이유를 아래에 우리 환경 그대로 풀어 썼어.
+노트북에서 직접 ansible-playbook 돌리는 것도 가능해. 그런데 그렇게 안 하고 Bastion 경유로 가는
+이유를 아래에 우리 환경 그대로 풀어 썼어.
 
 ---
 
@@ -70,6 +70,7 @@ ansible-playbook playbooks/10-containerd.yml
 ```
 
 Ansible은 내부적으로 이런 일을 함:
+
 ```
 [노트북 192.168.21.x] ──SSH──→ [k8s-cp1 172.16.23.10] 명령 1번 실행
 [노트북 192.168.21.x] ──SSH──→ [k8s-cp2 172.16.23.11] 명령 2번 실행
@@ -100,6 +101,7 @@ ansible-playbook playbooks/10-containerd.yml
 ```
 
 Ansible은 이제:
+
 ```
 [bastion 172.16.24.10] ──SSH──→ [k8s-cp1 172.16.23.10]  ← VM간 통신
 [bastion 172.16.24.10] ──SSH──→ [k8s-cp2 172.16.23.11]
@@ -107,6 +109,7 @@ Ansible은 이제:
 ```
 
 pfSense에서 필요한 룰은 **딱 2개**:
+
 1. `Allow from 192.168.21.0/24 to 172.16.24.10 port 22` (노트북→bastion)
 2. `Allow from 172.16.24.0/24 to 172.16.23.0/24 port 22` (bastion→K8s)
 
@@ -118,7 +121,8 @@ pfSense에서 필요한 룰은 **딱 2개**:
 
 ### (1) pfSense 방화벽 룰을 단순하게 유지
 
-우리 pfSense는 이미 VLAN 라우팅 + CARP HA + 여러 룰로 복잡한 상태야. 거기에 노트북 4대마다 룰을 추가하면 **유지보수 지옥**.
+우리 pfSense는 이미 VLAN 라우팅 + CARP HA + 여러 룰로 복잡한 상태야. 거기에 노트북 4대마다 룰을
+추가하면 **유지보수 지옥**.
 
 ```
 [노트북에서 직접의 경우]
@@ -156,17 +160,20 @@ pfSense에서 필요한 룰은 **딱 2개**:
 ### (3) 팀 4명이 같은 Ansible 환경을 쓸 수 있음
 
 우리 팀원 노트북 OS/버전:
+
 - 본인: macOS, Python 3.11, ansible 2.16
 - 팀원 B: Windows + WSL Ubuntu 22, Python 3.10, ansible 2.14
 - 팀원 C: macOS, Python 3.12, ansible 2.17
 - 팀원 D: Linux Mint, Python 3.9, ansible 2.13
 
 이 상태로 **각자 노트북에서 ansible-playbook 돌리면**:
+
 - 같은 playbook이 누구는 되고 누구는 안 됨
 - "내 노트북에선 되는데?" 가 자주 발생
 - ansible.cfg, inventory, group_vars 버전이 4명 사이에 불일치
 
 **Bastion에서 돌리면**:
+
 - 4명 모두 같은 Ubuntu 24.04, 같은 Python 3.12, 같은 ansible 버전
 - inventory 한 곳에 두고 모두가 동일하게 사용
 - "내 노트북에선 안 되는데?" 가 사라짐
@@ -184,7 +191,7 @@ sudo journalctl _COMM=sshd | grep "Accepted"
 cat ~/.bash_history
 # → 어떤 명령 실행했는지
 
-ls -la ~/.ansible/  
+ls -la ~/.ansible/
 # → 마지막 실행 시간
 ```
 
@@ -202,13 +209,15 @@ ls -la ~/.ansible/
 
 ### (6) AWS 통합 시 (Day 8 이후)
 
-AWS Phase 2부터 VPN 켜면 온프레 ↔ AWS 양방향 통신 시작. AWS EC2 (HAProxy 2대)를 ansible로 관리하려면:
+AWS Phase 2부터 VPN 켜면 온프레 ↔ AWS 양방향 통신 시작. AWS EC2 (HAProxy 2대)를 ansible로
+관리하려면:
 
 ```
 [bastion 172.16.24.10] ──VPN──→ [AWS EC2 10.20.1.x]
 ```
 
-Bastion이 VPN 안쪽에 있어서 AWS 내부 IP로 직접 접근 가능. **노트북에선 AWS 내부 IP로 못 가서 매번 SSM 또는 공인 IP 거쳐야 함**.
+Bastion이 VPN 안쪽에 있어서 AWS 내부 IP로 직접 접근 가능. **노트북에선 AWS 내부 IP로 못 가서 매번
+SSM 또는 공인 IP 거쳐야 함**.
 
 ---
 
@@ -216,14 +225,14 @@ Bastion이 VPN 안쪽에 있어서 AWS 내부 IP로 직접 접근 가능. **노�
 
 이론은 알겠는데 정말 노트북에서 ansible 돌리면 뭐가 빠르게 안 좋아지나? 예측:
 
-| 상황 | 노트북 직접 | Bastion |
-|---|---|---|
-| 팀원 D가 새로 합류, ansible 셋업 | 1시간 (Python, ansible, 키, inventory 동기화) | 5분 (bastion ssh만 알려주면 끝) |
-| 팀원 B 노트북 분실 | 6시간 (모든 키 재발급 + VM 재배포) | 10분 (bastion authorized_keys 정리) |
-| "어제 누가 PXC 재시작했어?" | 4명 노트북 다 확인 | bastion 히스토리 1개 확인 |
-| AWS 통합 후 EC2 운영 | 매번 SSM 또는 공인 IP | bastion에서 사설 IP로 직통 |
-| 데모 발표 (4명이 번갈아 명령) | 노트북 4대 환경 다 동기화 필요 | 모두가 bastion에 ssh → 동일 환경 |
-| 발표 임팩트 | "각자 노트북에서 작업" | "**중앙 운영 거점 Bastion**" (가산점 ↑) |
+| 상황                             | 노트북 직접                                   | Bastion                                 |
+| -------------------------------- | --------------------------------------------- | --------------------------------------- |
+| 팀원 D가 새로 합류, ansible 셋업 | 1시간 (Python, ansible, 키, inventory 동기화) | 5분 (bastion ssh만 알려주면 끝)         |
+| 팀원 B 노트북 분실               | 6시간 (모든 키 재발급 + VM 재배포)            | 10분 (bastion authorized_keys 정리)     |
+| "어제 누가 PXC 재시작했어?"      | 4명 노트북 다 확인                            | bastion 히스토리 1개 확인               |
+| AWS 통합 후 EC2 운영             | 매번 SSM 또는 공인 IP                         | bastion에서 사설 IP로 직통              |
+| 데모 발표 (4명이 번갈아 명령)    | 노트북 4대 환경 다 동기화 필요                | 모두가 bastion에 ssh → 동일 환경        |
+| 발표 임팩트                      | "각자 노트북에서 작업"                        | "**중앙 운영 거점 Bastion**" (가산점 ↑) |
 
 ---
 
@@ -232,6 +241,7 @@ Bastion이 VPN 안쪽에 있어서 AWS 내부 IP로 직접 접근 가능. **노�
 Day별로 풀어보면:
 
 ### Day 1~5: 온프레 구축
+
 ```bash
 ssh bastion
 cd ~/ansible
@@ -244,6 +254,7 @@ ansible-playbook playbooks/40-k8s-addons.yml    # Calico, MetalLB, HAProxy Ingre
 ```
 
 ### Day 6~7: 앱/DB 배포
+
 ```bash
 ssh bastion
 kubectl get nodes                                # 클러스터 확인
@@ -253,14 +264,16 @@ argocd app sync kosa-tickets                     # ArgoCD로 앱 동기화
 ```
 
 ### Day 8~11: AWS 통합
+
 ```bash
 ssh bastion
 # Bastion이 VPN 안쪽이라 AWS 내부 IP로 직접 접근
-ssh ec2-haproxy-1.internal.aws  
+ssh ec2-haproxy-1.internal.aws
 ansible-playbook -i aws_inventory playbooks/aws-setup.yml
 ```
 
 ### Day 12~13: 데모 리허설
+
 ```bash
 ssh bastion
 # JMeter로 10K RPS 부하
@@ -270,7 +283,10 @@ kubectl top pods -w
 ```
 
 ### Day 14~15: 발표
-> **"우리는 운영 거점으로 Bastion 1대를 두어 SSH 키, kubectl 컨텍스트, ArgoCD CLI를 집중 관리합니다. 노트북에선 Bastion으로만 SSH가 허용되며, 모든 운영 명령은 Bastion에서 실행되어 감사 로그가 일원화됩니다."**
+
+> **"우리는 운영 거점으로 Bastion 1대를 두어 SSH 키, kubectl 컨텍스트, ArgoCD CLI를 집중 관리합니다.
+> 노트북에선 Bastion으로만 SSH가 허용되며, 모든 운영 명령은 Bastion에서 실행되어 감사 로그가
+> 일원화됩니다."**
 
 이 한 줄이 발표 점수 +5점이야.
 
@@ -285,22 +301,25 @@ kubectl top pods -w
 3. 키 분실 시 즉각 모두 회수 가능한 절차 합의
 4. 명령 이력은 각자 알아서 관리
 
-이걸 다 감수하면 노트북 직접도 됨. **그치만 그걸 감수하느니 Bastion 1대 더 돌리는 게 훨씬 싸.** Bastion은 어차피 2GB RAM 1 vCPU짜리 작은 VM이라 부담 거의 없음.
+이걸 다 감수하면 노트북 직접도 됨. **그치만 그걸 감수하느니 Bastion 1대 더 돌리는 게 훨씬 싸.**
+Bastion은 어차피 2GB RAM 1 vCPU짜리 작은 VM이라 부담 거의 없음.
 
 ---
 
 ## 6. 정리
 
-| 질문 | 답 |
-|---|---|
-| 기술적으로 필수? | **아니** |
-| 우리 환경에서 권장? | **응 (강력)** |
+| 질문                    | 답                                                    |
+| ----------------------- | ----------------------------------------------------- |
+| 기술적으로 필수?        | **아니**                                              |
+| 우리 환경에서 권장?     | **응 (강력)**                                         |
 | 핵심 이유 1개만 꼽으면? | "**pfSense 룰 단순 + 키 집중 + 팀 일관성**" 한 패키지 |
-| 발표에서 어필 가능? | **응. 보안/운영 표준 항목으로** |
-| 셋업 비용? | bastion VM 1대 (이미 있음) + 도구 설치 (5분 스크립트) |
+| 발표에서 어필 가능?     | **응. 보안/운영 표준 항목으로**                       |
+| 셋업 비용?              | bastion VM 1대 (이미 있음) + 도구 설치 (5분 스크립트) |
 
-**한 줄로:** Bastion은 우리 4명이 운영 명령을 모아서 실행하는 "공용 사무실" 같은 거야. 각자 집(노트북)에서 일해도 되지만, 공용 사무실 두면 협업·보안·감사 다 한 번에 해결됨.
+**한 줄로:** Bastion은 우리 4명이 운영 명령을 모아서 실행하는 "공용 사무실" 같은 거야. 각자
+집(노트북)에서 일해도 되지만, 공용 사무실 두면 협업·보안·감사 다 한 번에 해결됨.
 
 ---
 
-> 더 깊이: SSH 설정은 `SSH_Access_Guide.md`, 실제 setup 스크립트는 `scripts/setup-bastion.sh`, Ansible 인벤토리는 `ansible/inventory/hosts.yml` 참고.
+> 더 깊이: SSH 설정은 `SSH_Access_Guide.md`, 실제 setup 스크립트는 `scripts/setup-bastion.sh`,
+> Ansible 인벤토리는 `ansible/inventory/hosts.yml` 참고.

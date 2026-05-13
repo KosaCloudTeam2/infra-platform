@@ -1,9 +1,11 @@
 # 온프레미스 구축 가이드 (Day 1~5)
 
-> kosa-tickets 프로젝트의 온프레미스 K8s 클러스터를 0부터 구축하는 단계별 가이드.
-> **Terraform + Ansible로 자동화**, 각 단계마다 **"어디서 실행"** 과 **검증 명령** 포함.
+> kosa-tickets 프로젝트의 온프레미스 K8s 클러스터를 0부터 구축하는 단계별 가이드. **Terraform +
+> Ansible로 자동화**, 각 단계마다 **"어디서 실행"** 과 **검증 명령** 포함.
 >
-> 관련 문서: [Architecture_Design.md](Architecture_Design.md) | [IaC_Setup_Guide.md](IaC_Setup_Guide.md) | [SSH_Access_Guide.md](SSH_Access_Guide.md) | [Why_Bastion.md](Why_Bastion.md)
+> 관련 문서: [Architecture_Design.md](Architecture_Design.md) |
+> [IaC_Setup_Guide.md](IaC_Setup_Guide.md) | [SSH_Access_Guide.md](SSH_Access_Guide.md) |
+> [Why_Bastion.md](Why_Bastion.md)
 
 ---
 
@@ -11,12 +13,12 @@
 
 이 문서는 명령마다 **어디서 실행해야 하는지** 라벨로 표시함. 라벨 4가지:
 
-| 라벨 | 위치 | 접속 방법 | 용도 |
-|---|---|---|---|
-| `[노트북]` | 본인 맥북/PC (192.168.21.x) | 터미널 열기 | Terraform 실행, scp/ssh 시작점 |
-| `[kosaN]` | Proxmox 호스트 (192.168.21.2~5) | `ssh kosa1` (root) | VM 템플릿 만들기, Ceph 명령 |
-| `[bastion]` | Bastion VM (172.16.24.10) | `ssh bastion` (ubuntu) | Ansible, kubectl, helm, argocd 실행 |
-| `[k8s-XXX]` | K8s 노드 (172.16.23.10~22) | `ssh k8s-cp1` (ubuntu) | 디버깅용. 일반적으로 직접 X |
+| 라벨        | 위치                            | 접속 방법              | 용도                                |
+| ----------- | ------------------------------- | ---------------------- | ----------------------------------- |
+| `[노트북]`  | 본인 맥북/PC (192.168.21.x)     | 터미널 열기            | Terraform 실행, scp/ssh 시작점      |
+| `[kosaN]`   | Proxmox 호스트 (192.168.21.2~5) | `ssh kosa1` (root)     | VM 템플릿 만들기, Ceph 명령         |
+| `[bastion]` | Bastion VM (172.16.24.10)       | `ssh bastion` (ubuntu) | Ansible, kubectl, helm, argocd 실행 |
+| `[k8s-XXX]` | K8s 노드 (172.16.23.10~22)      | `ssh k8s-cp1` (ubuntu) | 디버깅용. 일반적으로 직접 X         |
 
 > SSH alias 설정은 `SSH_Access_Guide.md` 참고. 본 가이드는 alias 설정 완료 가정.
 
@@ -68,6 +70,7 @@ K8s 노드 6대 = CP 3 + Worker 3 (Bastion은 K8s 멤버 아님, 도구 호스�
 ## 사전 준비 체크리스트
 
 ### 하드웨어 / 네트워크
+
 - [ ] Proxmox 4대 (kosa1~kosa4) 정상 작동
 - [ ] pfSense HA 완료 ✓
 - [ ] 관리형 스위치 VLAN 10/20/30/40 설정 ✓
@@ -75,6 +78,7 @@ K8s 노드 6대 = CP 3 + Worker 3 (Bastion은 K8s 멤버 아님, 도구 호스�
 - [ ] [노트북]에서 Proxmox 4대로 ssh 가능 (`ssh kosa1`)
 
 ### 도구 (노트북에 설치)
+
 - [ ] **Terraform 1.5+**: `[노트북]$ terraform version`
 - [ ] **SSH 키**: `~/.ssh/kosa_iac` (없으면 아래 생성)
 - [ ] **Proxmox API 토큰** (아래 발급)
@@ -91,6 +95,7 @@ K8s 노드 6대 = CP 3 + Worker 3 (Bastion은 K8s 멤버 아님, 도구 호스�
 3. **Secret 복사** (한 번만 표시됨!)
 
 토큰 결과:
+
 ```
 TokenID: root@pam!terraform
 Secret:  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -107,10 +112,10 @@ Secret:  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 ## Phase 1: Proxmox 네트워크 (완료)
 
-> pfSense HA 완료 시점에 이미 끝난 단계.
-> 상세: `pfSense_HA_Setup_Guide.md`.
+> pfSense HA 완료 시점에 이미 끝난 단계. 상세: `pfSense_HA_Setup_Guide.md`.
 
 검증:
+
 ```bash
 [노트북]$ ping 172.16.21.1   # VLAN 10 게이트웨이 (CARP VIP)
 [노트북]$ ping 172.16.22.1   # VLAN 20
@@ -124,8 +129,8 @@ Secret:  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 ## Phase 2: Cloud-init 템플릿 (Day 1)
 
-> **한 번만** 만들면 됨. Terraform이 이걸 clone해서 7개 VM 생성.
-> 실행 위치: **[kosa1]** (템플릿은 1대에만 만듦, Ceph 공유라 다른 노드도 사용 가능)
+> **한 번만** 만들면 됨. Terraform이 이걸 clone해서 7개 VM 생성. 실행 위치: **[kosa1]** (템플릿은
+> 1대에만 만듦, Ceph 공유라 다른 노드도 사용 가능)
 
 ### 2.1 Ubuntu Cloud Image 다운로드
 
@@ -138,7 +143,8 @@ Secret:  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 # 약 600MB (Ubuntu 24.04 Noble)
 ```
 
-> ⚠️ **일반 Live ISO와 다름**: Cloud Image는 cloud-init 활성화된 이미 설치된 이미지. 일반 Live Server ISO는 부팅 후 설치 마법사가 떠서 자동화 불가.
+> ⚠️ **일반 Live ISO와 다름**: Cloud Image는 cloud-init 활성화된 이미 설치된 이미지. 일반 Live
+> Server ISO는 부팅 후 설치 마법사가 떠서 자동화 불가.
 
 ### 2.2 qemu-guest-agent 사전 주입 (선택, 강추)
 
@@ -189,6 +195,7 @@ cloud-init이 부팅 후 설치할 수도 있지만 이미지에 미리 넣으�
 ```
 
 기대 출력 (핵심 부분):
+
 ```
 agent: enabled=1
 cpu: host
@@ -204,8 +211,7 @@ template: 1
 
 ## Phase 3: Terraform으로 VM 생성 (Day 2)
 
-> 실행 위치: **[노트북]**
-> (Terraform state 파일이 노트북에 보관됨)
+> 실행 위치: **[노트북]** (Terraform state 파일이 노트북에 보관됨)
 
 ### 3.1 변수 파일 작성
 
@@ -216,6 +222,7 @@ template: 1
 ```
 
 `terraform.tfvars` 필수 항목:
+
 ```hcl
 proxmox_endpoint  = "https://192.168.21.2:8006/"
 proxmox_api_token = "root@pam!terraform=<2.0절_Secret>"
@@ -229,6 +236,7 @@ ssh_public_key    = "ssh-ed25519 AAAA... kosa-iac"
 ```
 
 기대 출력 끝:
+
 ```
 - Installing bpg/proxmox v0.66.x...
 Terraform has been successfully initialized!
@@ -241,6 +249,7 @@ Terraform has been successfully initialized!
 ```
 
 기대 출력 끝:
+
 ```
 Plan: 7 to add, 0 to change, 0 to destroy.
 ```
@@ -269,6 +278,7 @@ Plan: 7 to add, 0 to change, 0 to destroy.
 ```
 
 기대 출력:
+
 ```
 tolist([
   "k8s-cp1 (172.16.23.10) on kosa1",
@@ -307,8 +317,8 @@ done
 
 ## Phase 4: Ansible로 K8s 부트스트랩 (Day 3) ⭐
 
-> 가장 중요한 단계. 매 명령마다 **어디서 실행하는지** 라벨로 표시.
-> 막히면 가장 마지막 ✅ 체크포인트로 돌아가서 다시 시도.
+> 가장 중요한 단계. 매 명령마다 **어디서 실행하는지** 라벨로 표시. 막히면 가장 마지막 ✅
+> 체크포인트로 돌아가서 다시 시도.
 
 ### 4.0 큰 그림
 
@@ -337,7 +347,7 @@ ssh bastion 'echo OK'                              # 4.1 검증
 ./scripts/generate-inventory.sh                    # 4.2
 rsync -avz ansible/ bastion:~/ansible/             # 4.3
 scp ~/.ssh/kosa_iac bastion:~/.ssh/kosa_iac        # 4.3
-ssh bastion 'bash -s' < scripts/setup-bastion.sh   # 4.4 (자동) 
+ssh bastion 'bash -s' < scripts/setup-bastion.sh   # 4.4 (자동)
 ssh bastion                                        # 4.5
 
 # [bastion] ───────────────────────────────────────────────────
@@ -368,6 +378,7 @@ ansible-playbook playbooks/40-k8s-addons.yml           # 4.6 Step 5
 ```
 
 기대 — 끝에 `x` 권한 있어야 함:
+
 ```
 -rwxr-xr-x  ...  generate-inventory.sh
 -rwxr-xr-x  ...  setup-bastion.sh
@@ -466,7 +477,8 @@ EOF
 [노트북]$ chmod 600 ~/.ssh/config
 ```
 
-> `StrictHostKeyChecking no` + `UserKnownHostsFile /dev/null`은 학습/데모용 — VM 재생성 시 host key 변경 경고 회피. 운영에선 빼야 함.
+> `StrictHostKeyChecking no` + `UserKnownHostsFile /dev/null`은 학습/데모용 — VM 재생성 시 host key
+> 변경 경고 회피. 운영에선 빼야 함.
 
 #### (C) ✅ 체크포인트 — bastion 접속 + 7대 VM SSH 모두 OK인지 확인
 
@@ -481,14 +493,16 @@ done
 ```
 
 기대 — 7대 모두 hostname 출력:
+
 ```
 bastion: bastion
 k8s-cp1: k8s-cp1
 ...
 ```
 
-❌ 만약 `Could not resolve hostname bastion` 나오면 → (B) 단계 다시. config 파일 권한이 600인지도 확인.
-❌ 만약 `Permission denied (publickey)` → `~/.ssh/kosa_iac` 파일 권한 600 확인: `chmod 600 ~/.ssh/kosa_iac`.
+❌ 만약 `Could not resolve hostname bastion` 나오면 → (B) 단계 다시. config 파일 권한이 600인지도
+확인. ❌ 만약 `Permission denied (publickey)` → `~/.ssh/kosa_iac` 파일 권한 600 확인:
+`chmod 600 ~/.ssh/kosa_iac`.
 
 ---
 
@@ -500,6 +514,7 @@ k8s-cp1: k8s-cp1
 ```
 
 이 스크립트가 하는 일:
+
 1. `terraform/onprem` 디렉토리에서 `terraform output -raw ansible_inventory` 실행
 2. 결과 YAML을 `ansible/inventory/hosts.yml` 에 저장
 3. 기존 파일 있으면 `.bak.<timestamp>` 로 백업
@@ -511,6 +526,7 @@ k8s-cp1: k8s-cp1
 ```
 
 기대 — `all:` 으로 시작하는 YAML, 7개 호스트 IP가 보임:
+
 ```yaml
 "all":
   "vars":
@@ -549,7 +565,8 @@ k8s-cp1: k8s-cp1
 [노트북]$ ssh bastion 'chmod 600 ~/.ssh/config'
 ```
 
-> 🔐 **보안 노트**: kosa_iac 개인키를 bastion에 복사하는 건 운영에선 비추. 운영 환경에선 SSH agent forwarding 또는 별도 bastion 전용 키 사용. 학습 환경에선 편의상 복사.
+> 🔐 **보안 노트**: kosa_iac 개인키를 bastion에 복사하는 건 운영에선 비추. 운영 환경에선 SSH agent
+> forwarding 또는 별도 bastion 전용 키 사용. 학습 환경에선 편의상 복사.
 
 #### ✅ 체크포인트
 
@@ -557,7 +574,8 @@ k8s-cp1: k8s-cp1
 [노트북]$ ssh bastion 'ls -la ~/ansible/ && ls -la ~/.ssh/'
 ```
 
-기대 — `~/ansible/` 안에 playbooks/, inventory/, roles/, requirements.yml 등 보임. `~/.ssh/` 안에 `kosa_iac` (권한 -rw-------) 있음.
+기대 — `~/ansible/` 안에 playbooks/, inventory/, roles/, requirements.yml 등 보임. `~/.ssh/` 안에
+`kosa_iac` (권한 -rw-------) 있음.
 
 ❌ `bastion: Could not resolve hostname` → 4.1 (B) 단계 안 됨. SSH config 다시 확인.
 
@@ -615,6 +633,7 @@ k8s-cp1: k8s-cp1
 ```
 
 기대 — 4개 모두 버전이 출력 (에러 없이):
+
 ```
 ansible [core 2.16.x]
 Client Version: v1.30.x
@@ -636,6 +655,7 @@ argocd: v2.10.x
 ```
 
 기대 출력 — 컬렉션 다운로드 진행:
+
 ```
 Starting galaxy collection install process
 ...
@@ -650,6 +670,7 @@ Installing 'kubernetes.core:X.X.X' to '/home/ubuntu/.ansible/...'
 ```
 
 기대 — 7개 모두 `SUCCESS`:
+
 ```
 bastion | SUCCESS => { "ping": "pong" }
 k8s-cp1 | SUCCESS => { "ping": "pong" }
@@ -660,8 +681,10 @@ k8s-w2  | SUCCESS => { "ping": "pong" }
 k8s-w3  | SUCCESS => { "ping": "pong" }
 ```
 
-❌ `UNREACHABLE! ... Permission denied (publickey)` → bastion의 `~/.ssh/kosa_iac` 권한 확인 (`chmod 600`). 또는 `ansible/ansible.cfg`의 `private_key_file` 경로가 `~/.ssh/kosa_iac` 인지 확인.
-❌ `UNREACHABLE! ... timeout` → bastion 자체 라우팅 문제. `[bastion]$ ping 172.16.23.10` 으로 테스트.
+❌ `UNREACHABLE! ... Permission denied (publickey)` → bastion의 `~/.ssh/kosa_iac` 권한 확인
+(`chmod 600`). 또는 `ansible/ansible.cfg`의 `private_key_file` 경로가 `~/.ssh/kosa_iac` 인지 확인.
+❌ `UNREACHABLE! ... timeout` → bastion 자체 라우팅 문제. `[bastion]$ ping 172.16.23.10` 으로
+테스트.
 
 ---
 
@@ -676,6 +699,7 @@ k8s-w3  | SUCCESS => { "ping": "pong" }
 ```
 
 작업 내용:
+
 - hostname 설정
 - swap 비활성화 (K8s 필수)
 - timezone Asia/Seoul
@@ -683,6 +707,7 @@ k8s-w3  | SUCCESS => { "ping": "pong" }
 - 기본 패키지 (curl, vim, jq 등)
 
 검증:
+
 ```bash
 [bastion]$ ansible k8s_cluster -m shell -a "swapon -s; date"
 # swap 빈 출력 + Asia/Seoul 시간대
@@ -695,12 +720,14 @@ k8s-w3  | SUCCESS => { "ping": "pong" }
 ```
 
 작업 내용:
+
 - `overlay`, `br_netfilter` 커널 모듈 로드
 - sysctl: `ip_forward=1`, `bridge-nf-call-iptables=1`
 - **containerd 설치** (Docker 아님)
 - containerd가 systemd cgroup 사용하도록 설정
 
 검증:
+
 ```bash
 [bastion]$ ansible k8s_cluster -m shell -a "systemctl is-active containerd && lsmod | grep br_netfilter"
 # 모두 active
@@ -713,11 +740,13 @@ k8s-w3  | SUCCESS => { "ping": "pong" }
 ```
 
 작업 내용:
+
 - Kubernetes apt repo 추가 (`pkgs.k8s.io v1.30`)
 - kubeadm, kubelet, kubectl 설치
 - `apt-mark hold` (자동 업그레이드 방지)
 
 검증:
+
 ```bash
 [bastion]$ ansible k8s_cluster -m shell -a "kubeadm version -o short"
 # v1.30.x
@@ -730,17 +759,20 @@ k8s-w3  | SUCCESS => { "ping": "pong" }
 ```
 
 작업 내용:
+
 - k8s-cp1: `kubeadm init` (첫 CP, 단일 endpoint 모드)
 - k8s-cp2, cp3: `kubeadm join --control-plane`
 - k8s-w1, w2, w3: `kubeadm join` (워커)
 - Bastion에 `/etc/kubernetes/admin.conf` 복사 → `~/.kube/config`
 
 검증:
+
 ```bash
 [bastion]$ kubectl get nodes
 ```
 
 기대 출력:
+
 ```
 NAME      STATUS     ROLES           AGE   VERSION
 k8s-cp1   NotReady   control-plane   5m    v1.30.x
@@ -760,6 +792,7 @@ k8s-w3    NotReady   <none>          1m    v1.30.x
 ```
 
 작업 내용:
+
 - Tigera Operator → Calico CNI
 - Metrics Server (`--kubelet-insecure-tls`)
 - MetalLB + IP 풀 (`172.16.22.50-100`)
@@ -768,6 +801,7 @@ k8s-w3    NotReady   <none>          1m    v1.30.x
 - Percona Operator + PXC 3 + ProxySQL 2
 
 검증:
+
 ```bash
 [bastion]$ kubectl get nodes
 # 모두 Ready
@@ -792,20 +826,21 @@ site.yml은 00~40을 순차 실행. 총 ~30~40분.
 ## Phase 5: Ceph CSI 연결 (Day 4)
 
 > 실행 위치 분리:
+>
 > - **[ceph-mon]** = Ceph 클러스터의 모니터 노드 (별도 6대 클러스터)
 > - **[bastion]** = K8s 측 Helm 설치
 
 ### 5.1 Ceph 클러스터 정보 수집 ([ceph-mon] 에서)
 
-> **네이밍 컨벤션:** `team2-<사용주체>-<용도>-<타입>` 형태로 통일.
-> 이름만 보고도 "team2팀의, K8s가, PVC용으로 쓰는, RBD pool"임이 보이도록 함.
+> **네이밍 컨벤션:** `team2-<사용주체>-<용도>-<타입>` 형태로 통일. 이름만 보고도 "team2팀의, K8s가,
+> PVC용으로 쓰는, RBD pool"임이 보이도록 함.
 >
-> | 리소스 | 이름 | 의미 |
-> |---|---|---|
-> | Pool | `team2-k8s-pvc-rbd` | team2 K8s PVC용 RBD pool |
-> | User | `client.team2-k8s-csi` | team2 K8s CSI 드라이버 client |
-> | StorageClass | `team2-rbd-block` | team2 RBD 기반 block StorageClass |
-> | Secret | `team2-rbd-csi-secret` | RBD CSI 자격증명 |
+> | 리소스       | 이름                   | 의미                              |
+> | ------------ | ---------------------- | --------------------------------- |
+> | Pool         | `team2-k8s-pvc-rbd`    | team2 K8s PVC용 RBD pool          |
+> | User         | `client.team2-k8s-csi` | team2 K8s CSI 드라이버 client     |
+> | StorageClass | `team2-rbd-block`      | team2 RBD 기반 block StorageClass |
+> | Secret       | `team2-rbd-csi-secret` | RBD CSI 자격증명                  |
 
 ```bash
 [노트북]$ ssh root@<ceph-mon-IP>   # 예: 10.10.10.x
@@ -840,6 +875,7 @@ site.yml은 00~40을 순차 실행. 총 ~30~40분.
 ```
 
 **메모해둘 3가지:**
+
 - `fsid` (1번 결과)
 - `monitor IPs` (2번 결과의 v1 주소들, `IP:6789` 형태)
 - `keyring`의 `key = ...` 값 (6번 결과)
@@ -888,8 +924,8 @@ EOF
 # "cannot re-use a name" 에러 방지
 ```
 
-> **values 변경 후 재적용 시:** 위 `helm upgrade --install`로 바로 됨.
-> **완전히 새로 깔고 싶을 때:** `helm uninstall ceph-csi-rbd -n ceph-csi-rbd` 후 위 명령 재실행.
+> **values 변경 후 재적용 시:** 위 `helm upgrade --install`로 바로 됨. **완전히 새로 깔고 싶을 때:**
+> `helm uninstall ceph-csi-rbd -n ceph-csi-rbd` 후 위 명령 재실행.
 
 ### 5.3 검증 ([bastion] 에서)
 
@@ -962,13 +998,13 @@ EOF
 
 #### 왜 GHCR?
 
-| 항목 | Harbor (자체 호스팅) | **GHCR (채택)** |
-|---|---|---|
-| 셋업 부담 | Pod 10+개, Ceph 100Gi | 없음 (외부 서비스) |
-| 비용 | 워커 메모리 ~2GB + 디스크 100GB | 무료 (Private도 무료) |
-| GitHub Actions 연동 | 토큰 별도 설정 | **GITHUB_TOKEN 자동** |
-| K8s에서 pull | imagePullSecret 필요 | imagePullSecret 필요 (둘 다 동일) |
-| 발표 임팩트 | 사설 레지스트리 운영 | GitHub-native CI/CD |
+| 항목                | Harbor (자체 호스팅)            | **GHCR (채택)**                   |
+| ------------------- | ------------------------------- | --------------------------------- |
+| 셋업 부담           | Pod 10+개, Ceph 100Gi           | 없음 (외부 서비스)                |
+| 비용                | 워커 메모리 ~2GB + 디스크 100GB | 무료 (Private도 무료)             |
+| GitHub Actions 연동 | 토큰 별도 설정                  | **GITHUB_TOKEN 자동**             |
+| K8s에서 pull        | imagePullSecret 필요            | imagePullSecret 필요 (둘 다 동일) |
+| 발표 임팩트         | 사설 레지스트리 운영            | GitHub-native CI/CD               |
 
 #### 흐름
 
@@ -995,7 +1031,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write     # GHCR push 권한
+      packages: write # GHCR push 권한
 
     steps:
       - uses: actions/checkout@v4
@@ -1004,7 +1040,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}   # 자동 발급
+          password: ${{ secrets.GITHUB_TOKEN }} # 자동 발급
 
       - uses: docker/build-push-action@v5
         with:
@@ -1031,7 +1067,8 @@ jobs:
             -n kosa-tickets
 ```
 
-> 💡 학습 환경에선 처음엔 **Public 이미지로 만들고** secret 단계 건너뛰는 게 단순. 운영 학습용으로 나중에 Private + secret 흐름 추가.
+> 💡 학습 환경에선 처음엔 **Public 이미지로 만들고** secret 단계 건너뛰는 게 단순. 운영 학습용으로
+> 나중에 Private + secret 흐름 추가.
 
 #### 3) K8s Deployment 매니페스트
 
@@ -1046,8 +1083,8 @@ spec:
   template:
     spec:
       containers:
-      - name: app
-        image: ghcr.io/<github-org>/kosa-tickets-app:latest
+        - name: app
+          image: ghcr.io/<github-org>/kosa-tickets-app:latest
       # Private 이미지일 때만:
       # imagePullSecrets:
       # - name: ghcr-pull-secret
@@ -1064,8 +1101,8 @@ spec:
 
 ### 6.3 Percona PXC + ProxySQL ⭐
 
-> Phase 4 Step 5 (40-k8s-addons)에서 Operator + CR이 자동 설치되지만,
-> **실제 운영에선 storageClassName, WATCH_NAMESPACE, 비밀번호 조정**이 필요.
+> Phase 4 Step 5 (40-k8s-addons)에서 Operator + CR이 자동 설치되지만, **실제 운영에선
+> storageClassName, WATCH_NAMESPACE, 비밀번호 조정**이 필요.
 
 #### 6.3.1 상태 확인
 
@@ -1087,7 +1124,8 @@ spec:
 
 **증상:** PXC CR 만들어도 Pod 생성 안 됨, Events 비어있음, Operator 재시작 반복
 
-**원인:** Operator가 자기 namespace(`pxc-operator`)만 감시하도록 설정. PXC CR은 `pii-protected`에 있음.
+**원인:** Operator가 자기 namespace(`pxc-operator`)만 감시하도록 설정. PXC CR은 `pii-protected`에
+있음.
 
 **해결 (옵션 B 권장 — namespace 분리 유지):**
 
@@ -1107,7 +1145,8 @@ spec:
               --role=percona-xtradb-cluster-operator
 ```
 
-> ⚠️ `WATCH_NAMESPACE=""` (모든 namespace)로 하면 cluster-scope Role 필요. 옛 namespace-scoped Role만 있으면 RBAC forbidden 에러로 CrashLoopBackOff.
+> ⚠️ `WATCH_NAMESPACE=""` (모든 namespace)로 하면 cluster-scope Role 필요. 옛 namespace-scoped
+> Role만 있으면 RBAC forbidden 에러로 CrashLoopBackOff.
 
 ##### 함정 2. storageClassName — PXC CR이 옛 SC 이름 참조
 
@@ -1135,6 +1174,7 @@ spec:
 **원인:** 옛 StatefulSet의 `volumeClaimTemplate`가 옛 SC로 PVC를 만들고 있음
 
 **해결:**
+
 ```bash
 [bastion]$ kubectl delete sts -n pii-protected --all --force --grace-period=0
 [bastion]$ kubectl delete pvc -n pii-protected --all
@@ -1149,11 +1189,13 @@ spec:
 **증상:** `kubectl get pv`에 Released 상태 PV가 finalizer로 안 빠짐
 
 **해결:**
+
 ```bash
 [bastion]$ kubectl patch pv <PV-이름> --type='merge' -p '{"metadata":{"finalizers":null}}'
 ```
 
 > 발견 시 Ceph 측에도 잔재 RBD 이미지 있을 수 있음 — 시간 날 때:
+>
 > ```
 > [ceph-mon]# rbd ls -p team2-k8s-pvc-rbd
 > [ceph-mon]# rbd rm team2-k8s-pvc-rbd/csi-vol-<orphan>
@@ -1172,11 +1214,13 @@ pxc-2  (3~5분, SST)
   ↓ Running 1/1
 ```
 
-`STATUS: Running` 인데 `READY: 0/1`로 잠시 보이는 건 **Galera join 진행 중**으로 정상. 끝까지 기다리면 됨.
+`STATUS: Running` 인데 `READY: 0/1`로 잠시 보이는 건 **Galera join 진행 중**으로 정상. 끝까지
+기다리면 됨.
 
 #### 6.3.3 root 비밀번호 변경
 
-PXC Operator는 모든 비밀번호를 Secret으로 관리. **mysql에서 직접 `ALTER USER`해도 Operator가 곧 Secret 값으로 되돌림** → 무조건 Secret 수정.
+PXC Operator는 모든 비밀번호를 Secret으로 관리. **mysql에서 직접 `ALTER USER`해도 Operator가 곧
+Secret 값으로 되돌림** → 무조건 Secret 수정.
 
 ```bash
 [bastion]$ NEW_PW="kosa1004"   # 운영에선 강한 비밀번호 사용
@@ -1190,7 +1234,8 @@ PXC Operator는 모든 비밀번호를 Secret으로 관리. **mysql에서 직접
               mysql -uroot -p"$NEW_PW" -e "SELECT 'OK' AS test;"
 ```
 
-> 💡 다른 시스템 user(`monitor`, `xtrabackup`, `proxyadmin` 등) 비밀번호도 같은 방식. `/data/root` 자리만 바꾸면 됨.
+> 💡 다른 시스템 user(`monitor`, `xtrabackup`, `proxyadmin` 등) 비밀번호도 같은 방식. `/data/root`
+> 자리만 바꾸면 됨.
 
 #### 6.3.4 앱용 DB/User 생성 (앱 워크로드 준비)
 
@@ -1201,6 +1246,7 @@ PXC Operator는 **시스템 user만** 관리. 앱이 쓸 user는 직접 만듦. 
 ```
 
 mysql 안에서:
+
 ```sql
 CREATE DATABASE kosa_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'kosa_app'@'%' IDENTIFIED BY 'kosa1004';
@@ -1239,7 +1285,8 @@ K8s Secret으로 등록 (앱 Deployment가 env로 참조):
 # csi-vol-... 5개 (pxc 3 + proxysql 2)
 ```
 
-> ⚠️ ProxySQL을 통한 root 접속은 보안 기본 설정으로 막혀있음. PXC 노드 직접 접속만 됨. 앱 user(`kosa_app`)는 ProxySQL/PXC 둘 다 가능.
+> ⚠️ ProxySQL을 통한 root 접속은 보안 기본 설정으로 막혀있음. PXC 노드 직접 접속만 됨. 앱
+> user(`kosa_app`)는 ProxySQL/PXC 둘 다 가능.
 
 #### 6.3.6 ProxySQL 라우팅 룰 (옵션, R/W 분기용)
 
@@ -1279,6 +1326,7 @@ mysql> SAVE MYSQL QUERY RULES TO DISK;
 ```
 
 Grafana 접속:
+
 ```bash
 [bastion]$ kubectl get svc -n monitoring kube-prom-grafana
 # EXTERNAL-IP: 172.16.23.1XX (MetalLB 풀: 172.16.23.100~150)
@@ -1286,13 +1334,15 @@ Grafana 접속:
 
 [노트북] 브라우저에서 `http://<EXTERNAL-IP>` → admin / admin.
 
-> MetalLB 풀은 K8s 노드와 같은 VLAN 30(`172.16.23.0/24`)에서 할당. VLAN 다르면 ARP 응답 못 해서 노트북에서 접속 불가.
+> MetalLB 풀은 K8s 노드와 같은 VLAN 30(`172.16.23.0/24`)에서 할당. VLAN 다르면 ARP 응답 못 해서
+> 노트북에서 접속 불가.
 
 ---
 
 ## 최종 검증
 
 ### 클러스터 상태 ([bastion]에서)
+
 ```bash
 [bastion]$ kubectl get nodes
 # 6개 노드, 모두 Ready
@@ -1302,6 +1352,7 @@ Grafana 접속:
 ```
 
 ### 핵심 컴포넌트 ([bastion]에서)
+
 ```bash
 [bastion]$ kubectl get sc                         # ceph-rbd (default)
 [bastion]$ kubectl get pods -n calico-system
@@ -1315,6 +1366,7 @@ Grafana 접속:
 ```
 
 ### LoadBalancer IP 한눈에
+
 ```bash
 [bastion]$ kubectl get svc -A | grep LoadBalancer
 # argocd-server, harbor, grafana 등 172.16.22.X
@@ -1326,38 +1378,39 @@ Grafana 접속:
 
 ### Terraform 단계 ([노트북])
 
-| 증상 | 해결 |
-|---|---|
-| `Error: 401 Unauthorized` | API 토큰 + Privilege Separation 해제 확인 |
-| `template 9000 not found` | Phase 2 다시 실행 |
+| 증상                           | 해결                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `Error: 401 Unauthorized`      | API 토큰 + Privilege Separation 해제 확인                                               |
+| `template 9000 not found`      | Phase 2 다시 실행                                                                       |
 | VM 만들어졌는데 모두 kosa1에 — | 사실 clone 진행 중 일시 현상. 1~2분 후 target 노드로 migrate됨. plan의 `node_name` 확인 |
-| `vm with id X already exists` | `ssh kosa1 'qm destroy X --purge 1'` 후 재시도 |
-| IP 안 잡힘 | `[kosa1]# qm config <vmid> \| grep ipconfig` 확인 |
+| `vm with id X already exists`  | `ssh kosa1 'qm destroy X --purge 1'` 후 재시도                                          |
+| IP 안 잡힘                     | `[kosa1]# qm config <vmid> \| grep ipconfig` 확인                                       |
 
 ### Ansible 단계 ([bastion])
 
-| 증상 | 해결 |
-|---|---|
-| `Permission denied (publickey)` | `~/.ssh/kosa_iac` 권한 600. inventory의 `ansible_ssh_private_key_file` 경로 확인 |
-| `kubeadm init` swap 에러 | 00-bootstrap 재실행 → `ansible k8s_cluster -m shell -a 'swapon -s'` 빈 출력인지 |
-| Worker join 토큰 만료 | `[k8s-cp1]$ sudo kubeadm token create --print-join-command` 받아서 워커에 수동 적용 |
-| Calico 노드 NotReady 지속 | `kubectl get pods -n calico-system` + `kubectl logs -n calico-system <pod>` |
-| `ansible all -m ping` 일부 실패 | inventory의 `ansible_host` IP가 실제 VM IP와 같은지 확인 |
+| 증상                            | 해결                                                                                |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| `Permission denied (publickey)` | `~/.ssh/kosa_iac` 권한 600. inventory의 `ansible_ssh_private_key_file` 경로 확인    |
+| `kubeadm init` swap 에러        | 00-bootstrap 재실행 → `ansible k8s_cluster -m shell -a 'swapon -s'` 빈 출력인지     |
+| Worker join 토큰 만료           | `[k8s-cp1]$ sudo kubeadm token create --print-join-command` 받아서 워커에 수동 적용 |
+| Calico 노드 NotReady 지속       | `kubectl get pods -n calico-system` + `kubectl logs -n calico-system <pod>`         |
+| `ansible all -m ping` 일부 실패 | inventory의 `ansible_host` IP가 실제 VM IP와 같은지 확인                            |
 
 ### K8s 운영 ([bastion])
 
-| 증상 | 해결 |
-|---|---|
-| `kubectl top nodes` "Metrics not available" | `kubectl logs -n kube-system -l k8s-app=metrics-server` |
-| LoadBalancer Pending | MetalLB `IPAddressPool` + `L2Advertisement` 적용 확인 |
-| PVC Pending | `kubectl logs -n ceph-csi-rbd -l app=csi-rbdplugin-provisioner` |
-| Pod ImagePullBackOff | Harbor 인증 secret 확인 — `kubectl create secret docker-registry ...` |
+| 증상                                        | 해결                                                                  |
+| ------------------------------------------- | --------------------------------------------------------------------- |
+| `kubectl top nodes` "Metrics not available" | `kubectl logs -n kube-system -l k8s-app=metrics-server`               |
+| LoadBalancer Pending                        | MetalLB `IPAddressPool` + `L2Advertisement` 적용 확인                 |
+| PVC Pending                                 | `kubectl logs -n ceph-csi-rbd -l app=csi-rbdplugin-provisioner`       |
+| Pod ImagePullBackOff                        | Harbor 인증 secret 확인 — `kubectl create secret docker-registry ...` |
 
 ---
 
 ## 다음 단계
 
 온프레가 안정되면 → **AWS 측 구축** (`terraform/aws/README.md`):
+
 1. Phase 1 (Day 8): VPC + NLB + EC2 HAProxy
 2. Phase 2 (Day 9-10): Site-to-Site VPN
 3. Phase 3 (Day 10): RDS Read Replica
@@ -1368,7 +1421,7 @@ Grafana 접속:
 
 ## 변경 이력
 
-| 일자 | 내용 |
-|---|---|
-| 2026-05-12 | 초안 |
+| 일자       | 내용                                                                                    |
+| ---------- | --------------------------------------------------------------------------------------- |
+| 2026-05-12 | 초안                                                                                    |
 | 2026-05-12 | "실행 위치" 라벨 도입, Phase 4 상세화, Ubuntu Noble 24.04 반영, Worker 배치 옵션 C 반영 |
