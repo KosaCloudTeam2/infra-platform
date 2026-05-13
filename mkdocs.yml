@@ -6,7 +6,6 @@ use_directory_urls: true
 exclude_docs: |
   engineering/**
   operations/**
-  **/_workspace/**
 not_in_nav: |
   daily_notice/[0-9]*.md
 
