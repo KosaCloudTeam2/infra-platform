@@ -1,4 +1,4 @@
-site_name: Cloud Infra Deployment Platform
+site_name: Cloud Infra Deployment Platform (Demo)
 site_description: 13+3 day cost-first hybrid cloud infrastructure project documentation
 repo_name: infra-platform
 docs_dir: docs
@@ -36,61 +36,19 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Project:
-      - Overview: 00_project_overview.md
-      - Architecture: 01_architecture.md
-      - Schedule 13+3: 02_schedule_13_plus_3.md
-      - Roles and Work Packages: 03_roles_and_work_packages.md
-      - Implementation Scope: 04_implementation_scope.md
-      - Security Policy: 05_security_policy.md
-      - Demo Presentation Plan: 06_demo_presentation_plan.md
-      - Definition of Done: 07_definition_of_done.md
-      - Risk Register: 08_risk_register.md
-      - Cleanup Plan: 09_cleanup_plan.md
+  - Core Guides:
+      - Cleanup Plan: 01_cleanup_plan.md
+      - Commit Strategy: 02_commit_strategy.md
+      - MkDocs Guide: 03_mkdocs_guide.md
+      - Glossary: 04_glossary.md
   - Team Operations:
-      - Commit Strategy: 10_commit_strategy.md
-      - GitHub Setup: 11_github_setup.md
-      - Repository Sharing Policy: 12_repository_sharing_policy.md
       - Environment Setup: ENVIRONMENT_SETUP.md
       - Daily Notice: daily_notice/README.md
-  - Reviews and History:
-      - Ceph Usage Strategy: 13_ceph_usage_strategy.md
-      - Existing Project Comparison: 14_existing_project_comparison.md
-      - Structure Review: 15_structure_review.md
-      - Change Log: 16_change_log.md
-  - Collaboration and Quality:
-      - AI Collaboration Guide: 17_ai_collaboration_guide.md
-      - Quality Checks: 18_quality_checks.md
-      - Tool Troubleshooting: 19_tool_troubleshooting.md
-      - MkDocs Guide: 20_mkdocs_guide.md
-      - Team Decision Checklist: 21_team_decision_checklist.md
-      - Glossary: 22_glossary.md
-      - Technical Questions: 23_technical_questions.md
-      - Tech Stack Ownership: 24_tech_stack_ownership.md
   - Architecture Build-up:
       - Guide: architecture/build-up/README.md
-      - Network / IaC:
-          - Scope: architecture/build-up/01_network_iac.md
-          - Implementation: architecture/build-up/01_network_iac_implementation.md
-      - DB / Storage:
-          - Scope: architecture/build-up/02_db_storage.md
-          - Implementation: architecture/build-up/02_db_storage_implementation.md
-          - RBD Register Guide: architecture/build-up/db_storage/01_rbd_register_guide.md
-          - Template Clone Guide: architecture/build-up/db_storage/02_template_clone_guide.md
-      - CI/CD / App Runtime:
-          - Scope: architecture/build-up/03_cicd_app_runtime.md
-          - Implementation: architecture/build-up/03_cicd_app_runtime_implementation.md
-      - Observability / Demo:
-          - Scope: architecture/build-up/04_observability_demo.md
-          - Implementation: architecture/build-up/04_observability_demo_implementation.md
-      - Presentation / Handover:
-          - Scope: architecture/build-up/05_presentation_handover.md
-          - Implementation: architecture/build-up/05_presentation_handover_implementation.md
   - Runbooks:
-      - Deployment: runbooks/deployment.md
       - Rollback: runbooks/rollback.md
       - Monitoring: runbooks/monitoring.md
-      - Database and Storage: runbooks/database_storage.md
       - Incident Scenarios: runbooks/incident_scenarios.md
   - Presentation:
       - Outline: presentation/outline.md
@@ -99,12 +57,14 @@ nav:
       - Q&A: presentation/qna.md
   - Decisions:
       - Summary: architecture/decisions/README.md
-      - Superseded ECS Fargate MVP: architecture/decisions/ADR-001-ecs-fargate-mvp.md
-      - RDS Exclusion and PXC/ProxySQL: architecture/decisions/ADR-002-rds-exclusion-pxc-proxysql.md
-      - ProxySQL Single Node MVP: architecture/decisions/ADR-003-proxysql-single-node-mvp.md
-      - Proxmox Ceph Storage Role: architecture/decisions/ADR-004-proxmox-ceph-storage-role.md
-      - GitHub Actions OIDC: architecture/decisions/ADR-005-github-actions-oidc.md
-      - MkDocs Navigation: architecture/decisions/ADR-006-mkdocs-docs-navigation.md
-      - Cost-first Hybrid Kubernetes Burst: architecture/decisions/ADR-007-hybrid-kubernetes-cloud-bursting.md
-      - Argo CD GitOps MVP: architecture/decisions/ADR-008-argocd-gitops-mvp.md
-      - Docker Hub Registry MVP: architecture/decisions/ADR-009-docker-hub-registry-mvp.md
+  - Project Info:
+      - Change Log: change_log.md
+      - Security Policy: project_info/05_security_policy.md
+      - Definition of Done: project_info/07_definition_of_done.md
+      - Risk Register: project_info/08_risk_register.md
+      - GitHub Setup: project_info/11_github_setup.md
+      - Quality Checks: project_info/18_quality_checks.md
+      - Tool Troubleshooting: project_info/19_tool_troubleshooting.md
+      - Team Decision Checklist: project_info/21_team_decision_checklist.md
+      - pfSense Guide: project_info/pfsense_guide.md
+      - pfSense Detail: project_info/pfsense_detail_guide.md

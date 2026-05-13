@@ -10,11 +10,11 @@
 
 상세 절차는 아래 문서를 따름.
 
-| 문서                                                 | 내용                                      |
-| :--------------------------------------------------- | :---------------------------------------- |
-| [Quality Checks](./18_quality_checks.md)             | Prettier, pre-commit, Terraform 검증 절차 |
-| [Tool Troubleshooting](./19_tool_troubleshooting.md) | winget, Terraform, Git Hook 문제 해결     |
-| [MkDocs Guide](./20_mkdocs_guide.md)                 | MkDocs 설치와 로컬 문서 사이트 실행       |
+| 문서                                                              | 내용                                      |
+| :---------------------------------------------------------------- | :---------------------------------------- |
+| [Quality Checks](./project_info/18_quality_checks.md)             | Prettier, pre-commit, Terraform 검증 절차 |
+| [Tool Troubleshooting](./project_info/19_tool_troubleshooting.md) | winget, Terraform, Git Hook 문제 해결     |
+| [MkDocs Guide](./03_mkdocs_guide.md)                              | MkDocs 설치와 로컬 문서 사이트 실행       |
 
 ## 2. 공통 필수 도구
 
