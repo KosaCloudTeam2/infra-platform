@@ -1,4 +1,7 @@
-# Environment Setup Guide
+# Environment Setup Guide (Demo Version)
+
+> **주의**: 본 문서는 프로젝트의 **데모(Demo) 버전** 또는 **임시 구조**를 설명하고 있습니다. 향후
+> 전체적인 프로젝트 구조가 변경될 예정이므로 참고하시기 바랍니다.
 
 13일 구축 + 3일 발표 준비 기간 동안 팀원 환경 차이로 시간을 잃지 않기 위한 초기 환경 설정 기준
 
@@ -28,12 +31,6 @@
 | Python/uv   | pre-commit, MkDocs, Ruff, pip-audit 실행 환경 | `uv --version`      |
 | AWS CLI v2  | AWS 리소스 확인                               | `aws --version`     |
 | Terraform   | IaC 실행                                      | `terraform version` |
-
-선택 도구:
-
-| 도구           | 용도                     | 기준                                      |
-| :------------- | :----------------------- | :---------------------------------------- |
-| Docker Desktop | 앱 이미지 로컬 빌드/실행 | Windows 로컬 필수 아님. CI/CD 담당만 권장 |
 
 ## 3. 최초 설치
 
@@ -84,8 +81,6 @@ uv --version
 ```
 
 #### 3.1.3 Terraform
-
-`winget` 또는 HashiCorp 공식 설치 프로그램 사용 권장
 
 ```powershell
 winget install Hashicorp.Terraform
@@ -193,23 +188,11 @@ AWS 인증은 Terraform `plan` 또는 실제 리소스 확인을 시작하기 �
 aws sts get-caller-identity
 ```
 
-인증 전에도 가능한 검증은 [Quality Checks](./18_quality_checks.md)를 따름.
-
-Python 파일이 아직 없어도 Ruff hook은 정상적으로 skip됨. Python 코드가 추가되면 commit 단계에서
-`ruff format --check`와 `ruff check`가 staged Python 파일을 검사함.
-
-Python 의존성 취약점 검사는 `pip-audit`로 수행하며, commit 단계가 아니라 pre-push 또는 manual
-단계에서 실행함.
-
-```powershell
-uv run pre-commit run pip-audit --hook-stage pre-push --all-files
-```
+인증 전에도 가능한 검증은 [Project Info: Quality Checks](./project_info/18_quality_checks.md)를
+따름.
 
 ## 6. 팀 운영 규칙
 
 - Day 1에 전원 환경 구축 완료
-- Day 5, Day 9, Day 13에 전체 검증
 - Day 14부터 신규 기능 추가 금지
 - `.env`, `*.tfstate`, 개인키, 인증서, AWS Access Key 커밋 금지
-- GitHub에 공유할 자료와 제외할 자료는
-  [Repository Sharing Policy](./12_repository_sharing_policy.md) 기준 준수

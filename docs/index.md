@@ -8,36 +8,32 @@
 
 ## 1. 필수 가이드
 
-| 순서 | 문서                                         | 목적                                        |
-| :--- | :------------------------------------------- | :------------------------------------------ |
-| 1    | [Project Overview](./00_project_overview.md) | 프로젝트 목표와 성공 기준 확인              |
-| 2    | [Architecture](./01_architecture.md)         | 전체 하이브리드 아키텍처와 설계 고정점 확인 |
-| 3    | [Schedule 13+3](./02_schedule_13_plus_3.md)  | 13일 구축 + 3일 발표 일정 확인              |
-| 4    | [Cleanup Plan](./01_cleanup_plan.md)         | 발표 후 비용 정리 계획 확인                 |
-| 5    | [Environment Setup](./ENVIRONMENT_SETUP.md)  | 팀원 초기 환경 설정                         |
+| 순서 | 문서                                        | 목적                        |
+| :--- | :------------------------------------------ | :-------------------------- |
+| 1    | [Cleanup Plan](./01_cleanup_plan.md)        | 발표 후 비용 정리 계획 확인 |
+| 2    | [Environment Setup](./ENVIRONMENT_SETUP.md) | 팀원 초기 환경 설정         |
+| 3    | [Commit Strategy](./02_commit_strategy.md)  | 브랜치, 커밋, PR 기준       |
+| 4    | [MkDocs Guide](./03_mkdocs_guide.md)        | 문서 사이트 로컬 미리보기   |
 
-## 2. 팀 운영 및 운영 문서
+## 2. 운영 및 참고 문서
 
-| 문서                                       | 목적                          |
-| :----------------------------------------- | :---------------------------- |
-| [Commit Strategy](./02_commit_strategy.md) | 브랜치, 커밋, PR 기준         |
-| [MkDocs Guide](./03_mkdocs_guide.md)       | 문서 사이트 로컬 미리보기     |
-| [Glossary](./04_glossary.md)               | AWS와 인프라 약어 확인        |
-| [Daily Notice](./daily_notice/README.md)   | 당일 공지와 작업 전 확인 사항 |
+| 문서                                     | 목적                          |
+| :--------------------------------------- | :---------------------------- |
+| [Glossary](./04_glossary.md)             | AWS와 인프라 약어 확인        |
+| [Daily Notice](./daily_notice/README.md) | 당일 공지와 작업 전 확인 사항 |
+| [Change Log](./change_log.md)            | 프로젝트 변경 이력 확인       |
 
-## 3. 프로젝트 상세 정보 (참고용)
+## 3. 프로젝트 상세 정보 (Project Info)
 
-기존의 상세 설계 및 보안 정책 등은 아래 폴더에서 확인할 수 있습니다.
+기존의 상세 설계 및 보안 정책 등은 아래 링크에서 확인할 수 있습니다.
 
-- [Project Info](./project_info/)
-  - [Change Log](./change_log.md)
-  - [Security Policy](./project_info/05_security_policy.md)
-  - [Definition of Done](./project_info/07_definition_of_done.md)
-  - [Risk Register](./project_info/08_risk_register.md)
-  - [GitHub Setup](./project_info/11_github_setup.md)
-  - [Quality Checks](./project_info/18_quality_checks.md)
-  - [Tool Troubleshooting](./project_info/19_tool_troubleshooting.md)
-  - [Team Decision Checklist](./project_info/21_team_decision_checklist.md)
+- [Security Policy](./project_info/05_security_policy.md)
+- [Definition of Done](./project_info/07_definition_of_done.md)
+- [Risk Register](./project_info/08_risk_register.md)
+- [GitHub Setup](./project_info/11_github_setup.md)
+- [Quality Checks](./project_info/18_quality_checks.md)
+- [Tool Troubleshooting](./project_info/19_tool_troubleshooting.md)
+- [Team Decision Checklist](./project_info/21_team_decision_checklist.md)
 
 ## 4. 아키텍처 및 구축 문서
 

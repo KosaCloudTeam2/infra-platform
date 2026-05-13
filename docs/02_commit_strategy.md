@@ -1,9 +1,14 @@
-# Git 작업 전략
+# Git 작업 전략 (Demo Version)
+
+> **주의**: 본 문서는 프로젝트의 **데모(Demo) 버전** 또는 **임시 구조**를 설명하고 있습니다. 향후
+> 전체적인 프로젝트 구조가 변경될 예정이므로 참고하시기 바랍니다.
+
+---
 
 ## 1. 브랜치
 
 - `main`: 발표 가능한 안정 상태
-- `feature/network-iac`: VPC/ALB/SG
+- `feature/network-iac`: VPC/NLB/SG
 - `feature/app-runtime`: Kubernetes/Docker Hub/Argo CD
 - `feature/cicd-security`: GitHub Actions/IAM/WAF
 - `feature/observability`: CloudWatch/Alarm/Runbook
@@ -17,7 +22,7 @@ type(scope): summary
 
 예시
 
-- `feat(terraform): add vpc and alb baseline`
+- `feat(terraform): add vpc and nlb baseline`
 - `feat(k8s): add app deployment manifest`
 - `ci(github): add oidc based deploy workflow`
 - `docs(plan): add 13 plus 3 schedule`
@@ -28,7 +33,6 @@ type(scope): summary
 - 관련 문서가 함께 갱신됨
 - Terraform 변경 시 `fmt/validate/plan` 결과를 남김
 - 배포 관련 변경 시 롤백 방법을 적음
-- GitHub 공유 정책은 [Repository Sharing Policy](./12_repository_sharing_policy.md)를 따름
 
 ## 4. 커밋 단계 검사 기준
 
@@ -68,7 +72,8 @@ Prettier는 모든 파일에 적용하지 않고 Prettier가 안정적으로 다
 
 - 리베이스 중 충돌이 발생한 경우 [Git rebase 충돌 해결 가이드](./runbooks/git_rebase_conflict.md)
   참조.
-- 로컬 도구 또는 Hook 관련 문제는 [Tool Troubleshooting](./19_tool_troubleshooting.md)을 확인.
+- 로컬 도구 또는 Hook 관련 문제는
+  [Project Info: Tool Troubleshooting](./project_info/19_tool_troubleshooting.md)을 확인.
 
 ## 6. pre-push 또는 CI로 분리할 검사
 

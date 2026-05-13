@@ -1,4 +1,7 @@
-# MkDocs Guide
+# MkDocs Guide (Demo Version)
+
+> **주의**: 본 문서는 프로젝트의 **데모(Demo) 버전** 또는 **임시 구조**를 설명하고 있습니다. 향후
+> 전체적인 프로젝트 구조가 변경될 예정이므로 참고하시기 바랍니다.
 
 Markdown 문서를 웹 사이트 형태로 확인하기 위한 MkDocs 사용 절차
 
@@ -11,7 +14,7 @@ MkDocs는 `docs/` 아래 Markdown 문서를 웹 문서 사이트로 확인하기
 Navigation 기준:
 
 - 루트 문서 파일명 번호 흐름 우선
-- `00~22` 순서와 MkDocs 좌측 메뉴 순서 일치
+- `01~04` 순서와 MkDocs 좌측 메뉴 순서 일치
 - 문서 파일 대규모 이동보다 `mkdocs.yml`의 `nav` 조정 우선
 
 발표 PDF는 기존 Marp 절차를 계속 사용함.

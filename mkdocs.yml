@@ -40,10 +40,12 @@ nav:
       - Cleanup Plan: 01_cleanup_plan.md
       - Commit Strategy: 02_commit_strategy.md
       - MkDocs Guide: 03_mkdocs_guide.md
-      - Glossary: 04_glossary.md
   - Team Operations:
       - Environment Setup: ENVIRONMENT_SETUP.md
       - Daily Notice: daily_notice/README.md
+  - Reference:
+      - Glossary: 04_glossary.md
+      - Change Log: change_log.md
   - Architecture Build-up:
       - Guide: architecture/build-up/README.md
   - Runbooks:
@@ -58,7 +60,6 @@ nav:
   - Decisions:
       - Summary: architecture/decisions/README.md
   - Project Info:
-      - Change Log: change_log.md
       - Security Policy: project_info/05_security_policy.md
       - Definition of Done: project_info/07_definition_of_done.md
       - Risk Register: project_info/08_risk_register.md
@@ -66,5 +67,3 @@ nav:
       - Quality Checks: project_info/18_quality_checks.md
       - Tool Troubleshooting: project_info/19_tool_troubleshooting.md
       - Team Decision Checklist: project_info/21_team_decision_checklist.md
-      - pfSense Guide: project_info/pfsense_guide.md
-      - pfSense Detail: project_info/pfsense_detail_guide.md

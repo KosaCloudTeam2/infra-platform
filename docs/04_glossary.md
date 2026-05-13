@@ -17,6 +17,7 @@
 | Ingress                 | Kubernetes 내부 앱을 외부에서 접근 가능하게 하는 입구          | 온프레미스 웹앱 진입점                        |
 | EC2                     | AWS에서 빌려 쓰는 가상 서버                                    | 부하 증가 시 추가 실행되는 burst 서버         |
 | ALB                     | HTTP/HTTPS 요청을 여러 서버로 나누어 보내는 AWS 로드밸런서     | AWS burst 영역의 외부 진입점                  |
+| NLB                     | 네트워크 트래픽을 여러 서버로 나누어 보내는 AWS 로드밸런서     | AWS burst 영역의 외부 진입점                  |
 | Auto Scaling Group(ASG) | 조건에 따라 EC2를 자동으로 늘리거나 줄이는 AWS 기능            | 부하 증가 시 AWS EC2 생성, 부하 감소 시 종료  |
 | Launch Template         | 새 EC2를 만들 때 사용할 서버 설정 템플릿                       | AMI, 인스턴스 타입, user data, 보안그룹 정의  |
 | CloudWatch              | AWS 로그, 지표, 알람 서비스                                    | CPU, 요청 수, 장애 감지와 scale-out 기준      |
@@ -30,33 +31,34 @@
 | RBD                     | Ceph의 블록 스토리지                                           | Proxmox VM 디스크, Kubernetes PV 후보         |
 | CephFS                  | Ceph의 공유 파일 시스템                                        | 여러 노드가 공유하는 파일 저장 후보           |
 | PXC                     | MySQL 호환 DB를 여러 노드로 묶는 Percona DB 클러스터           | RDS 대신 직접 운영하는 DB 후보                |
+| Percona Operator        | MySQL 클러스터를 자동화하여 관리하는 도구                      | RDS 대신 직접 운영하는 DB 후보                |
 | ProxySQL                | 앱과 DB 사이에서 DB 접속을 중계하는 프록시                     | 앱은 DB 노드가 아니라 ProxySQL로 접속         |
 
 ---
 
 ## AWS / 네트워크
 
-| 약어           | Full name                            | 의미                                                             |
-| :------------- | :----------------------------------- | :--------------------------------------------------------------- |
-| ACM            | AWS Certificate Manager              | HTTPS 인증서 발급/관리 서비스                                    |
-| ALB            | Application Load Balancer            | HTTP/HTTPS 요청을 여러 대상에 분산하는 L7 로드밸런서             |
-| ALB Target 5xx | Application Load Balancer Target 5xx | ALB 뒤의 앱 서버가 반환한 `500`번대 서버 오류 수                 |
-| ASG            | Auto Scaling Group                   | 부하나 정책에 따라 EC2 인스턴스 수를 자동 조정하는 그룹          |
-| AZ             | Availability Zone                    | AWS 리전 안의 독립 데이터센터 영역                               |
-| CloudWatch     | Amazon CloudWatch                    | AWS 로그, 지표, 알람을 수집하고 확인하는 운영 관측 서비스        |
-| EC2            | Elastic Compute Cloud                | AWS 가상 서버 서비스                                             |
-| EKS            | Elastic Kubernetes Service           | AWS 관리형 Kubernetes 서비스. MVP에서는 최소 PoC로 사용          |
-| Health Check   | Health Check                         | ALB나 Kubernetes가 앱이 정상 응답하는지 주기적으로 확인하는 검사 |
-| IGW            | Internet Gateway                     | VPC와 인터넷 연결 게이트웨이                                     |
-| NAT            | Network Address Translation          | Private Subnet 리소스의 외부 통신 경로                           |
-| NLB            | Network Load Balancer                | TCP/UDP 트래픽을 분산하는 L4 로드밸런서                          |
-| VIP            | Virtual IP                           | 장애 전환을 위해 여러 서버 앞에 두는 공유 가상 IP                |
-| RDS            | Relational Database Service          | AWS 관리형 관계형 데이터베이스 서비스                            |
-| S3             | Simple Storage Service               | AWS 객체 스토리지 서비스                                         |
-| SG             | Security Group                       | AWS 리소스 단위 가상 방화벽                                      |
-| Target Group   | Target Group                         | ALB/NLB가 트래픽을 전달할 EC2, IP, 컨테이너 대상 묶음            |
-| VPC            | Virtual Private Cloud                | AWS 계정 안의 격리된 가상 네트워크                               |
-| WAF            | Web Application Firewall             | 웹 요청 필터링과 공격 차단 서비스                                |
+| 약어           | Full name                        | 의미                                                             |
+| :------------- | :------------------------------- | :--------------------------------------------------------------- |
+| ACM            | AWS Certificate Manager          | HTTPS 인증서 발급/관리 서비스                                    |
+| ALB            | Application Load Balancer        | HTTP/HTTPS 요청을 여러 대상에 분산하는 L7 로드밸런서             |
+| NLB            | Network Load Balancer            | TCP/UDP 트래픽을 분산하는 L4 로드밸런서                          |
+| NLB Target 5xx | Network Load Balancer Target 5xx | NLB 뒤의 앱 서버가 반환한 `500`번대 서버 오류 수                 |
+| ASG            | Auto Scaling Group               | 부하나 정책에 따라 EC2 인스턴스 수를 자동 조정하는 그룹          |
+| AZ             | Availability Zone                | AWS 리전 안의 독립 데이터센터 영역                               |
+| CloudWatch     | Amazon CloudWatch                | AWS 로그, 지표, 알람을 수집하고 확인하는 운영 관측 서비스        |
+| EC2            | Elastic Compute Cloud            | AWS 가상 서버 서비스                                             |
+| EKS            | Elastic Kubernetes Service       | AWS 관리형 Kubernetes 서비스. MVP에서는 최소 PoC로 사용          |
+| Health Check   | Health Check                     | NLB나 Kubernetes가 앱이 정상 응답하는지 주기적으로 확인하는 검사 |
+| IGW            | Internet Gateway                 | VPC와 인터넷 연결 게이트웨이                                     |
+| NAT            | Network Address Translation      | Private Subnet 리소스의 외부 통신 경로                           |
+| VIP            | Virtual IP                       | 장애 전환을 위해 여러 서버 앞에 두는 공유 가상 IP                |
+| RDS            | Relational Database Service      | AWS 관리형 관계형 데이터베이스 서비스                            |
+| S3             | Simple Storage Service           | AWS 객체 스토리지 서비스                                         |
+| SG             | Security Group                   | AWS 리소스 단위 가상 방화벽                                      |
+| Target Group   | Target Group                     | NLB/NLB가 트래픽을 전달할 EC2, IP, 컨테이너 대상 묶음            |
+| VPC            | Virtual Private Cloud            | AWS 계정 안의 격리된 가상 네트워크                               |
+| WAF            | Web Application Firewall         | 웹 요청 필터링과 공격 차단 서비스                                |
 
 ## 배포 / 컨테이너
 
@@ -98,39 +100,41 @@
 
 ## 데이터 / 스토리지
 
-| 약어          | Full name                         | 의미                                                                                |
-| :------------ | :-------------------------------- | :---------------------------------------------------------------------------------- |
-| Ceph OSD      | Ceph Object Storage Daemon        | Ceph에서 실제 데이터를 디스크에 저장하고 복제하는 프로세스                          |
-| Ceph pool     | Ceph Storage Pool                 | Ceph 객체를 저장하는 논리 저장 공간 묶음                                            |
-| Grafana       | Grafana                           | Prometheus, CloudWatch 같은 지표를 대시보드로 보여주는 도구                         |
-| garbd         | Galera Arbitrator Daemon          | Galera/PXC quorum 보조용 비저장 투표 구성원. PXC 3노드 MVP에서는 불필요             |
-| GSLB          | Global Server Load Balancing      | 여러 지역 또는 endpoint로 트래픽을 분산하거나 장애 시 우회하는 전역 로드밸런싱 개념 |
-| iperf         | iperf                             | 네트워크 대역폭과 품질을 측정하는 도구                                              |
-| JMeter        | Apache JMeter                     | HTTP/API 부하 테스트와 성능 검증 도구                                               |
-| k6            | k6                                | JavaScript 기반 HTTP/API 부하 테스트 도구                                           |
-| Locust        | Locust                            | Python 코드로 사용자 행동을 작성하는 부하 테스트 도구                               |
-| Loki          | Grafana Loki                      | Kubernetes와 앱 로그를 label 기반으로 수집하고 조회하는 로그 도구                   |
-| PMM           | Percona Monitoring and Management | Percona DB 모니터링 도구                                                            |
-| p95 latency   | 95th percentile latency           | 요청 중 95%가 해당 시간 이하로 응답했다는 지연 시간 지표                            |
-| Prometheus    | Prometheus                        | Kubernetes와 앱 지표를 주기적으로 수집하는 오픈소스 모니터링 도구                   |
-| Thanos        | Thanos                            | Prometheus 지표 장기 보관, 통합 조회, 고가용성을 제공하는 확장 도구                 |
-| PXC           | Percona XtraDB Cluster            | MySQL 호환 동기식 DB 클러스터                                                       |
-| RBD           | RADOS Block Device                | Ceph 블록 스토리지                                                                  |
-| RGW           | RADOS Gateway                     | Ceph S3 호환 객체 스토리지 게이트웨이                                               |
-| Sentry        | Sentry                            | 앱 예외, stack trace, release별 오류 추적 도구                                      |
-| Single Writer | Single Writer                     | PXC에서 쓰기 노드를 1대로 정해 쓰기 충돌을 줄이는 운영 방식                         |
-| wsrep         | Write Set Replication             | PXC/Galera Cluster의 복제 상태를 보여주는 상태 변수 접두어                          |
+| 약어             | Full name                         | 의미                                                                                |
+| :--------------- | :-------------------------------- | :---------------------------------------------------------------------------------- |
+| Ceph OSD         | Ceph Object Storage Daemon        | Ceph에서 실제 데이터를 디스크에 저장하고 복제하는 프로세스                          |
+| Ceph pool        | Ceph Storage Pool                 | Ceph 객체를 저장하는 논리 저장 공간 묶음                                            |
+| Grafana          | Grafana                           | Prometheus, CloudWatch 같은 지표를 대시보드로 보여주는 도구                         |
+| garbd            | Galera Arbitrator Daemon          | Galera/Percona Operator quorum 보조용 비저장 투표 구성원                            |
+| GSLB             | Global Server Load Balancing      | 여러 지역 또는 endpoint로 트래픽을 분산하거나 장애 시 우회하는 전역 로드밸런싱 개념 |
+| iperf            | iperf                             | 네트워크 대역폭과 품질을 측정하는 도구                                              |
+| JMeter           | Apache JMeter                     | HTTP/API 부하 테스트와 성능 검증 도구                                               |
+| k6               | k6                                | JavaScript 기반 HTTP/API 부하 테스트 도구                                           |
+| Locust           | Locust                            | Python 코드로 사용자 행동을 작성하는 부하 테스트 도구                               |
+| Loki             | Grafana Loki                      | Kubernetes와 앱 로그를 label 기반으로 수집하고 조회하는 로그 도구                   |
+| PMM              | Percona Monitoring and Management | Percona DB 모니터링 도구                                                            |
+| p95 latency      | 95th percentile latency           | 요청 중 95%가 해당 시간 이하로 응답했다는 지연 시간 지표                            |
+| Prometheus       | Prometheus                        | Kubernetes와 앱 지표를 주기적으로 수집하는 오픈소스 모니터링 도구                   |
+| Thanos           | Thanos                            | Prometheus 지표 장기 보관, 통합 조회, 고가용성을 제공하는 확장 도구                 |
+| Percona Operator | Percona Operator                  | MySQL 호환 데이터베이스 클러스터를 관리하는 쿠버네티스 오퍼레이터                   |
+| RBD              | RADOS Block Device                | Ceph 블록 스토리지                                                                  |
+| RGW              | RADOS Gateway                     | Ceph S3 호환 객체 스토리지 게이트웨이                                               |
+| Sentry           | Sentry                            | 앱 예외, stack trace, release별 오류 추적 도구                                      |
+| Single Writer    | Single Writer                     | DB 클러스터에서 쓰기 노드를 1대로 정해 쓰기 충돌을 줄이는 운영 방식                 |
+| wsrep            | Write Set Replication             | Percona Operator/Galera Cluster의 복제 상태를 보여주는 상태 변수 접두어             |
+
+---
 
 ## 숙지해야 할 표현
 
 | 표현                                 | 의미                                                                                       |
 | :----------------------------------- | :----------------------------------------------------------------------------------------- |
-| `ALB Target 5xx 5분 합계 5회 이상`   | 5분 동안 ALB 뒤 앱 서버가 `500`, `502`, `503`, `504` 같은 서버 오류를 5번 이상 반환한 상태 |
-| `Target Response Time`               | ALB가 앱 대상에게 요청을 보내고 응답을 받을 때까지 걸린 시간                               |
-| `Target Group Health Check`          | ALB Target Group이 각 앱 대상의 `/health` 같은 경로를 호출해 정상 여부를 판단하는 검사     |
-| `Target Health = healthy`            | ALB가 해당 앱 대상을 정상으로 판단해 트래픽을 보낼 수 있는 상태                            |
-| `Target Health = unhealthy`          | ALB가 해당 앱 대상을 비정상으로 판단해 트래픽 전달을 제한하는 상태                         |
-| `UnHealthyHostCount 1 이상`          | ALB Target Group 안의 앱 대상 중 Health Check 실패 대상이 1개 이상인 상태                  |
+| `NLB Target 5xx 5분 합계 5회 이상`   | 5분 동안 NLB 뒤 앱 서버가 `500`, `502`, `503`, `504` 같은 서버 오류를 5번 이상 반환한 상태 |
+| `Target Response Time`               | NLB가 앱 대상에게 요청을 보내고 응답을 받을 때까지 걸린 시간                               |
+| `Target Group Health Check`          | NLB Target Group이 각 앱 대상의 `/health` 같은 경로를 호출해 정상 여부를 판단하는 검사     |
+| `Target Health = healthy`            | NLB가 해당 앱 대상을 정상으로 판단해 트래픽을 보낼 수 있는 상태                            |
+| `Target Health = unhealthy`          | NLB가 해당 앱 대상을 비정상으로 판단해 트래픽 전달을 제한하는 상태                         |
+| `UnHealthyHostCount 1 이상`          | NLB Target Group 안의 앱 대상 중 Health Check 실패 대상이 1개 이상인 상태                  |
 | `ASG desired capacity`               | Auto Scaling Group이 유지하려는 EC2 인스턴스 수                                            |
 | `ASG scale-out`                      | 부하 증가로 EC2 인스턴스 수를 늘리는 동작                                                  |
 | `ASG scale-in`                       | 부하 감소로 EC2 인스턴스 수를 줄이는 동작                                                  |
@@ -156,12 +160,11 @@
 | `Ingress URL`                        | 외부 사용자가 Kubernetes 앱에 접근하는 HTTP/HTTPS 주소                                     |
 | `Service endpoint`                   | Kubernetes Service가 연결하는 실제 Pod IP와 포트 목록                                      |
 | `ProxySQL endpoint`                  | 앱이 DB에 접속할 때 사용하는 ProxySQL 주소                                                 |
-| `ProxySQL backend status`            | ProxySQL이 뒤쪽 PXC 노드를 정상 DB 서버로 보고 있는지 나타내는 상태                        |
-| `PXC 노드 1대 장애`                  | PXC 3노드 중 1대가 중지되거나 클러스터에서 빠진 상황                                       |
-| `wsrep_cluster_status = Primary`     | PXC 클러스터가 정상 Primary 구성으로 동작 중인 상태                                        |
-| `wsrep_cluster_size = 3`             | PXC 클러스터에 정상 참여 중인 노드가 3대인 상태                                            |
-| `wsrep_local_state_comment = Synced` | 해당 PXC 노드가 클러스터 데이터와 동기화된 상태                                            |
-| `Galera 포트 4567/4568/4444`         | PXC 노드 간 복제, 상태 전송, 백업 전송에 필요한 내부 통신 포트                             |
+| `ProxySQL backend status`            | ProxySQL이 뒤쪽 DB 노드를 정상 DB 서버로 보고 있는지 나타내는 상태                         |
+| `DB 노드 1대 장애`                   | DB 클러스터 노드 중 1대가 중지되거나 클러스터에서 빠진 상황                                |
+| `wsrep_cluster_status = Primary`     | DB 클러스터가 정상 Primary 구성으로 동작 중인 상태                                         |
+| `wsrep_cluster_size = 3`             | DB 클러스터에 정상 참여 중인 노드가 3대인 상태                                             |
+| `wsrep_local_state_comment = Synced` | 해당 DB 노드가 클러스터 데이터와 동기화된 상태                                             |
 | `XtraBackup 산출물`                  | Percona XtraBackup으로 만든 DB 백업 파일                                                   |
 | `체크섬 파일`                        | 백업 파일이 깨지지 않았는지 검증하기 위한 해시 값 파일                                     |
 | `Ceph OSD 상태`                      | Ceph 저장 디스크 담당 프로세스가 `up/in` 상태인지 확인하는 항목                            |
@@ -170,7 +173,7 @@
 | `Ceph health = HEALTH_OK`            | Ceph 클러스터가 정상 상태라고 판단한 상태                                                  |
 | `Ceph health = HEALTH_WARN`          | Ceph 클러스터가 동작은 하지만 확인이 필요한 경고가 있는 상태                               |
 | `Ceph RGW bucket`                    | DB 백업 파일이나 앱 파일을 저장하는 S3 호환 객체 저장소 버킷                               |
-| `PMM 선택 확장`                      | PXC/ProxySQL 상세 지표를 보고 싶을 때 추가하는 DB 모니터링 확장                            |
+| `PMM 선택 확장`                      | DB/ProxySQL 상세 지표를 보고 싶을 때 추가하는 DB 모니터링 확장                             |
 | `Prometheus scrape`                  | Prometheus가 정해진 주기로 앱이나 Kubernetes 지표 endpoint를 수집하는 동작                 |
 | `Grafana dashboard`                  | 수집된 지표를 그래프와 표로 보는 화면                                                      |
 | `CloudWatch Logs`                    | AWS 리소스나 앱 로그가 저장되는 CloudWatch 로그 영역                                       |
