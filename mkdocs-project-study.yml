@@ -1,7 +1,7 @@
 site_name: Cloud Infra Platform Study Docs
 site_description: 클라우드 인프라 플랫폼 학습용 문서 사이트
-docs_dir: .
-site_dir: ../site-project-study-latest
+docs_dir: Project_Study_latest
+site_dir: site-project-study-latest
 use_directory_urls: true
 
 theme:

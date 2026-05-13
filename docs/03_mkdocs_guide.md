@@ -50,7 +50,7 @@ http://127.0.0.1:8010
 ### 3.2 학습 문서(`Learning_Project/`)
 
 ```powershell
-uv run mkdocs serve -f Learning_Project/mkdocs.yml -a 127.0.0.1:8020 --livereload
+uv run mkdocs serve -f mkdocs-learning-project.yml -a 127.0.0.1:8020 --livereload
 ```
 
 브라우저:
@@ -62,7 +62,7 @@ http://127.0.0.1:8020
 ### 3.3 new 학습 문서(`Project_Study_latest/`)
 
 ```powershell
-uv run mkdocs serve -f Project_Study_latest/mkdocs.yml -a 127.0.0.1:8030 --livereload
+uv run mkdocs serve -f mkdocs-project-study.yml -a 127.0.0.1:8030 --livereload
 ```
 
 브라우저:

@@ -1,7 +1,7 @@
 site_name: Learning Project Docs
 site_description: 개인/팀 학습용 문서 사이트
-docs_dir: .
-site_dir: ../site-learning
+docs_dir: Learning_Project
+site_dir: site-learning
 use_directory_urls: true
 
 theme:
