@@ -58,6 +58,8 @@ Datacenter -> Storage -> Add -> CephFS
 - **User name**: `cephfs-team2` (`client.` 제외)
 - **FS Name**: `cephfs`
 - **Secret Key**: `ceph auth get-key client.cephfs-team2` 결과값
+- **Content**: `Backup`, `ISO image`, `Container template`, `Snippets`, `import` (사용 목적에 맞게
+  선택)
 
 ---
 
@@ -89,9 +91,13 @@ Datacenter -> Storage -> Add -> CephFS
 
 ### 5.3 Proxmox UI 정합성 검토
 
-- **Active 상태**: 트리 메뉴 `cephfs-team2` 옆 체크 표시(활성) 확인
-- **Resource Summary**: 'Summary' 탭의 용량 정보가 Ceph 클러스터 현황과 일치하는지 확인
-- **Content Access**: 'Content' 탭 진입 시 오류 없이 파일 리스트가 로딩되는지 확인
+> **참고**: 좌측 리소스 트리에서 **특정 노드 하위의 스토리지**를 선택하여 확인
+
+- **Active 상태**: 스토리지 아이콘에 물음표(?)나 빨간색 X 등의 오류 표시가 없는지 확인 (정상 상태일
+  때 별도의 체크 표시가 나타나지 않을 수 있음)
+- **Resource Summary**: 'Summary' 탭의 용량 정보(Usage)가 정상적으로 표시되는지 확인
+- **Content Access**: 4단계에서 설정한 `Content` 유형에 따라 `Backups`, `ISO Images`, `CT Templates`
+  등의 개별 탭이 상단에 나타나며, 클릭 시 파일 리스트가 로딩되는지 확인
 
 ### 5.4 다중 노드 데이터 동기화 검증
 
