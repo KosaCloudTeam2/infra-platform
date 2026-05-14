@@ -87,6 +87,25 @@ T+15분: 매진 → CloudWatch alarm → Lambda cooldown → Karpenter consolida
 T+30분: 평상시 복귀, AWS spot 노드 0대
 ```
 
+```mermaid
+sequenceDiagram
+    participant EventBridge
+    participant Lambda
+    participant Karpenter
+    participant EKS
+    participant CloudWatch
+
+    EventBridge->>Lambda: 티켓 오픈 30분 전 실행
+    Lambda->>Karpenter: Pre-warm 요청
+    Karpenter->>EKS: EC2 Node 추가
+
+    Note over EKS: 사용자 폭증 처리
+
+    CloudWatch->>Lambda: 트래픽 감소 감지
+    Lambda->>Karpenter: Cooldown 요청
+    Karpenter->>EKS: Consolidation 수행
+```
+
 핵심은 **"필요한 30분만"** AWS를 쓴다는 점입니다. 평상시엔 EKS Control Plane($73/월)만 켜둬요. burst
 1시간에 Spot EC2 5대를 쓰면 약 $3 정도 비용입니다.
 
