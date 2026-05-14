@@ -77,5 +77,11 @@ nav:
       - Risk Register: project_info/08_risk_register.md
       - GitHub Setup: project_info/11_github_setup.md
       - Quality Checks: project_info/18_quality_checks.md
-      - Tool Troubleshooting: project_info/19_tool_troubleshooting.md
       - Team Decision Checklist: project_info/21_team_decision_checklist.md
+  - Troubleshooting:
+      - Index: troubleshooting/README.md
+      - Issues:
+          - TS-01 winget/terraform: troubleshooting/issues/TS-01-winget-terraform.md
+          - TS-02 terraform hook: troubleshooting/issues/TS-02-terraform-hook.md
+          - TS-03 husky/pre-commit: troubleshooting/issues/TS-03-husky-precommit.md
+          - TS-04 ruff/pip-audit: troubleshooting/issues/TS-04-ruff-pipaudit.md

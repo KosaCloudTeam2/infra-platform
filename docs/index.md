@@ -32,7 +32,8 @@
 - [Risk Register](./project_info/08_risk_register.md)
 - [GitHub Setup](./project_info/11_github_setup.md)
 - [Quality Checks](./project_info/18_quality_checks.md)
-- [Tool Troubleshooting](./project_info/19_tool_troubleshooting.md)
+- [Troubleshooting Index](./troubleshooting/README.md)
+- [Troubleshooting Issues](./troubleshooting/issues/TS-01-winget-terraform.md)
 - [Team Decision Checklist](./project_info/21_team_decision_checklist.md)
 
 ## 4. 아키텍처 및 구축 문서
