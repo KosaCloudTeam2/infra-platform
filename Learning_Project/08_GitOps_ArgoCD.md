@@ -9,6 +9,7 @@
 > **"Git을 단일 진실 소스(Single Source of Truth)로 두고, K8s를 자동 동기화."**
 
 기존 (CIOps):
+
 ```
 [개발자] kubectl apply → K8s
    ↓ 누가 뭘 했는지 모름
@@ -16,6 +17,7 @@
 ```
 
 GitOps:
+
 ```
 [개발자] git push → [Git repo]
                       ↓ ArgoCD가 감지
@@ -28,12 +30,12 @@ GitOps:
 
 ## 2) ArgoCD vs Flux
 
-| | **ArgoCD** | Flux |
-|---|---|---|
-| UI | 풍부 (Web) | CLI 위주 |
-| App-of-Apps | 강력 | 기능적으로 가능 |
-| 학습 자료 | 풍부 | 보통 |
-| **선택 이유** | UI 데모 임팩트 + 자료 풍부 | - |
+|               | **ArgoCD**                 | Flux            |
+| ------------- | -------------------------- | --------------- |
+| UI            | 풍부 (Web)                 | CLI 위주        |
+| App-of-Apps   | 강력                       | 기능적으로 가능 |
+| 학습 자료     | 풍부                       | 보통            |
+| **선택 이유** | UI 데모 임팩트 + 자료 풍부 | -               |
 
 ---
 
@@ -72,7 +74,7 @@ spec:
 ```yaml
 metadata: { name: bootstrap }
 spec:
-  source: { path: apps/ }    # 이 디렉토리의 모든 Application CR을 적용
+  source: { path: apps/ } # 이 디렉토리의 모든 Application CR을 적용
 ```
 
 ### ApplicationSet
@@ -81,10 +83,10 @@ template으로 여러 Application 자동 생성. 멀티 클러스터에 같은 �
 
 ```yaml
 generators:
-  - clusters: {}    # 등록된 모든 클러스터에
+  - clusters: {} # 등록된 모든 클러스터에
 template:
   metadata:
-    name: 'app-{{name}}'    # cluster 이름별로 Application
+    name: "app-{{name}}" # cluster 이름별로 Application
 ```
 
 ---
@@ -125,6 +127,7 @@ source:
 ```
 
 **별도 repo 2개:**
+
 - `kosa-tickets-app` — 앱 소스 코드
 - `kosa-manifests` — K8s 매니페스트 (ArgoCD가 보는 곳)
 
@@ -150,7 +153,9 @@ ApplicationSet으로 두 클러스터에 동일 앱 자동 배포. burst 시점�
 
 ## 7) 발표 어필
 
-> *"모든 K8s 변경은 Git에 기록되고 ArgoCD가 자동 동기화합니다. 개발자가 kubectl을 직접 쓸 일이 없으며, 누가 무엇을 언제 바꿨는지 git log로 100% 추적 가능합니다. ApplicationSet으로 온프레 클러스터와 AWS EKS Burst 클러스터에 동일 매니페스트를 자동 배포합니다."*
+> _"모든 K8s 변경은 Git에 기록되고 ArgoCD가 자동 동기화합니다. 개발자가 kubectl을 직접 쓸 일이
+> 없으며, 누가 무엇을 언제 바꿨는지 git log로 100% 추적 가능합니다. ApplicationSet으로 온프레
+> 클러스터와 AWS EKS Burst 클러스터에 동일 매니페스트를 자동 배포합니다."_
 
 ---
 

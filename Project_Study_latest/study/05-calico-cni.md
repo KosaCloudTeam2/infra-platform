@@ -1,18 +1,20 @@
 # 챕터 05 — Calico CNI
 
-> KOSA 인프라 프로젝트 학습 시리즈
-> 분량: 8~10 페이지
-> 선수 챕터: 04 Kubernetes 핵심
+> KOSA 인프라 프로젝트 학습 시리즈<br> 분량: 8~10 페이지<br> 선수 챕터: 04 Kubernetes 핵심
 
 ---
 
 ## 학습 후 알 수 있는 것
 
-- **CNI(Container Network Interface)** 가 K8s에서 어떤 자리에 위치하는지, 왜 K8s 본체가 네트워크를 직접 안 만드는지 설명할 수 있어요.
-- Pod이 다른 노드의 Pod과 어떻게 통신하는지, **오버레이(VXLAN/IPIP) vs 라우팅(BGP)** 차이를 그릴 수 있어요.
-- Calico / Flannel / Cilium의 차이와, 우리가 왜 **Calico VXLAN 모드**를 택했는지 트레이드오프를 댈 수 있어요.
+- **CNI(Container Network Interface)** 가 K8s에서 어떤 자리에 위치하는지, 왜 K8s 본체가 네트워크를
+  직접 안 만드는지 설명할 수 있어요.
+- Pod이 다른 노드의 Pod과 어떻게 통신하는지, **오버레이(VXLAN/IPIP) vs 라우팅(BGP)** 차이를 그릴 수
+  있어요.
+- Calico / Flannel / Cilium의 차이와, 우리가 왜 **Calico VXLAN 모드**를 택했는지 트레이드오프를 댈
+  수 있어요.
 - **NetworkPolicy**로 namespace 간 트래픽을 차단하는 방법을 코드로 작성할 수 있어요.
-- Tigera Operator로 Calico를 설치할 때 etcd leader change 때문에 자주 실패하는 이유와, retry 로직이 왜 필요한지 메커니즘 수준에서 이해해요.
+- Tigera Operator로 Calico를 설치할 때 etcd leader change 때문에 자주 실패하는 이유와, retry 로직이
+  왜 필요한지 메커니즘 수준에서 이해해요.
 
 ---
 
@@ -20,32 +22,36 @@
 
 ### 1.1 정의 (한 문장)
 
-**Calico는 K8s의 CNI 플러그인 중 하나로, Pod 네트워크 IP 할당·노드 간 패킷 라우팅·NetworkPolicy 기반 마이크로세그멘테이션을 동시에 제공하는 오픈소스 네트워크 솔루션입니다.**
+**Calico는 K8s의 CNI 플러그인 중 하나로, Pod 네트워크 IP 할당·노드 간 패킷 라우팅·NetworkPolicy 기반
+마이크로세그멘테이션을 동시에 제공하는 오픈소스 네트워크 솔루션입니다.**
 
 ### 1.2 등장 배경
 
-K8s는 일부러 네트워크 구현을 외부 플러그인에 맡겼어요. 이유는 단순해요. **회사마다 네트워크 환경이 너무 달라서**. 클라우드(AWS VPC), 베어메탈(BGP/스위치), 가상화(VLAN/오버레이) 각각의 환경에서 최적 구성이 다르거든요. 그래서 K8s는 다음 세 가지 책임을 외부에 위임합니다.
+K8s는 일부러 네트워크 구현을 외부 플러그인에 맡겼어요. 이유는 단순해요. **회사마다 네트워크 환경이
+너무 달라서**. 클라우드(AWS VPC), 베어메탈(BGP/스위치), 가상화(VLAN/오버레이) 각각의 환경에서 최적
+구성이 다르거든요. 그래서 K8s는 다음 세 가지 책임을 외부에 위임합니다.
 
 1. **Pod에 IP 부여** — 어느 대역에서 어떻게 줄지
 2. **노드 간 Pod 통신** — 다른 Worker의 Pod에게 패킷 전달
 3. **트래픽 통제** — 누가 누구와 통신 가능한지 (NetworkPolicy)
 
-이 "위임 규격"이 **CNI(Container Network Interface)** 이고, CNI를 구현한 플러그인 중 가장 널리 쓰이는 게 **Calico, Cilium, Flannel** 등입니다.
+이 "위임 규격"이 **CNI(Container Network Interface)** 이고, CNI를 구현한 플러그인 중 가장 널리
+쓰이는 게 **Calico, Cilium, Flannel** 등입니다.
 
 ### 1.3 핵심 개념 + 용어 풀이
 
-| 용어 | 한 줄 풀이 |
-|---|---|
-| **CNI** | K8s ↔ 네트워크 플러그인 사이의 표준 인터페이스. JSON 설정 + 바이너리 실행 규격. |
-| **Pod CIDR** | Pod에게 줄 IP 대역. 우리는 `10.244.0.0/16`. |
-| **Pod IP** | 각 Pod에 부여되는 클러스터 내부 고유 IP. |
+| 용어                  | 한 줄 풀이                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| **CNI**               | K8s ↔ 네트워크 플러그인 사이의 표준 인터페이스. JSON 설정 + 바이너리 실행 규격.    |
+| **Pod CIDR**          | Pod에게 줄 IP 대역. 우리는 `10.244.0.0/16`.                                        |
+| **Pod IP**            | 각 Pod에 부여되는 클러스터 내부 고유 IP.                                           |
 | **오버레이 네트워크** | 물리 네트워크 위에 가상의 터널을 깔아 다른 노드의 Pod에 도달. VXLAN/IPIP가 대표적. |
-| **VXLAN** | UDP 4789 위에 L2 프레임을 캡슐화. 오버레이 표준. |
-| **IPIP** | IP 패킷을 IP로 감쌈. 가볍지만 클라우드와 충돌 잦음. |
-| **BGP** | 라우터끼리 경로를 광고하는 프로토콜. Calico의 "오버레이 없는" 모드. |
-| **NetworkPolicy** | "Pod A는 Pod B에게만 트래픽 허용" 같은 룰. 방화벽처럼 동작. |
-| **Tigera Operator** | Calico를 K8s 위에서 선언적으로 관리해주는 컨트롤러. |
-| **felix** | 각 노드에 떠있는 Calico 에이전트(DaemonSet). 정책을 iptables로 변환. |
+| **VXLAN**             | UDP 4789 위에 L2 프레임을 캡슐화. 오버레이 표준.                                   |
+| **IPIP**              | IP 패킷을 IP로 감쌈. 가볍지만 클라우드와 충돌 잦음.                                |
+| **BGP**               | 라우터끼리 경로를 광고하는 프로토콜. Calico의 "오버레이 없는" 모드.                |
+| **NetworkPolicy**     | "Pod A는 Pod B에게만 트래픽 허용" 같은 룰. 방화벽처럼 동작.                        |
+| **Tigera Operator**   | Calico를 K8s 위에서 선언적으로 관리해주는 컨트롤러.                                |
+| **felix**             | 각 노드에 떠있는 Calico 에이전트(DaemonSet). 정책을 iptables로 변환.               |
 
 ### 1.4 동작 원리 (내부 메커니즘)
 
@@ -80,31 +86,34 @@ Pod A(노드1) → Pod B(노드2) 통신을 따라가 봅시다. **VXLAN 모드 
   Pod B 수신
 ```
 
-핵심은 **노드의 커널 라우팅 테이블**에 "어느 노드가 어느 Pod CIDR을 가지고 있다"가 적혀 있다는 거예요. 누가 적어줄까요? 각 노드의 Calico **felix 에이전트**가 클러스터에서 정보를 받아와 자동으로 적어줘요.
+핵심은 **노드의 커널 라우팅 테이블**에 "어느 노드가 어느 Pod CIDR을 가지고 있다"가 적혀 있다는
+거예요. 누가 적어줄까요? 각 노드의 Calico **felix 에이전트**가 클러스터에서 정보를 받아와 자동으로
+적어줘요.
 
-NetworkPolicy도 같은 felix가 처리해요. 정책이 만들어지면 felix가 그 노드의 **iptables** (또는 eBPF)에 룰을 박아 넣어요. "10.244.10.5 → 10.244.20.7만 허용, 나머지 거부" 같은 식으로.
+NetworkPolicy도 같은 felix가 처리해요. 정책이 만들어지면 felix가 그 노드의 **iptables** (또는
+eBPF)에 룰을 박아 넣어요. "10.244.10.5 → 10.244.20.7만 허용, 나머지 거부" 같은 식으로.
 
 ### 1.5 주요 기능
 
-| 기능 | 설명 |
-|---|---|
-| **IPAM** (IP Address Management) | Pod에 IP 자동 할당, 노드별 블록 단위 |
-| **노드 간 라우팅** | VXLAN / IPIP / BGP / VPP 4가지 모드 |
-| **NetworkPolicy** | K8s 표준 NetworkPolicy + Calico 확장(GlobalNetworkPolicy) |
-| **eBPF 데이터플레인** | iptables 대신 eBPF로 처리 (성능↑, 옵션) |
-| **Observability** | Flow log, DNS log (Calico Enterprise는 추가) |
-| **WireGuard 암호화** | 노드 간 트래픽 자동 암호화 (옵션) |
+| 기능                             | 설명                                                      |
+| -------------------------------- | --------------------------------------------------------- |
+| **IPAM** (IP Address Management) | Pod에 IP 자동 할당, 노드별 블록 단위                      |
+| **노드 간 라우팅**               | VXLAN / IPIP / BGP / VPP 4가지 모드                       |
+| **NetworkPolicy**                | K8s 표준 NetworkPolicy + Calico 확장(GlobalNetworkPolicy) |
+| **eBPF 데이터플레인**            | iptables 대신 eBPF로 처리 (성능↑, 옵션)                   |
+| **Observability**                | Flow log, DNS log (Calico Enterprise는 추가)              |
+| **WireGuard 암호화**             | 노드 간 트래픽 자동 암호화 (옵션)                         |
 
 ### 1.6 다른 도구와 비교
 
-| 항목 | **Calico** (우리) | Flannel | Cilium | AWS VPC CNI |
-|---|---|---|---|---|
-| 모드 | VXLAN / IPIP / BGP | VXLAN | eBPF (혁신) | VPC native (AWS만) |
-| NetworkPolicy | ✅ 풍부 | ❌ 없음 | ✅ 매우 풍부 + L7 | 제한적 |
-| 성능 | 중상 | 중 | 상 (eBPF) | 상 (native) |
-| 학습 곡선 | 중 | 낮음 | 높음 | 낮음 (AWS만) |
-| 엔터프라이즈 점유율 | **압도적** | 학습용 | 빠르게 추격 | AWS 전용 |
-| 운영 부담 | 중 | 낮음 | 중상 | 낮음 |
+| 항목                | **Calico** (우리)  | Flannel | Cilium            | AWS VPC CNI        |
+| ------------------- | ------------------ | ------- | ----------------- | ------------------ |
+| 모드                | VXLAN / IPIP / BGP | VXLAN   | eBPF (혁신)       | VPC native (AWS만) |
+| NetworkPolicy       | ✅ 풍부            | ❌ 없음 | ✅ 매우 풍부 + L7 | 제한적             |
+| 성능                | 중상               | 중      | 상 (eBPF)         | 상 (native)        |
+| 학습 곡선           | 중                 | 낮음    | 높음              | 낮음 (AWS만)       |
+| 엔터프라이즈 점유율 | **압도적**         | 학습용  | 빠르게 추격       | AWS 전용           |
+| 운영 부담           | 중                 | 낮음    | 중상              | 낮음               |
 
 ---
 
@@ -121,10 +130,12 @@ NetworkPolicy도 같은 felix가 처리해요. 정책이 만들어지면 felix�
 
 ### 2.2 업계 표준 구성, 대표 사용 기업/사례
 
-- **국내 빅테크**: 카카오, 네이버, 쿠팡 모두 자체 K8s에서 Calico를 본 적 있는 표준 옵션으로 보고 있어요. 최근엔 Cilium으로 이전한 사례도 늘고 있어요.
+- **국내 빅테크**: 카카오, 네이버, 쿠팡 모두 자체 K8s에서 Calico를 본 적 있는 표준 옵션으로 보고
+  있어요. 최근엔 Cilium으로 이전한 사례도 늘고 있어요.
 - **글로벌**: GitHub, Adobe, Discovery, Bloomberg 등이 Calico 운영 사례 공개.
 - **클라우드 매니지드**:
-  - **EKS**: 기본은 VPC CNI지만, NetworkPolicy 풍부함을 위해 **Calico**를 add-on으로 같이 쓰는 패턴이 많아요.
+  - **EKS**: 기본은 VPC CNI지만, NetworkPolicy 풍부함을 위해 **Calico**를 add-on으로 같이 쓰는
+    패턴이 많아요.
   - **GKE**: 기본 옵션 중 하나가 Calico.
   - **AKS**: Calico + Cilium 둘 다 지원.
 
@@ -147,26 +158,27 @@ NetworkPolicy도 같은 felix가 처리해요. 정책이 만들어지면 felix�
 
 ### 3.1 대안 비교 표
 
-| 대안 | NetworkPolicy | 학습/문서 | 우리 환경 적합도 | 최종 판단 |
-|---|---|---|---|---|
-| **Calico (VXLAN)** | ✅ | ★★★★★ | ★★★★★ (베어메탈, 학습 자료↑) | ✅ |
-| Cilium | ✅✅ (L7) | ★★★★ | ★★★ (eBPF 학습 곡선) | △ (다음 라운드) |
-| Flannel | ❌ | ★★★★ | ★★ (정책 없음, PII 분리 불가) | ✗ |
-| Weave Net | ✅ | ★★ | ★ (개발 중단) | ✗ |
+| 대안               | NetworkPolicy | 학습/문서 | 우리 환경 적합도              | 최종 판단       |
+| ------------------ | ------------- | --------- | ----------------------------- | --------------- |
+| **Calico (VXLAN)** | ✅            | ★★★★★     | ★★★★★ (베어메탈, 학습 자료↑)  | ✅              |
+| Cilium             | ✅✅ (L7)     | ★★★★      | ★★★ (eBPF 학습 곡선)          | △ (다음 라운드) |
+| Flannel            | ❌            | ★★★★      | ★★ (정책 없음, PII 분리 불가) | ✗               |
+| Weave Net          | ✅            | ★★        | ★ (개발 중단)                 | ✗               |
 
 ### 3.2 현업 표준과의 정합성
 
 - **kubeadm + Calico**: K8s 공식 문서가 가장 먼저 예시로 드는 조합.
 - **Tigera Operator**: 단순 manifest apply가 아닌 **operator pattern**으로 진화한 정공법.
-- **VXLAN 모드**: BGP가 없는 환경(=우리)에서 가장 호환성 좋음. IPIP는 일부 클라우드 보안 그룹과 충돌.
+- **VXLAN 모드**: BGP가 없는 환경(=우리)에서 가장 호환성 좋음. IPIP는 일부 클라우드 보안 그룹과
+  충돌.
 
 ### 3.3 선택 근거 (트레이드오프)
 
-| 선택 | 얻는 것 | 잃는 것 |
-|---|---|---|
-| **Calico** | 풍부한 문서, 안정적 iptables, NetworkPolicy 표준 | Cilium 대비 L7 정책/관측성 부족 |
-| **VXLAN 모드** | 스위치 BGP 설정 불필요 → 학습 부담↓ | BGP 모드 대비 ~5% 성능 손실 |
-| **Tigera Operator 방식** | Calico 업그레이드/설정이 선언적 | 단순 manifest 대비 한 단계 추가 |
+| 선택                     | 얻는 것                                          | 잃는 것                         |
+| ------------------------ | ------------------------------------------------ | ------------------------------- |
+| **Calico**               | 풍부한 문서, 안정적 iptables, NetworkPolicy 표준 | Cilium 대비 L7 정책/관측성 부족 |
+| **VXLAN 모드**           | 스위치 BGP 설정 불필요 → 학습 부담↓              | BGP 모드 대비 ~5% 성능 손실     |
+| **Tigera Operator 방식** | Calico 업그레이드/설정이 선언적                  | 단순 manifest 대비 한 단계 추가 |
 
 ---
 
@@ -192,14 +204,14 @@ NetworkPolicy도 같은 felix가 처리해요. 정책이 만들어지면 felix�
 
 ### 4.2 핵심 설정값과 근거
 
-| 항목 | 값 | 근거 |
-|---|---|---|
-| Calico 버전 | `v3.27.0` | K8s 1.30과 호환되는 LTS 라인 |
-| 설치 방식 | **Tigera Operator** | 공식 권장. 업그레이드 안전 |
-| 데이터플레인 모드 | **VXLAN** | BGP 미설정 + 호환성↑ |
-| Pod CIDR | `10.244.0.0/16` | group_vars/all.yml과 일치 |
-| blockSize | `26` (64 IP/노드) | 6노드면 충분, 노드 추가에 여유 |
-| natOutgoing | `Enabled` | Pod → 외부망 SNAT (외부 통신 가능) |
+| 항목              | 값                  | 근거                               |
+| ----------------- | ------------------- | ---------------------------------- |
+| Calico 버전       | `v3.27.0`           | K8s 1.30과 호환되는 LTS 라인       |
+| 설치 방식         | **Tigera Operator** | 공식 권장. 업그레이드 안전         |
+| 데이터플레인 모드 | **VXLAN**           | BGP 미설정 + 호환성↑               |
+| Pod CIDR          | `10.244.0.0/16`     | group_vars/all.yml과 일치          |
+| blockSize         | `26` (64 IP/노드)   | 6노드면 충분, 노드 추가에 여유     |
+| natOutgoing       | `Enabled`           | Pod → 외부망 SNAT (외부 통신 가능) |
 
 ### 4.3 다른 컴포넌트와의 연결
 
@@ -216,7 +228,8 @@ NetworkPolicy도 같은 felix가 처리해요. 정책이 만들어지면 felix�
 [HAProxy Ingress] ─→ HTTP(S) 라우팅 → Service → Pod
 ```
 
-Calico는 **가장 아래 레이어**에서 Pod IP를 만들기 때문에, 이게 안 되면 위 모든 컴포넌트가 무용지물이에요. 그래서 K8s 초기화 후 가장 먼저 설치합니다.
+Calico는 **가장 아래 레이어**에서 Pod IP를 만들기 때문에, 이게 안 되면 위 모든 컴포넌트가
+무용지물이에요. 그래서 K8s 초기화 후 가장 먼저 설치합니다.
 
 ---
 
@@ -240,7 +253,8 @@ Calico는 **가장 아래 레이어**에서 Pod IP를 만들기 때문에, 이�
 **왜 이 옵션?**
 
 - `tigera-operator.yaml`을 그대로 적용 → CRD + 컨트롤러 한 번에 설치
-- `retries: 5, delay: 15`: HA 클러스터 초기엔 etcd leader가 계속 바뀌어서 `etcdserver: leader changed` 일시 에러 자주 발생. 자동 재시도로 흡수
+- `retries: 5, delay: 15`: HA 클러스터 초기엔 etcd leader가 계속 바뀌어서
+  `etcdserver: leader changed` 일시 에러 자주 발생. 자동 재시도로 흡수
 
 ### 5.2 Installation CR (Calico 본체 설정)
 
@@ -259,8 +273,8 @@ Calico는 **가장 아래 레이어**에서 Pod IP를 만들기 때문에, 이�
         calicoNetwork:
           ipPools:
             - blockSize: 26
-              cidr: "{{ pod_subnet }}"      # 10.244.0.0/16
-              encapsulation: VXLAN          # IPIP보다 호환성 좋음
+              cidr: "{{ pod_subnet }}" # 10.244.0.0/16
+              encapsulation: VXLAN # IPIP보다 호환성 좋음
               natOutgoing: Enabled
               nodeSelector: all()
   register: calico_install
@@ -271,8 +285,10 @@ Calico는 **가장 아래 레이어**에서 Pod IP를 만들기 때문에, 이�
 
 **왜 이 옵션?**
 
-- `encapsulation: VXLAN`: 우리는 BGP 미설정 환경이고, pfSense에서 IPIP 프로토콜이 약간 까다로움. VXLAN이 가장 무난.
-- `natOutgoing: Enabled`: Pod이 외부(인터넷, GHCR 등)로 나갈 때 노드 IP로 SNAT. 안 켜면 외부에서 회신 못 와요.
+- `encapsulation: VXLAN`: 우리는 BGP 미설정 환경이고, pfSense에서 IPIP 프로토콜이 약간 까다로움.
+  VXLAN이 가장 무난.
+- `natOutgoing: Enabled`: Pod이 외부(인터넷, GHCR 등)로 나갈 때 노드 IP로 SNAT. 안 켜면 외부에서
+  회신 못 와요.
 - `blockSize: 26`: 1노드당 64개 IP. 우리는 노드당 Pod 30~50개 수준이라 충분.
 - `nodeSelector: all()`: 모든 노드에 적용. 일부 노드만 다른 풀 쓸 일 없음.
 
@@ -299,15 +315,15 @@ Calico는 **가장 아래 레이어**에서 Pod IP를 만들기 때문에, 이�
 
 - name: Calico 노드 Pod 모두 Ready 될 때까지 대기 (최대 5분)
   ansible.builtin.command: >
-    kubectl wait --for=condition=Ready pods -n calico-system
-    -l k8s-app=calico-node --timeout=300s
+    kubectl wait --for=condition=Ready pods -n calico-system -l k8s-app=calico-node --timeout=300s
   retries: 3
   delay: 30
 ```
 
 **왜 이 옵션?**
 
-- Operator → Installation CR 반영 → DaemonSet 생성까지 **시간차**가 있어요. `kubectl wait`를 바로 호출하면 "no matching resources" 에러.
+- Operator → Installation CR 반영 → DaemonSet 생성까지 **시간차**가 있어요. `kubectl wait`를 바로
+  호출하면 "no matching resources" 에러.
 - 그래서 **3단계로 점진 대기**: namespace → DaemonSet → Pod Ready 순서.
 
 ---
@@ -374,13 +390,14 @@ spec:
   podSelector: {}
   policyTypes: [Ingress]
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: pii-protected
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: pii-protected
 ```
 
-이 정책 하나로 **pii-protected** namespace의 모든 Pod는 같은 namespace 안에서만 트래픽 수신. 다른 namespace의 Pod이 직접 접근 불가 → PII 보호.
+이 정책 하나로 **pii-protected** namespace의 모든 Pod는 같은 namespace 안에서만 트래픽 수신. 다른
+namespace의 Pod이 직접 접근 불가 → PII 보호.
 
 ---
 
@@ -395,6 +412,7 @@ etcdserver: leader changed
 ```
 
 **원인 (메커니즘)**: 우리 클러스터 부트스트랩 직후엔 다음 일이 동시에 벌어져요.
+
 - kubeadm init이 끝나고 막 3 CP가 합류한 시점 — etcd 멤버 추가
 - 메모리 압박 + Ceph RBD 일시 지연이 겹침
 - Raft가 leader heartbeat를 놓침 → 새 leader 선출
@@ -402,7 +420,8 @@ etcdserver: leader changed
 
 이게 1~3초 안에 회복되지만, Ansible의 단발 호출엔 치명적.
 
-**해결**: `retries: 5, delay: 15, until: succeeded` 추가. `40-k8s-addons.yml`의 거의 모든 `kubernetes.core.k8s` task에 동일 패턴을 적용했어요.
+**해결**: `retries: 5, delay: 15, until: succeeded` 추가. `40-k8s-addons.yml`의 거의 모든
+`kubernetes.core.k8s` task에 동일 패턴을 적용했어요.
 
 ```yaml
 register: tigera_apply
@@ -411,7 +430,9 @@ delay: 15
 until: tigera_apply is succeeded
 ```
 
-**왜 이 함정이 발생하는가**: K8s API server는 모든 쓰기를 **etcd quorum write**으로 처리해요. quorum이 일시적으로 깨지거나 leader가 바뀌면 그 쓰기는 즉시 실패. 따라서 모든 멱등한 쓰기 작업은 retry가 필수예요.
+**왜 이 함정이 발생하는가**: K8s API server는 모든 쓰기를 **etcd quorum write**으로 처리해요.
+quorum이 일시적으로 깨지거나 leader가 바뀌면 그 쓰기는 즉시 실패. 따라서 모든 멱등한 쓰기 작업은
+retry가 필수예요.
 
 ### 함정 2 — calico-node 일부만 NotReady
 
@@ -424,6 +445,7 @@ kubectl get pods -n calico-system
 ```
 
 **원인 (메커니즘)**: 해당 노드에서 다음 둘 중 하나가 흔해요.
+
 1. **방화벽이 VXLAN UDP 4789 차단** — 노드 간 인캡 패킷 통과 못 함
 2. **kernel module 누락** — `vxlan` 모듈이 안 떠있음
 
@@ -445,7 +467,8 @@ ssh -i ~/.ssh/kosa_iac ubuntu@172.16.23.11 'sudo modprobe vxlan'
 
 **증상**: `ping 8.8.8.8` 실패.
 
-**원인**: `natOutgoing: Enabled`가 없거나 false. SNAT 안 되면 Pod의 10.244.x.x 출발 패킷이 외부 라우터에 가서 "이게 누구야?" 하고 버려져요.
+**원인**: `natOutgoing: Enabled`가 없거나 false. SNAT 안 되면 Pod의 10.244.x.x 출발 패킷이 외부
+라우터에 가서 "이게 누구야?" 하고 버려져요.
 
 **해결**:
 
@@ -458,9 +481,11 @@ kubectl edit installation default
 
 **증상**: Pod이 `ContainerCreating`에서 멈춤. describe하면 `network plugin is not ready`.
 
-**원인**: `kubeadm init --pod-network-cidr=10.244.0.0/16`로 만들었는데 Installation CR의 cidr이 `192.168.0.0/16` 같이 다른 경우. CNI가 어디서 IP를 받아야 할지 모름.
+**원인**: `kubeadm init --pod-network-cidr=10.244.0.0/16`로 만들었는데 Installation CR의 cidr이
+`192.168.0.0/16` 같이 다른 경우. CNI가 어디서 IP를 받아야 할지 모름.
 
-**해결**: 우리는 `group_vars/all.yml`의 `pod_subnet`이 두 곳에서 모두 참조되도록 변수화. 변수화 안 하면 흔히 빠지는 함정이에요.
+**해결**: 우리는 `group_vars/all.yml`의 `pod_subnet`이 두 곳에서 모두 참조되도록 변수화. 변수화 안
+하면 흔히 빠지는 함정이에요.
 
 ```yaml
 # all.yml
@@ -478,27 +503,33 @@ cidr: "{{ pod_subnet }}"
 ## 8. 더 깊이 공부할 자료
 
 ### 공식 문서
+
 - Calico 공식 문서: https://docs.tigera.io/calico/latest/
 - CNI 스펙: https://github.com/containernetworking/cni/blob/main/SPEC.md
 - K8s NetworkPolicy: https://kubernetes.io/docs/concepts/services-networking/network-policies/
 
 ### 영상 / 강의
+
 - "Calico Deep Dive" — Tigera 공식 KubeCon 발표 시리즈
 - "Container Networking from Scratch" — Kelsey Hightower 발표
 
 ### 책
-- *Container Networking* (O'Reilly) — CNI 전반
-- *Kubernetes Networking* (K8s 네트워킹 종합)
+
+- _Container Networking_ (O'Reilly) — CNI 전반
+- _Kubernetes Networking_ (K8s 네트워킹 종합)
 
 ### 인증
+
 - **Calico Certified Operator** (Tigera 제공)
 - CKA 시험에 NetworkPolicy 문제가 매년 출제
 
 ### 우리 프로젝트 관련 파일
+
 - `/Users/sangjjang/kosa_infra_project/ansible/playbooks/40-k8s-addons.yml` (Calico 설치 부분)
 - `/Users/sangjjang/kosa_infra_project/ansible/inventory/group_vars/all.yml` (pod_subnet 정의)
 - `/Users/sangjjang/kosa_infra_project/Session_Handoff.md` (etcd retry 추가 기록)
 
 ---
 
-> 다음 챕터 미리보기 — 외부에서 K8s 서비스에 어떻게 접근할까요? MetalLB로 베어메탈에서 LoadBalancer 만들고 cert-manager로 TLS 자동화합니다.
+> 다음 챕터 미리보기 — 외부에서 K8s 서비스에 어떻게 접근할까요? MetalLB로 베어메탈에서 LoadBalancer
+> 만들고 cert-manager로 TLS 자동화합니다.

@@ -1,9 +1,8 @@
 # 챕터 02 — Proxmox VE + Cloud-init
 
-> KOSA 인프라 프로젝트 학습용 문서 시리즈
-> 작성일: 2026-05-13
-> 선수 챕터: `01-project-overview.md` (큰 그림 이해 필요)
-> 후속 챕터: `03-pfsense-network.md` (네트워크 설계)
+> KOSA 인프라 프로젝트 학습용 문서 시리즈<br> 작성일: 2026-05-13<br> 선수 챕터:
+> `01-project-overview.md` (큰 그림 이해 필요)<br> 후속 챕터: `03-pfsense-network.md` (네트워크
+> 설계)
 
 ---
 
@@ -24,11 +23,14 @@
 
 #### Proxmox VE
 
-**Proxmox Virtual Environment (PVE)** 는 Debian Linux 위에 **KVM(VM) + LXC(컨테이너) + Ceph/ZFS 스토리지 + 웹 UI/API**를 통합한 오픈소스 가상화 플랫폼이에요.
+**Proxmox Virtual Environment (PVE)** 는 Debian Linux 위에 **KVM(VM) + LXC(컨테이너) + Ceph/ZFS
+스토리지 + 웹 UI/API**를 통합한 오픈소스 가상화 플랫폼이에요.
 
 #### Cloud-init
 
-**Cloud-init**은 클라우드/가상화 환경에서 **VM이 처음 부팅될 때 한 번만 실행되어 hostname, SSH 키, IP, 사용자 계정, 패키지 등을 자동으로 설정**해주는 표준 도구예요. 쉽게 말하면 "VM의 자동 초기 설정 마법사".
+**Cloud-init**은 클라우드/가상화 환경에서 **VM이 처음 부팅될 때 한 번만 실행되어 hostname, SSH 키,
+IP, 사용자 계정, 패키지 등을 자동으로 설정**해주는 표준 도구예요. 쉽게 말하면 "VM의 자동 초기 설정
+마법사".
 
 ### 1.2 등장 배경 (어떤 문제 해결하려고?)
 
@@ -46,25 +48,28 @@
 
 전통적으로 VM 만들기란:
 
-1. ISO 부팅 → 2. GUI 설치 마법사 → 3. 키보드/타임존/디스크 파티션 선택 → 4. 패스워드 입력 → 5. 패키지 선택 → 6. 재부팅 → 7. SSH 설정...
+1. ISO 부팅 → 2. GUI 설치 마법사 → 3. 키보드/타임존/디스크 파티션 선택 → 4. 패스워드 입력 → 5.
+   패키지 선택 → 6. 재부팅 → 7. SSH 설정...
 
-**한 대만 만들면 10분이지만 100대면 16시간**. 게다가 사람이 클릭하면 실수가 섞여요. AWS EC2가 등장하면서 "VM은 API 한 번에 만들고 부팅 시 자동 구성"이 필수가 됐고, 그 표준이 cloud-init이에요. Canonical(Ubuntu 만드는 회사)이 주도해서 만들었어요.
+**한 대만 만들면 10분이지만 100대면 16시간**. 게다가 사람이 클릭하면 실수가 섞여요. AWS EC2가
+등장하면서 "VM은 API 한 번에 만들고 부팅 시 자동 구성"이 필수가 됐고, 그 표준이 cloud-init이에요.
+Canonical(Ubuntu 만드는 회사)이 주도해서 만들었어요.
 
 ### 1.3 핵심 개념 + 용어 풀이
 
-| 용어 | 풀이 |
-|---|---|
-| **하이퍼바이저** | VM을 만들고 관리하는 소프트웨어. Type 1 (베어메탈, ESXi), Type 2 (호스트 OS 위, VirtualBox). |
-| **KVM** | Kernel-based Virtual Machine. Linux 커널 자체를 Type 1 하이퍼바이저로 만드는 모듈. 쉽게 말하면 "리눅스 = 하이퍼바이저". |
-| **QEMU** | KVM과 짝지어 동작하는 사용자 공간 에뮬레이터. CPU 가상화는 KVM이, 디바이스(NIC/디스크) 에뮬레이션은 QEMU가. |
-| **libvirt** | KVM/QEMU를 관리하는 API/CLI. Proxmox는 libvirt를 안 쓰고 자체 API(`qm`, `pvesh`)로 직접 관리. |
-| **VMID** | Proxmox 내부 VM 고유 번호. 우리 환경 컨벤션: 100번대=인프라, 200번대=K8s, 9000번대=템플릿. |
-| **Cloud-init datasource** | cloud-init이 설정값을 읽어오는 출처. NoCloud(ISO), AWS metadata, OpenStack ConfigDrive 등. Proxmox는 NoCloud 방식으로 ISO를 생성해 VM에 붙임. |
-| **qemu-guest-agent** | VM 내부에서 동작하는 에이전트. 호스트 측에서 VM의 IP/상태를 조회하거나 정상 shutdown을 보낼 수 있게 해줌. |
-| **VirtIO** | 반가상화(paravirtualized) 드라이버. 풀 에뮬레이션(e1000) 대신 게스트가 호스트와 직접 통신 → 훨씬 빠름. |
-| **Live Migration** | VM을 실행 중인 채로 다른 호스트로 옮기는 기능. Proxmox는 메모리 페이지를 단계적으로 복사하며 진행. |
-| **Linked Clone vs Full Clone** | Linked = 템플릿 디스크를 공유 (빠르지만 의존), Full = 완전 복사 (안전, 우리 환경 선택). |
-| **Datastore** | Proxmox가 디스크를 저장하는 백엔드. `local` (로컬 디렉토리), `local-lvm` (로컬 LVM), `ceph-rbd-team2` (Ceph 분산 스토리지). |
+| 용어                           | 풀이                                                                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **하이퍼바이저**               | VM을 만들고 관리하는 소프트웨어. Type 1 (베어메탈, ESXi), Type 2 (호스트 OS 위, VirtualBox).                                                  |
+| **KVM**                        | Kernel-based Virtual Machine. Linux 커널 자체를 Type 1 하이퍼바이저로 만드는 모듈. 쉽게 말하면 "리눅스 = 하이퍼바이저".                       |
+| **QEMU**                       | KVM과 짝지어 동작하는 사용자 공간 에뮬레이터. CPU 가상화는 KVM이, 디바이스(NIC/디스크) 에뮬레이션은 QEMU가.                                   |
+| **libvirt**                    | KVM/QEMU를 관리하는 API/CLI. Proxmox는 libvirt를 안 쓰고 자체 API(`qm`, `pvesh`)로 직접 관리.                                                 |
+| **VMID**                       | Proxmox 내부 VM 고유 번호. 우리 환경 컨벤션: 100번대=인프라, 200번대=K8s, 9000번대=템플릿.                                                    |
+| **Cloud-init datasource**      | cloud-init이 설정값을 읽어오는 출처. NoCloud(ISO), AWS metadata, OpenStack ConfigDrive 등. Proxmox는 NoCloud 방식으로 ISO를 생성해 VM에 붙임. |
+| **qemu-guest-agent**           | VM 내부에서 동작하는 에이전트. 호스트 측에서 VM의 IP/상태를 조회하거나 정상 shutdown을 보낼 수 있게 해줌.                                     |
+| **VirtIO**                     | 반가상화(paravirtualized) 드라이버. 풀 에뮬레이션(e1000) 대신 게스트가 호스트와 직접 통신 → 훨씬 빠름.                                        |
+| **Live Migration**             | VM을 실행 중인 채로 다른 호스트로 옮기는 기능. Proxmox는 메모리 페이지를 단계적으로 복사하며 진행.                                            |
+| **Linked Clone vs Full Clone** | Linked = 템플릿 디스크를 공유 (빠르지만 의존), Full = 완전 복사 (안전, 우리 환경 선택).                                                       |
+| **Datastore**                  | Proxmox가 디스크를 저장하는 백엔드. `local` (로컬 디렉토리), `local-lvm` (로컬 LVM), `ceph-rbd-team2` (Ceph 분산 스토리지).                   |
 
 ### 1.4 동작 원리 (내부 메커니즘)
 
@@ -118,7 +123,8 @@
 8. 다음 부팅부터는 skip (idempotent)
 ```
 
-> **왜 NoCloud인가?** AWS는 169.254.169.254 메타데이터 서버를 쓰지만, 온프레미스는 그게 없어서 ISO 방식이 가장 단순. Proxmox 외에 OpenStack/VirtualBox도 NoCloud 지원.
+> **왜 NoCloud인가?** AWS는 169.254.169.254 메타데이터 서버를 쓰지만, 온프레미스는 그게 없어서 ISO
+> 방식이 가장 단순. Proxmox 외에 OpenStack/VirtualBox도 NoCloud 지원.
 
 ### 1.5 주요 기능
 
@@ -148,25 +154,25 @@
 
 #### Proxmox vs VMware vSphere vs Hyper-V
 
-| 비교축 | Proxmox VE | VMware vSphere | Hyper-V |
-|---|---|---|---|
-| 라이센스 | GPL (구독 선택) | 상용 (Broadcom 인수 후 폭등) | Windows Server 라이센스 |
-| 하이퍼바이저 타입 | Type 1 (KVM) | Type 1 (ESXi) | Type 1 (Windows Hypervisor) |
-| 클러스터링 | 기본 제공 (corosync) | vCenter 별도 (유료) | SCVMM 별도 |
-| 라이브 마이그레이션 | 가능 (vMotion 대응) | 가능 (vMotion) | 가능 (Live Migration) |
-| 컨테이너 지원 | LXC 통합 | Tanzu/별도 | Windows Containers |
-| Ceph 통합 | **네이티브** (Proxmox UI 안에서 Ceph 운영) | 외부 별도 | 외부 별도 |
-| 학습 자료 | 풍부, 영어/독일어 | 풍부 (단, 정책 변동 잦음) | 중 |
-| 라이센스 비용 (4 노드) | 0 (구독 안 사면) ~ 연 ~수백만 원 | 연 수천만 원 | 연 수백만 원 |
-| 적합 규모 | 중소~중견 | 대기업 | Windows 환경 위주 |
+| 비교축                 | Proxmox VE                                 | VMware vSphere               | Hyper-V                     |
+| ---------------------- | ------------------------------------------ | ---------------------------- | --------------------------- |
+| 라이센스               | GPL (구독 선택)                            | 상용 (Broadcom 인수 후 폭등) | Windows Server 라이센스     |
+| 하이퍼바이저 타입      | Type 1 (KVM)                               | Type 1 (ESXi)                | Type 1 (Windows Hypervisor) |
+| 클러스터링             | 기본 제공 (corosync)                       | vCenter 별도 (유료)          | SCVMM 별도                  |
+| 라이브 마이그레이션    | 가능 (vMotion 대응)                        | 가능 (vMotion)               | 가능 (Live Migration)       |
+| 컨테이너 지원          | LXC 통합                                   | Tanzu/별도                   | Windows Containers          |
+| Ceph 통합              | **네이티브** (Proxmox UI 안에서 Ceph 운영) | 외부 별도                    | 외부 별도                   |
+| 학습 자료              | 풍부, 영어/독일어                          | 풍부 (단, 정책 변동 잦음)    | 중                          |
+| 라이센스 비용 (4 노드) | 0 (구독 안 사면) ~ 연 ~수백만 원           | 연 수천만 원                 | 연 수백만 원                |
+| 적합 규모              | 중소~중견                                  | 대기업                       | Windows 환경 위주           |
 
 #### Cloud-init vs Ignition vs Ansible
 
-| 도구 | 동작 시점 | 특징 |
-|---|---|---|
-| **Cloud-init** | 첫 부팅 1회 | 단순, 광범위 호환 (Ubuntu/CentOS/Debian/Amazon Linux/Fedora) |
-| **Ignition** | 첫 부팅 1회 (OS 부팅 전 initramfs) | Fedora CoreOS 전용, 더 엄격 (재실행 불가) |
-| **Ansible** | 언제든 반복 | 멱등성, 풀 자동화. 단, **cloud-init이 한 번 깔린 후**에 Ansible로 운영 (역할이 다름) |
+| 도구           | 동작 시점                          | 특징                                                                                 |
+| -------------- | ---------------------------------- | ------------------------------------------------------------------------------------ |
+| **Cloud-init** | 첫 부팅 1회                        | 단순, 광범위 호환 (Ubuntu/CentOS/Debian/Amazon Linux/Fedora)                         |
+| **Ignition**   | 첫 부팅 1회 (OS 부팅 전 initramfs) | Fedora CoreOS 전용, 더 엄격 (재실행 불가)                                            |
+| **Ansible**    | 언제든 반복                        | 멱등성, 풀 자동화. 단, **cloud-init이 한 번 깔린 후**에 Ansible로 운영 (역할이 다름) |
 
 우리 환경은 **cloud-init으로 1차 부팅 셋업** → **bastion에서 Ansible로 K8s 부트스트랩** 2단계 분리.
 
@@ -178,7 +184,8 @@
 
 #### Proxmox가 잘 맞는 상황
 
-- **VMware 라이센스 비용이 부담** — 2024년 Broadcom이 VMware 인수 후 가격을 5~10배 인상. 중소기업이 대량 이탈.
+- **VMware 라이센스 비용이 부담** — 2024년 Broadcom이 VMware 인수 후 가격을 5~10배 인상. 중소기업이
+  대량 이탈.
 - **Linux 친화 환경** — 운영진이 Linux에 능숙한 곳
 - **K8s/컨테이너와 함께** — Proxmox는 LXC 컨테이너도 지원
 - **Ceph 통합 운영** — Proxmox UI 안에서 Ceph 클러스터 직접 운영 가능
@@ -277,23 +284,24 @@ Cloud-init 템플릿:        템플릿 1번 만들기 30분
 
 ### 3.1 대안 비교 표
 
-| 대안 | 장점 | 단점 | 우리 결정 |
-|---|---|---|---|
-| **Proxmox VE** | 무료, KVM 표준, Ceph 통합, 학습 자료 풍부 | UI는 VMware보다 다소 투박 | ✅ 선택 |
-| VMware ESXi (Free) | 익숙함, 안정 | 클러스터링 유료, 8대 제한, Broadcom 정책 불확실 | ❌ 라이센스 리스크 |
-| OpenStack | 강력, 완전한 IaaS | 4인 팀에 너무 무거움, 학습 곡선 가파름 | ❌ 범위 초과 |
-| 순수 KVM + libvirt | 가장 가벼움 | 클러스터링/HA 직접 구성 = 추가 부담 | ❌ 운영 부담 |
+| 대안               | 장점                                      | 단점                                            | 우리 결정          |
+| ------------------ | ----------------------------------------- | ----------------------------------------------- | ------------------ |
+| **Proxmox VE**     | 무료, KVM 표준, Ceph 통합, 학습 자료 풍부 | UI는 VMware보다 다소 투박                       | ✅ 선택            |
+| VMware ESXi (Free) | 익숙함, 안정                              | 클러스터링 유료, 8대 제한, Broadcom 정책 불확실 | ❌ 라이센스 리스크 |
+| OpenStack          | 강력, 완전한 IaaS                         | 4인 팀에 너무 무거움, 학습 곡선 가파름          | ❌ 범위 초과       |
+| 순수 KVM + libvirt | 가장 가벼움                               | 클러스터링/HA 직접 구성 = 추가 부담             | ❌ 운영 부담       |
 
-| 대안 (자동화) | 장점 | 단점 | 우리 결정 |
-|---|---|---|---|
-| **Cloud-init** | 표준, Terraform 호환, 광범위 | 처음 1회만 동작 | ✅ 선택 |
-| Ignition (CoreOS) | 더 엄격, 신뢰성 ↑ | Fedora CoreOS 전용, Ubuntu와 안 맞음 | ❌ OS 종속 |
-| Kickstart (RHEL) | 풀 자동 설치 | RHEL 한정, 우리는 Ubuntu | ❌ OS 종속 |
-| 수동 설치 | 직관적 | 7대 × 30분 = 3.5시간 + 휴먼 에러 | ❌ 비효율 |
+| 대안 (자동화)     | 장점                         | 단점                                 | 우리 결정  |
+| ----------------- | ---------------------------- | ------------------------------------ | ---------- |
+| **Cloud-init**    | 표준, Terraform 호환, 광범위 | 처음 1회만 동작                      | ✅ 선택    |
+| Ignition (CoreOS) | 더 엄격, 신뢰성 ↑            | Fedora CoreOS 전용, Ubuntu와 안 맞음 | ❌ OS 종속 |
+| Kickstart (RHEL)  | 풀 자동 설치                 | RHEL 한정, 우리는 Ubuntu             | ❌ OS 종속 |
+| 수동 설치         | 직관적                       | 7대 × 30분 = 3.5시간 + 휴먼 에러     | ❌ 비효율  |
 
 ### 3.2 현업 표준과의 정합성
 
-우리가 선택한 **"Proxmox VE + Ubuntu Cloud Image + cloud-init + Terraform clone"** 패턴은 **온프레미스 IaC 표준 흐름**입니다.
+우리가 선택한 **"Proxmox VE + Ubuntu Cloud Image + cloud-init + Terraform clone"** 패턴은
+**온프레미스 IaC 표준 흐름**입니다.
 
 - AWS와의 유사성: AMI (Amazon Machine Image) ≈ Proxmox 템플릿 / UserData ≈ cloud-init user-data
 - Azure와의 유사성: Custom Image ≈ 템플릿 / Custom Data ≈ cloud-init
@@ -304,9 +312,11 @@ Cloud-init 템플릿:        템플릿 1번 만들기 30분
 **받아들인 단점**:
 
 1. **Proxmox UI가 다소 투박** — VMware vCenter에 비해 그래프 표현이 단순. 운영 자체엔 무해.
-2. **Proxmox 클러스터 quorum 요구** — 4대 중 3대 살아있어야 정상. 1대 다운까지만 견딤 (5대였으면 2대까지).
+2. **Proxmox 클러스터 quorum 요구** — 4대 중 3대 살아있어야 정상. 1대 다운까지만 견딤 (5대였으면
+   2대까지).
 3. **Cloud-init은 첫 부팅만** — 이후 설정 변경은 Ansible 등으로 별도. (Day-2 운영 도구 필요)
-4. **템플릿 업데이트 시 기존 VM 영향 없음 (장점이자 단점)** — Linked Clone 안 쓰면 OS 패치 시 VM마다 재배포 필요.
+4. **템플릿 업데이트 시 기존 VM 영향 없음 (장점이자 단점)** — Linked Clone 안 쓰면 OS 패치 시 VM마다
+   재배포 필요.
 
 **그래도 선택한 이유**:
 
@@ -369,21 +379,21 @@ Cloud-init 템플릿:        템플릿 1번 만들기 30분
 
 ### 4.2 핵심 설정값과 근거 (왜 이 값?)
 
-| 설정 | 값 | 근거 |
-|---|---|---|
-| `clone.full` | `true` | Linked Clone은 빠르지만 템플릿 변경 시 영향. Full Clone이 안전 + 독립 디스크. |
-| `cpu.type` | `"host"` | 호스트 CPU 그대로 노출 → **nested virtualization 가능** (Proxmox 위 K8s 위 컨테이너). AVX 등 instruction 모두 사용 가능. |
-| `memory.dedicated` | CP 4096 / W 6144 / Bastion 2048 | Proxmox 32GB × 4 = 128GB. Ceph는 별도라 OK. 6 GiB 워커면 Percona Pod (2 GiB) + 시스템 여유. |
-| `agent.enabled` | `true` | Proxmox에서 VM IP 조회 + 정상 shutdown. qemu-guest-agent를 cloud image에 사전 주입. |
-| `disk.datastore_id` | `"ceph-rbd-team2"` | Ceph RBD에 두면 노드 페일오버 시에도 데이터 보존. Live migration 가능. |
-| `disk.file_format` | `"raw"` | Ceph RBD는 raw 사용 (qcow2는 LVM/dir 전용). RBD 자체가 스냅샷 지원. |
-| `disk.discard` | `"on"` | Ceph thin provisioning 지원. 게스트가 파일 삭제 시 Ceph가 공간 회수. |
-| `disk.ssd` | `true` | 게스트 OS에 SSD로 노출 → 일부 OS가 TRIM/스케줄러 최적화. |
-| `network_device.firewall` | `false` | Proxmox 자체 방화벽 비활성화 (pfSense + K8s NetworkPolicy로 충분). fwbr/fwln 추가 브리지 안 생김. |
-| `network_device.model` | `"virtio"` | 가장 빠름. e1000은 호환성, vmxnet3은 VMware. KVM에선 virtio가 표준. |
-| `network_device.vlan_id` | 30 (K8s) / 40 (Bastion) | Proxmox가 VLAN 태그 부여 → Access 포트처럼 동작. |
-| `ceph_bridge.mtu` | 9000 | Jumbo frame. Ceph IO 처리 성능 ↑ (작은 패킷 대비 패킷 수 ÷6). |
-| `lifecycle.ignore_changes` | `[clone]` | 템플릿 이미지가 업데이트되어도 기존 VM 재생성 안 함 (운영 안정성). |
+| 설정                       | 값                              | 근거                                                                                                                     |
+| -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `clone.full`               | `true`                          | Linked Clone은 빠르지만 템플릿 변경 시 영향. Full Clone이 안전 + 독립 디스크.                                            |
+| `cpu.type`                 | `"host"`                        | 호스트 CPU 그대로 노출 → **nested virtualization 가능** (Proxmox 위 K8s 위 컨테이너). AVX 등 instruction 모두 사용 가능. |
+| `memory.dedicated`         | CP 4096 / W 6144 / Bastion 2048 | Proxmox 32GB × 4 = 128GB. Ceph는 별도라 OK. 6 GiB 워커면 Percona Pod (2 GiB) + 시스템 여유.                              |
+| `agent.enabled`            | `true`                          | Proxmox에서 VM IP 조회 + 정상 shutdown. qemu-guest-agent를 cloud image에 사전 주입.                                      |
+| `disk.datastore_id`        | `"ceph-rbd-team2"`              | Ceph RBD에 두면 노드 페일오버 시에도 데이터 보존. Live migration 가능.                                                   |
+| `disk.file_format`         | `"raw"`                         | Ceph RBD는 raw 사용 (qcow2는 LVM/dir 전용). RBD 자체가 스냅샷 지원.                                                      |
+| `disk.discard`             | `"on"`                          | Ceph thin provisioning 지원. 게스트가 파일 삭제 시 Ceph가 공간 회수.                                                     |
+| `disk.ssd`                 | `true`                          | 게스트 OS에 SSD로 노출 → 일부 OS가 TRIM/스케줄러 최적화.                                                                 |
+| `network_device.firewall`  | `false`                         | Proxmox 자체 방화벽 비활성화 (pfSense + K8s NetworkPolicy로 충분). fwbr/fwln 추가 브리지 안 생김.                        |
+| `network_device.model`     | `"virtio"`                      | 가장 빠름. e1000은 호환성, vmxnet3은 VMware. KVM에선 virtio가 표준.                                                      |
+| `network_device.vlan_id`   | 30 (K8s) / 40 (Bastion)         | Proxmox가 VLAN 태그 부여 → Access 포트처럼 동작.                                                                         |
+| `ceph_bridge.mtu`          | 9000                            | Jumbo frame. Ceph IO 처리 성능 ↑ (작은 패킷 대비 패킷 수 ÷6).                                                            |
+| `lifecycle.ignore_changes` | `[clone]`                       | 템플릿 이미지가 업데이트되어도 기존 VM 재생성 안 함 (운영 안정성).                                                       |
 
 ### 4.3 다른 컴포넌트와의 연결
 
@@ -427,7 +437,8 @@ Cloud-init 템플릿:        템플릿 1번 만들기 30분
 [kosa1]# wget https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
 ```
 
-**왜 Cloud Image?** 일반 Live ISO는 부팅 후 설치 마법사가 떠서 자동화 불가. Cloud Image는 이미 설치되어 cloud-init만 활성화되어 있어 부팅 즉시 사용 가능.
+**왜 Cloud Image?** 일반 Live ISO는 부팅 후 설치 마법사가 떠서 자동화 불가. Cloud Image는 이미
+설치되어 cloud-init만 활성화되어 있어 부팅 즉시 사용 가능.
 
 ```bash
 # qemu-guest-agent 사전 주입
@@ -437,7 +448,8 @@ Cloud-init 템플릿:        템플릿 1번 만들기 30분
            --run-command 'systemctl enable qemu-guest-agent'
 ```
 
-**왜 사전 주입?** cloud-init이 부팅 후 apt로 깔 수도 있지만 인터넷 의존. 미리 이미지에 박아두면 오프라인 환경에서도 동작.
+**왜 사전 주입?** cloud-init이 부팅 후 apt로 깔 수도 있지만 인터넷 의존. 미리 이미지에 박아두면
+오프라인 환경에서도 동작.
 
 ```bash
 # 템플릿 VM 생성
@@ -455,6 +467,7 @@ Cloud-init 템플릿:        템플릿 1번 만들기 30분
 ```
 
 **줄별 의미**:
+
 - `--cpu host`: 호스트 CPU 그대로 = 가장 빠름 + nested virt
 - `--firewall=0`: Proxmox 자체 방화벽 안 씀 = fwbr 같은 추가 브리지 안 생김
 - `--agent enabled=1`: qemu-guest-agent 활성화
@@ -474,7 +487,8 @@ Cloud-init 템플릿:        템플릿 1번 만들기 30분
 [kosa1]# qm template 9000
 ```
 
-**왜 cloud-init은 local-lvm?** ISO 1MB 정도로 작고, 매 부팅마다 읽기만 함. Ceph에 두면 매번 Ceph 액세스 → 약간 느림. local-lvm은 노드 로컬이라 가장 빠름.
+**왜 cloud-init은 local-lvm?** ISO 1MB 정도로 작고, 매 부팅마다 읽기만 함. Ceph에 두면 매번 Ceph
+액세스 → 약간 느림. local-lvm은 노드 로컬이라 가장 빠름.
 
 ### 5.2 Terraform VM 모듈
 
@@ -491,9 +505,11 @@ clone {
 ```
 
 **줄별 설명**:
+
 - `vm_id = 9000`: 어떤 템플릿을 clone할지
 - `node_name = "kosa1"`: 템플릿이 위치한 노드
-- `full = true`: **Linked Clone이 아니라 Full Clone**. 빠른 속도보다 안전성 우선. 템플릿 업데이트 시 기존 VM 영향 없음.
+- `full = true`: **Linked Clone이 아니라 Full Clone**. 빠른 속도보다 안전성 우선. 템플릿 업데이트 시
+  기존 VM 영향 없음.
 
 `main.tf:37-44` — CPU/메모리:
 
@@ -546,7 +562,8 @@ dynamic "network_device" {
 }
 ```
 
-**왜 dynamic block?** Bastion은 VLAN 40 1개 NIC만, K8s 노드들은 VLAN 30 + Ceph 10G 2개 NIC. 변수로 분기.
+**왜 dynamic block?** Bastion은 VLAN 40 1개 NIC만, K8s 노드들은 VLAN 30 + Ceph 10G 2개 NIC. 변수로
+분기.
 
 `main.tf:111-147` — Cloud-init 설정:
 
@@ -581,7 +598,8 @@ initialization {
 }
 ```
 
-**왜 Ceph NIC에 gateway 없음?** 같은 L2(10.10.10.0/24) 안에서 Ceph 모니터/OSD와 직접 통신. 라우팅 불필요.
+**왜 Ceph NIC에 gateway 없음?** 같은 L2(10.10.10.0/24) 안에서 Ceph 모니터/OSD와 직접 통신. 라우팅
+불필요.
 
 ### 5.3 변수 정의 (CP/Worker/Bastion)
 
@@ -601,7 +619,8 @@ variable "control_plane_nodes" {
 }
 ```
 
-**핵심 결정**: cp1을 kosa1에 두면 pfSense-1과 메모리 경쟁 (32 GB에 4 GB CP + 4 GB pfSense + 시스템). OOM/leader change 빈번 → kosa4로 이동.
+**핵심 결정**: cp1을 kosa1에 두면 pfSense-1과 메모리 경쟁 (32 GB에 4 GB CP + 4 GB pfSense + 시스템).
+OOM/leader change 빈번 → kosa4로 이동.
 
 ---
 
@@ -714,7 +733,8 @@ Cloud-init v. 24.4-0ubuntu1~24.04.1 finished at ... Up 47.21 seconds
 
 **증상**: 클러스터 부팅 후 etcd leader가 5~10분 간격으로 바뀌고, cp1 Pod들이 OOMKilled 됨.
 
-**원인**: cp1을 kosa1에 뒀는데, kosa1엔 **pfSense-1 VM(4 GB) + cp1(4 GB) + Proxmox 시스템(~2 GB)** 이 동시에 올라가 있어 32 GB 중 75% 이상 사용. Linux OOM killer가 etcd 프로세스를 죽이는 현상 발생.
+**원인**: cp1을 kosa1에 뒀는데, kosa1엔 **pfSense-1 VM(4 GB) + cp1(4 GB) + Proxmox 시스템(~2 GB)**
+이 동시에 올라가 있어 32 GB 중 75% 이상 사용. Linux OOM killer가 etcd 프로세스를 죽이는 현상 발생.
 
 **해결**:
 
@@ -735,9 +755,9 @@ cp1을 kosa4로 라이브 마이그레이션. kosa4엔 cp1(4) + w2(6) = 10 GB만
 
 **증상**: VM은 부팅됐는데 ssh 안 됨. 콘솔로 들어가보면 IP 0.0.0.0.
 
-**원인 케이스 1**: `serial0` 미설정 → cloud-init 출력 어디로 가는지 불명.
-**원인 케이스 2**: VLAN 태그가 Proxmox에서만 부여되고 스위치에서 안 받음.
-**원인 케이스 3**: Cloud-init 드라이브가 잘못된 datastore에 있어 read 실패.
+**원인 케이스 1**: `serial0` 미설정 → cloud-init 출력 어디로 가는지 불명. **원인 케이스 2**: VLAN
+태그가 Proxmox에서만 부여되고 스위치에서 안 받음. **원인 케이스 3**: Cloud-init 드라이브가 잘못된
+datastore에 있어 read 실패.
 
 **해결**:
 
@@ -749,7 +769,8 @@ ubuntu@k8s-cp1:~$ sudo cat /var/log/cloud-init.log | grep -i error
 ubuntu@k8s-cp1:~$ ip addr
 ```
 
-`netplan` 설정이 안 들어와 있다면 cloud-init이 metadata를 못 읽은 것. 99% **VLAN 태그 mismatch** 또는 **스위치 trunk 설정 누락**.
+`netplan` 설정이 안 들어와 있다면 cloud-init이 metadata를 못 읽은 것. 99% **VLAN 태그 mismatch**
+또는 **스위치 trunk 설정 누락**.
 
 **★ 왜 이 함정이 발생하는가**:
 
@@ -762,9 +783,11 @@ ubuntu@k8s-cp1:~$ ip addr
 
 **증상**: `terraform apply` 시 `Error: storage 'ceph-rbd-team2' does not exist on node 'kosa3'`.
 
-**원인**: 템플릿 9000의 디스크가 **노드 로컬 LVM**에 있어서 다른 노드가 clone할 수 없음. Ceph(공유 스토리지)에 있어야 4 노드 어디든 clone 가능.
+**원인**: 템플릿 9000의 디스크가 **노드 로컬 LVM**에 있어서 다른 노드가 clone할 수 없음. Ceph(공유
+스토리지)에 있어야 4 노드 어디든 clone 가능.
 
-**해결**: 템플릿 생성 시 `qm importdisk 9000 ... ceph-rbd-team2`로 처음부터 Ceph에 두기. 이미 잘못 만들었으면:
+**해결**: 템플릿 생성 시 `qm importdisk 9000 ... ceph-rbd-team2`로 처음부터 Ceph에 두기. 이미 잘못
+만들었으면:
 
 ```bash
 [kosa1]# qm move-disk 9000 scsi0 ceph-rbd-team2 --delete=1
@@ -814,8 +837,13 @@ ubuntu@k8s-cp1:~$ ip addr
 
 ### 다음 챕터 미리보기
 
-다음 챕터(`03-pfsense-network.md`)에서는 **이 VM들이 통신하는 네트워크 계층**을 다룹니다. VLAN 10/20/30/40 설계, pfSense HA(CARP), 그리고 K8s 노드의 dual-NIC (VLAN 30 + Ceph 10G) 구성을 봐요. Cloud-init이 정적 IP를 주입할 때 **gateway가 pfSense CARP VIP**라는 게 어떻게 동작하는지도 거기서 풀립니다.
+다음 챕터(`03-pfsense-network.md`)에서는 **이 VM들이 통신하는 네트워크 계층**을 다룹니다. VLAN
+10/20/30/40 설계, pfSense HA(CARP), 그리고 K8s 노드의 dual-NIC (VLAN 30 + Ceph 10G) 구성을 봐요.
+Cloud-init이 정적 IP를 주입할 때 **gateway가 pfSense CARP VIP**라는 게 어떻게 동작하는지도 거기서
+풀립니다.
 
 ---
 
-> **이 챕터 핵심 메시지**: Proxmox VE는 KVM 기반 오픈소스 가상화의 사실상 표준이고, Cloud-init은 VM 자동 초기 설정의 표준이에요. 우리는 **템플릿 1개(9000) + Terraform 7번 clone + cloud-init이 IP/SSH/hostname 자동 주입** 패턴으로 7대 VM을 1분 안에 prod-ready 상태로 만들어냅니다.
+> **이 챕터 핵심 메시지**: Proxmox VE는 KVM 기반 오픈소스 가상화의 사실상 표준이고, Cloud-init은 VM
+> 자동 초기 설정의 표준이에요. 우리는 **템플릿 1개(9000) + Terraform 7번 clone + cloud-init이
+> IP/SSH/hostname 자동 주입** 패턴으로 7대 VM을 1분 안에 prod-ready 상태로 만들어냅니다.

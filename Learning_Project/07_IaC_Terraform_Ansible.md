@@ -7,6 +7,7 @@
 ## 1) IaC가 풀어주는 문제
 
 수동:
+
 - "kosa1에 어떤 설정 했지?" 기억 안 남
 - 새 서버 추가 = 같은 작업 반복
 - 환경 차이 (개발/운영) 추적 불가
@@ -18,13 +19,13 @@
 
 ## 2) Terraform vs Ansible — 책임 분담
 
-| | **Terraform** | **Ansible** |
-|---|---|---|
-| 패러다임 | 선언적 (Declarative) | 절차적 (Procedural) |
-| 풀어주는 | "어떤 인프라" (VM, 네트워크) | "어떤 설정" (패키지, 파일) |
-| 상태 추적 | tfstate 파일 | 매번 SSH로 확인 |
-| 멱등성 | 자동 (diff 계산) | 모듈이 보장 |
-| 우리 사용 | Proxmox VM 생성, AWS 리소스 | K8s 부트스트랩, 패키지 설치 |
+|           | **Terraform**                | **Ansible**                 |
+| --------- | ---------------------------- | --------------------------- |
+| 패러다임  | 선언적 (Declarative)         | 절차적 (Procedural)         |
+| 풀어주는  | "어떤 인프라" (VM, 네트워크) | "어떤 설정" (패키지, 파일)  |
+| 상태 추적 | tfstate 파일                 | 매번 SSH로 확인             |
+| 멱등성    | 자동 (diff 계산)             | 모듈이 보장                 |
+| 우리 사용 | Proxmox VM 생성, AWS 리소스  | K8s 부트스트랩, 패키지 설치 |
 
 ### 둘 다 쓰는 이유
 
@@ -37,8 +38,7 @@
 VM 인프라                  K8s 클러스터
 ```
 
-Terraform만 → VM 안 설정 어려움
-Ansible만 → VM 자체 생성 못 함 (불가능은 아니지만 부자연스러움)
+Terraform만 → VM 안 설정 어려움<br> Ansible만 → VM 자체 생성 못 함 (불가능은 아니지만 부자연스러움)
 
 ---
 
@@ -46,10 +46,10 @@ Ansible만 → VM 자체 생성 못 함 (불가능은 아니지만 부자연스�
 
 ### 3종 파일
 
-| 파일 | 역할 |
-|---|---|
-| `*.tf` | 인프라 선언 (HCL 언어) |
-| `*.tfvars` | 값 (gitignore) |
+| 파일        | 역할                       |
+| ----------- | -------------------------- |
+| `*.tf`      | 인프라 선언 (HCL 언어)     |
+| `*.tfvars`  | 값 (gitignore)             |
 | `*.tfstate` | 현재 상태 추적 (자동 생성) |
 
 ### 흐름
@@ -63,10 +63,10 @@ terraform destroy   # 전부 삭제
 
 ### provider
 
-| Provider | 무엇을 |
-|---|---|
-| `hashicorp/aws` | AWS VPC, EC2 |
-| `bpg/proxmox` | Proxmox VM (우리가 쓰는 것) |
+| Provider               | 무엇을                                |
+| ---------------------- | ------------------------------------- |
+| `hashicorp/aws`        | AWS VPC, EC2                          |
+| `bpg/proxmox`          | Proxmox VM (우리가 쓰는 것)           |
 | `hashicorp/kubernetes` | K8s 리소스 (보통 안 씀, Ansible이 함) |
 
 ### state 관리
@@ -80,11 +80,11 @@ terraform destroy   # 전부 삭제
 
 ### 3종 파일
 
-| 파일 | 역할 |
-|---|---|
+| 파일                  | 역할                      |
+| --------------------- | ------------------------- |
 | `inventory/hosts.yml` | 대상 호스트 (그룹 + 변수) |
-| `playbooks/*.yml` | 실행할 작업 |
-| `roles/*` | 재사용 가능한 모듈 |
+| `playbooks/*.yml`     | 실행할 작업               |
+| `roles/*`             | 재사용 가능한 모듈        |
 
 ### 흐름
 
@@ -102,7 +102,7 @@ ansible-galaxy collection install ...     # 의존성 설치
 - name: nginx 설치
   apt:
     name: nginx
-    state: present     # 이미 깔려있으면 skip
+    state: present # 이미 깔려있으면 skip
 ```
 
 `changed: no` 가 나오면 멱등성 작동.
@@ -140,25 +140,27 @@ ansible/
 
 ### Terraform vs
 
-| | **Terraform** | Pulumi | CloudFormation | Crossplane |
-|---|---|---|---|---|
-| 언어 | HCL | TS/Python/Go | YAML/JSON | K8s YAML |
-| 멀티 클라우드 | ✅ | ✅ | AWS only | ✅ |
-| 학습 가치 | 표준 | 모던 | AWS 한정 | K8s native |
+|               | **Terraform** | Pulumi       | CloudFormation | Crossplane |
+| ------------- | ------------- | ------------ | -------------- | ---------- |
+| 언어          | HCL           | TS/Python/Go | YAML/JSON      | K8s YAML   |
+| 멀티 클라우드 | ✅            | ✅           | AWS only       | ✅         |
+| 학습 가치     | 표준          | 모던         | AWS 한정       | K8s native |
 
 ### Ansible vs
 
-| | **Ansible** | Chef | Puppet | SaltStack |
-|---|---|---|---|---|
-| 에이전트 | 불필요 (SSH) | 필요 | 필요 | 필요 |
-| 언어 | YAML | Ruby | Puppet DSL | YAML |
-| 학습 곡선 | 낮음 | 중 | 중 | 중 |
+|           | **Ansible**  | Chef | Puppet     | SaltStack |
+| --------- | ------------ | ---- | ---------- | --------- |
+| 에이전트  | 불필요 (SSH) | 필요 | 필요       | 필요      |
+| 언어      | YAML         | Ruby | Puppet DSL | YAML      |
+| 학습 곡선 | 낮음         | 중   | 중         | 중        |
 
 ---
 
 ## 7) 발표 어필
 
-> *"인프라 라이프사이클은 Terraform으로 (선언적, state 추적), 호스트 내부 설정은 Ansible로 (멱등성, 절차적) 책임 분담했습니다. 100% 코드로 정의되어 새 환경에서도 30분 안에 동일 인프라 재현 가능합니다."*
+> _"인프라 라이프사이클은 Terraform으로 (선언적, state 추적), 호스트 내부 설정은 Ansible로 (멱등성,
+> 절차적) 책임 분담했습니다. 100% 코드로 정의되어 새 환경에서도 30분 안에 동일 인프라 재현
+> 가능합니다."_
 
 ---
 

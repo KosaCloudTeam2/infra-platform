@@ -22,23 +22,23 @@ MySQL 호환 **멀티마스터 동기 복제** 클러스터. Galera Cluster 기�
 
 ### 대안 비교
 
-| | **PXC** | MySQL Group Replication | Galera (원본) | Vitess |
-|---|---|---|---|---|
-| 라이센스 | 오픈소스 | 오픈소스 (MySQL) | 오픈소스 (MariaDB) | 오픈소스 |
-| 멀티마스터 | ✅ | ✅ (제한적) | ✅ | 샤딩 |
-| Operator | Percona | (없음) | (없음) | Vitess Operator |
-| 복잡도 | 중 | 중 | 중 | 매우 높음 |
-| **선택 이유** | Operator 성숙도 + 학습 자료 | - | - | 오버킬 |
+|               | **PXC**                     | MySQL Group Replication | Galera (원본)      | Vitess          |
+| ------------- | --------------------------- | ----------------------- | ------------------ | --------------- |
+| 라이센스      | 오픈소스                    | 오픈소스 (MySQL)        | 오픈소스 (MariaDB) | 오픈소스        |
+| 멀티마스터    | ✅                          | ✅ (제한적)             | ✅                 | 샤딩            |
+| Operator      | Percona                     | (없음)                  | (없음)             | Vitess Operator |
+| 복잡도        | 중                          | 중                      | 중                 | 매우 높음       |
+| **선택 이유** | Operator 성숙도 + 학습 자료 | -                       | -                  | 오버킬          |
 
 ### Percona Operator vs 수동 StatefulSet
 
-| | 수동 StatefulSet | **Percona Operator** |
-|---|---|---|
-| 설정 | YAML 직접 작성 | CR로 선언 |
-| 백업 | 직접 구현 | 내장 (PVC snapshot) |
-| 페일오버 | 직접 처리 | 자동 |
-| 업그레이드 | 위험 | rolling 안전 |
-| 학습 가치 | DB 내부 이해 | 운영 자동화 이해 |
+|            | 수동 StatefulSet | **Percona Operator** |
+| ---------- | ---------------- | -------------------- |
+| 설정       | YAML 직접 작성   | CR로 선언            |
+| 백업       | 직접 구현        | 내장 (PVC snapshot)  |
+| 페일오버   | 직접 처리        | 자동                 |
+| 업그레이드 | 위험             | rolling 안전         |
+| 학습 가치  | DB 내부 이해     | 운영 자동화 이해     |
 
 기술스택 명시: **Percona Operator**.
 
@@ -54,7 +54,7 @@ spec:
   crVersion: 1.14.0
   secretsName: kosa-pxc-secrets
   pxc:
-    size: 3                    # 3-node 클러스터
+    size: 3 # 3-node 클러스터
     image: percona/percona-xtradb-cluster:8.0
     resources:
       requests: { cpu: 500m, memory: 2Gi }
@@ -128,12 +128,12 @@ Master 다운 → Sentinel 과반수가 합의 → Replica 1 승격.
 
 ### Sentinel vs Cluster vs Standalone
 
-| | Standalone | **Sentinel** | Cluster |
-|---|---|---|---|
-| HA | X | ✅ (자동 페일오버) | ✅ (샤딩+HA) |
-| 데이터 분산 | X | X (마스터 1개) | ✅ |
-| 복잡도 | 낮음 | 중 | 높음 |
-| **선택 이유** | - | 우리 데이터 작음, 단순함 | 오버킬 |
+|               | Standalone | **Sentinel**             | Cluster      |
+| ------------- | ---------- | ------------------------ | ------------ |
+| HA            | X          | ✅ (자동 페일오버)       | ✅ (샤딩+HA) |
+| 데이터 분산   | X          | X (마스터 1개)           | ✅           |
+| 복잡도        | 낮음       | 중                       | 높음         |
+| **선택 이유** | -          | 우리 데이터 작음, 단순함 | 오버킬       |
 
 ### 우리 환경 사용처
 
@@ -174,7 +174,10 @@ DECR은 원자적 — 동시 요청이 와도 정확히 잔여 수만큼만 통�
 
 ## 5) 발표 어필
 
-> *"Percona Operator로 PXC 3-replica를 운영하며 동기 멀티마스터 복제를 통해 단일 노드 장애에도 무중단입니다. ProxySQL이 R/W를 분리해 SELECT 부하를 read replica로 분산하며, 이벤트 목록 같은 글로벌 조회는 AWS RDS Read Replica로 라우팅하여 latency를 최소화했습니다. Redis는 Sentinel로 HA + 원자 DECR으로 티켓 동시성을 100% 차단합니다."*
+> _"Percona Operator로 PXC 3-replica를 운영하며 동기 멀티마스터 복제를 통해 단일 노드 장애에도
+> 무중단입니다. ProxySQL이 R/W를 분리해 SELECT 부하를 read replica로 분산하며, 이벤트 목록 같은
+> 글로벌 조회는 AWS RDS Read Replica로 라우팅하여 latency를 최소화했습니다. Redis는 Sentinel로 HA +
+> 원자 DECR으로 티켓 동시성을 100% 차단합니다."_
 
 ---
 

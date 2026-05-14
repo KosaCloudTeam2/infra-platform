@@ -1,7 +1,6 @@
 # 챕터 01 — 프로젝트 개요 + 전체 아키텍처
 
-> KOSA 인프라 프로젝트 학습용 문서 시리즈
-> 작성일: 2026-05-13 / 대상: 인프라 입문자 ~ 중급
+> KOSA 인프라 프로젝트 학습용 문서 시리즈<br> 작성일: 2026-05-13 / 대상: 인프라 입문자 ~ 중급<br>
 > 다른 챕터: `02-proxmox-cloudinit.md`, `03-pfsense-network.md`
 
 ---
@@ -20,34 +19,37 @@
 
 ### 1.1 정의 (한 문장)
 
-KOSA 인프라 프로젝트는 **온프레미스 Kubernetes 클러스터를 메인 워크로드로 두고, 시점 폭증(burst)이 발생할 때만 AWS로 자동 확장**하는 하이브리드 클라우드 인프라 구축 학습 프로젝트예요.
+KOSA 인프라 프로젝트는 **온프레미스 Kubernetes 클러스터를 메인 워크로드로 두고, 시점 폭증(burst)이
+발생할 때만 AWS로 자동 확장**하는 하이브리드 클라우드 인프라 구축 학습 프로젝트예요.
 
 ### 1.2 등장 배경 (어떤 문제 해결하려고?)
 
 현업에는 두 가지 잘못된 극단이 있어요.
 
-| 극단 | 문제 |
-|---|---|
-| **풀 클라우드 (AWS만)** | 평상시에도 비싼 EC2/EKS 비용 발생. 한국처럼 트래픽이 균일한 도메인은 비용 비효율. |
+| 극단                           | 문제                                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| **풀 클라우드 (AWS만)**        | 평상시에도 비싼 EC2/EKS 비용 발생. 한국처럼 트래픽이 균일한 도메인은 비용 비효율.            |
 | **풀 온프레미스 (자체 IDC만)** | 티켓 오픈 같은 시점 폭증을 받아내려면 평시 10배의 장비를 사둬야 함. 99% 시간엔 놀고 있는 셈. |
 
-특히 **티켓팅 시스템**은 평시 트래픽 대비 폭증 시 **100배 차이**가 납니다. (인터파크 BTS 콘서트, 멜론 콘서트, 백신 예약 시스템, 수능 점수 조회 등) 이런 도메인을 "두 극단 사이의 합리적 지점"으로 풀어내는 것이 이 프로젝트의 목표예요.
+특히 **티켓팅 시스템**은 평시 트래픽 대비 폭증 시 **100배 차이**가 납니다. (인터파크 BTS 콘서트,
+멜론 콘서트, 백신 예약 시스템, 수능 점수 조회 등) 이런 도메인을 "두 극단 사이의 합리적 지점"으로
+풀어내는 것이 이 프로젝트의 목표예요.
 
 ### 1.3 핵심 개념 + 용어 풀이
 
-| 용어 | 풀이 |
-|---|---|
-| **하이브리드 클라우드** | 온프레미스(자체 보유 서버) + 퍼블릭 클라우드(AWS/GCP/Azure)를 함께 쓰는 구성. 한쪽 단점을 다른 쪽이 보완. |
-| **Cloud Burst** | 평소엔 온프레미스로만 운영하다 트래픽 폭증 시 짧게 클라우드로 확장. 쉽게 말해 "성수기에만 알바 부르는" 식. |
-| **K8s (Kubernetes)** | 컨테이너 오케스트레이션 플랫폼. 쉽게 말하면 "수십~수백 개의 컨테이너를 자동으로 배치/스케일/복구하는 자동화 시스템". |
-| **etcd** | K8s의 상태를 저장하는 분산 키-값 DB. 쉽게 말하면 클러스터의 "메모장". 3대 이상으로 quorum(과반수)을 유지. |
-| **Proxmox VE** | KVM 기반 오픈소스 가상화 플랫폼. VMware vSphere의 무료 대안. |
-| **Ceph** | 분산 스토리지 시스템. Block(RBD), File(CephFS), Object(RGW) 세 가지를 한 클러스터에서 제공. |
-| **pfSense** | FreeBSD 기반 오픈소스 방화벽/라우터. 중소기업 표준. |
-| **Karpenter** | AWS의 K8s 노드 자동 프로비저닝 도구. Spot 인스턴스 burst에 최적화. |
-| **ArgoCD** | Git 저장소를 K8s 상태의 "단일 진실의 소스(SSoT)"로 삼는 GitOps 도구. |
-| **Percona XtraDB Cluster (PXC)** | MySQL 호환 동기 복제 클러스터. 3노드에서 quorum 기반으로 일관성 유지. |
-| **MetalLB** | 온프레미스 K8s에서 LoadBalancer 타입 서비스를 쓰게 해주는 애드온. ARP/BGP로 외부 IP를 노출. |
+| 용어                             | 풀이                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **하이브리드 클라우드**          | 온프레미스(자체 보유 서버) + 퍼블릭 클라우드(AWS/GCP/Azure)를 함께 쓰는 구성. 한쪽 단점을 다른 쪽이 보완.            |
+| **Cloud Burst**                  | 평소엔 온프레미스로만 운영하다 트래픽 폭증 시 짧게 클라우드로 확장. 쉽게 말해 "성수기에만 알바 부르는" 식.           |
+| **K8s (Kubernetes)**             | 컨테이너 오케스트레이션 플랫폼. 쉽게 말하면 "수십~수백 개의 컨테이너를 자동으로 배치/스케일/복구하는 자동화 시스템". |
+| **etcd**                         | K8s의 상태를 저장하는 분산 키-값 DB. 쉽게 말하면 클러스터의 "메모장". 3대 이상으로 quorum(과반수)을 유지.            |
+| **Proxmox VE**                   | KVM 기반 오픈소스 가상화 플랫폼. VMware vSphere의 무료 대안.                                                         |
+| **Ceph**                         | 분산 스토리지 시스템. Block(RBD), File(CephFS), Object(RGW) 세 가지를 한 클러스터에서 제공.                          |
+| **pfSense**                      | FreeBSD 기반 오픈소스 방화벽/라우터. 중소기업 표준.                                                                  |
+| **Karpenter**                    | AWS의 K8s 노드 자동 프로비저닝 도구. Spot 인스턴스 burst에 최적화.                                                   |
+| **ArgoCD**                       | Git 저장소를 K8s 상태의 "단일 진실의 소스(SSoT)"로 삼는 GitOps 도구.                                                 |
+| **Percona XtraDB Cluster (PXC)** | MySQL 호환 동기 복제 클러스터. 3노드에서 quorum 기반으로 일관성 유지.                                                |
+| **MetalLB**                      | 온프레미스 K8s에서 LoadBalancer 타입 서비스를 쓰게 해주는 애드온. ARP/BGP로 외부 IP를 노출.                          |
 
 ### 1.4 동작 원리 (내부 메커니즘)
 
@@ -73,7 +75,8 @@ KOSA 인프라 프로젝트는 **온프레미스 Kubernetes 클러스터를 메�
 [FastAPI Pod × N] ── [Percona PXC × 3] ── [Redis Sentinel] ── [Ceph RBD PV]
 ```
 
-이 시점에서 AWS는 **얇은 엣지(NLB + WAF + 작은 EC2 HAProxy 2대)** 만 운영해요. 무거운 워크로드는 전부 온프레미스 K8s에서 처리됩니다.
+이 시점에서 AWS는 **얇은 엣지(NLB + WAF + 작은 EC2 HAProxy 2대)** 만 운영해요. 무거운 워크로드는
+전부 온프레미스 K8s에서 처리됩니다.
 
 #### 티켓 오픈 burst (5% 시간)
 
@@ -84,7 +87,8 @@ T+15분: 매진 → CloudWatch alarm → Lambda cooldown → Karpenter consolida
 T+30분: 평상시 복귀, AWS spot 노드 0대
 ```
 
-핵심은 **"필요한 30분만"** AWS를 쓴다는 점입니다. 평상시엔 EKS Control Plane($73/월)만 켜둬요. burst 1시간에 Spot EC2 5대를 쓰면 약 $3 정도 비용입니다.
+핵심은 **"필요한 30분만"** AWS를 쓴다는 점입니다. 평상시엔 EKS Control Plane($73/월)만 켜둬요. burst
+1시간에 Spot EC2 5대를 쓰면 약 $3 정도 비용입니다.
 
 ### 1.5 주요 기능
 
@@ -101,17 +105,17 @@ T+30분: 평상시 복귀, AWS spot 노드 0대
 
 ### 1.6 다른 도구와 비교 (기술적 차이)
 
-| 비교축 | 우리 선택 | 대안 1 | 대안 2 |
-|---|---|---|---|
-| 가상화 | Proxmox VE | VMware vSphere (유료, Broadcom 인수 후 가격 폭등) | Hyper-V (Windows 종속) |
-| K8s 설치 | kubeadm + Ansible | Rancher (GUI 의존) | OpenShift (라이센스) |
-| CNI | Calico | Cilium (eBPF, 더 빠르지만 학습 곡선 ↑) | Flannel (단순하나 NetworkPolicy 미흡) |
-| 스토리지 | Ceph | NFS (단일 SPOF), Longhorn (K8s 종속, replication 한정) |
-| DB | Percona XtraDB | MySQL 단일 + replica (수동 failover) | MongoDB (관계형 X) |
-| 캐시 | Redis Sentinel | Redis Cluster (sharding, 단일 키 트랜잭션 X) |
-| GitOps | ArgoCD | Flux (UI 약함), Spinnaker (무거움) |
-| 방화벽 | pfSense | OPNsense (포크), Cisco IOS (라이센스) |
-| Burst | AWS EKS Karpenter | Cluster Autoscaler (느림), 수동 scaling (자동화 X) |
+| 비교축   | 우리 선택         | 대안 1                                                 | 대안 2                                |
+| -------- | ----------------- | ------------------------------------------------------ | ------------------------------------- |
+| 가상화   | Proxmox VE        | VMware vSphere (유료, Broadcom 인수 후 가격 폭등)      | Hyper-V (Windows 종속)                |
+| K8s 설치 | kubeadm + Ansible | Rancher (GUI 의존)                                     | OpenShift (라이센스)                  |
+| CNI      | Calico            | Cilium (eBPF, 더 빠르지만 학습 곡선 ↑)                 | Flannel (단순하나 NetworkPolicy 미흡) |
+| 스토리지 | Ceph              | NFS (단일 SPOF), Longhorn (K8s 종속, replication 한정) |
+| DB       | Percona XtraDB    | MySQL 단일 + replica (수동 failover)                   | MongoDB (관계형 X)                    |
+| 캐시     | Redis Sentinel    | Redis Cluster (sharding, 단일 키 트랜잭션 X)           |
+| GitOps   | ArgoCD            | Flux (UI 약함), Spinnaker (무거움)                     |
+| 방화벽   | pfSense           | OPNsense (포크), Cisco IOS (라이센스)                  |
+| Burst    | AWS EKS Karpenter | Cluster Autoscaler (느림), 수동 scaling (자동화 X)     |
 
 핵심 선택 기준은 **(1) 오픈소스 (2) 현업에서 실제 검증됨 (3) 학습 곡선 합리적** 세 가지였어요.
 
@@ -130,13 +134,13 @@ T+30분: 평상시 복귀, AWS spot 노드 0대
 
 대표 도메인:
 
-| 도메인 | 패턴 | 비고 |
-|---|---|---|
-| 콘서트 티켓 | 19:00 오픈 → 15분 매진 | 인터파크, 멜론, 티켓링크 |
-| 한정판 굿즈 드롭 | 정시 오픈 → 5분 매진 | 무신사, 29CM |
-| 백신 예약 | 발표 직후 폭주 → 1시간 진정 | 코로나 때 정부 시스템 다운 |
-| 수능 점수 조회 | 발표 시각 → 30분 폭주 | EBS, 평가원 |
-| 블랙프라이데이 | 자정 → 6시간 지속 burst | 다소 긴 편 |
+| 도메인           | 패턴                        | 비고                       |
+| ---------------- | --------------------------- | -------------------------- |
+| 콘서트 티켓      | 19:00 오픈 → 15분 매진      | 인터파크, 멜론, 티켓링크   |
+| 한정판 굿즈 드롭 | 정시 오픈 → 5분 매진        | 무신사, 29CM               |
+| 백신 예약        | 발표 직후 폭주 → 1시간 진정 | 코로나 때 정부 시스템 다운 |
+| 수능 점수 조회   | 발표 시각 → 30분 폭주       | EBS, 평가원                |
+| 블랙프라이데이   | 자정 → 6시간 지속 burst     | 다소 긴 편                 |
 
 ### 2.2 업계에서 보통 어떻게 쓰나 (표준 구성, 대표 사용 기업/사례)
 
@@ -208,9 +212,11 @@ Gartner, Forrester 보고서 공통 추세:
 
 - **2024년 기준 글로벌 기업 73%가 멀티/하이브리드 클라우드** 사용 (Flexera 2024 State of the Cloud)
 - **한국 IT 시장**: 금융권/공공/제조는 거의 100% 하이브리드 (규제)
-- **트렌드**: "Repatriation" — 풀 클라우드 갔다가 비용 문제로 일부 온프레미스로 돌아오는 흐름이 2023년부터 가속화 (37signals, Dropbox 사례)
+- **트렌드**: "Repatriation" — 풀 클라우드 갔다가 비용 문제로 일부 온프레미스로 돌아오는 흐름이
+  2023년부터 가속화 (37signals, Dropbox 사례)
 
-오픈소스 K8s + Ceph + Proxmox 조합은 **유럽 (특히 독일, 폴란드)** 에서 시장 점유가 빠르게 늘고 있어요. VMware의 가격 인상이 그 배경이에요.
+오픈소스 K8s + Ceph + Proxmox 조합은 **유럽 (특히 독일, 폴란드)** 에서 시장 점유가 빠르게 늘고
+있어요. VMware의 가격 인상이 그 배경이에요.
 
 ---
 
@@ -218,25 +224,25 @@ Gartner, Forrester 보고서 공통 추세:
 
 ### 3.1 대안 비교 표
 
-| 대안 | 장점 | 단점 | 우리 결정 |
-|---|---|---|---|
-| 풀 AWS (EKS만) | 운영 단순, 모든 게 매니지드 | 학습 가치 ↓ (KOSA는 인프라 학습 과정), 비용 ↑ | ❌ — 학습 목적과 안 맞음 |
-| 풀 온프레미스 | 비용 0 (이미 있음), 데이터 주권 | burst 대응 불가, 클라우드 경험 0 | ❌ — burst 시나리오 시연 불가 |
-| 하이브리드 (우리) | burst 케이스 시연 가능, 양쪽 경험 | 복잡도 ↑, 구성 시간 ↑ | ✅ — 학습 목적 + 시나리오 정합 |
-| Multi-cloud (AWS+GCP) | 벤더 락인 회피 | 4인 팀에 너무 복잡 | ❌ — 범위 초과 |
+| 대안                  | 장점                              | 단점                                          | 우리 결정                      |
+| --------------------- | --------------------------------- | --------------------------------------------- | ------------------------------ |
+| 풀 AWS (EKS만)        | 운영 단순, 모든 게 매니지드       | 학습 가치 ↓ (KOSA는 인프라 학습 과정), 비용 ↑ | ❌ — 학습 목적과 안 맞음       |
+| 풀 온프레미스         | 비용 0 (이미 있음), 데이터 주권   | burst 대응 불가, 클라우드 경험 0              | ❌ — burst 시나리오 시연 불가  |
+| 하이브리드 (우리)     | burst 케이스 시연 가능, 양쪽 경험 | 복잡도 ↑, 구성 시간 ↑                         | ✅ — 학습 목적 + 시나리오 정합 |
+| Multi-cloud (AWS+GCP) | 벤더 락인 회피                    | 4인 팀에 너무 복잡                            | ❌ — 범위 초과                 |
 
 ### 3.2 현업 표준과의 정합성
 
 우리 구성은 **한국 금융권/티켓팅 업계 표준** 그대로입니다.
 
-| 우리 컴포넌트 | 현업에서 비슷한 것 |
-|---|---|
-| pfSense HA | Cisco ASA HA, Palo Alto HA, F5 |
-| Proxmox 4대 | VMware vSphere Cluster |
-| Ceph 6대 | NetApp, Pure Storage, Dell PowerStore |
-| K8s 6노드 | OpenShift, EKS, GKE |
-| Percona XtraDB | Oracle RAC, MariaDB Galera |
-| ArgoCD | Spinnaker (Netflix), Argo (Intuit, BlackRock) |
+| 우리 컴포넌트  | 현업에서 비슷한 것                            |
+| -------------- | --------------------------------------------- |
+| pfSense HA     | Cisco ASA HA, Palo Alto HA, F5                |
+| Proxmox 4대    | VMware vSphere Cluster                        |
+| Ceph 6대       | NetApp, Pure Storage, Dell PowerStore         |
+| K8s 6노드      | OpenShift, EKS, GKE                           |
+| Percona XtraDB | Oracle RAC, MariaDB Galera                    |
+| ArgoCD         | Spinnaker (Netflix), Argo (Intuit, BlackRock) |
 
 → **이 구성을 마스터하면 현업에서 곧바로 활용 가능**한 학습 자산이 돼요.
 
@@ -244,9 +250,12 @@ Gartner, Forrester 보고서 공통 추세:
 
 **우리가 받아들인 단점**:
 
-1. **복잡도 ↑** — 컴포넌트가 많아서 어디서 문제 났는지 찾기 어려움. → 해결: 챕터별 분리 학습, 디버깅 체크리스트 정비 (inventory.md 표 2).
+1. **복잡도 ↑** — 컴포넌트가 많아서 어디서 문제 났는지 찾기 어려움. → 해결: 챕터별 분리 학습, 디버깅
+   체크리스트 정비 (inventory.md 표 2).
 2. **메모리 빠듯함** — Proxmox 32GB × 4 중 사용률 75%. → 해결: cp1을 kosa4로 이전, 워커 6GB 제한.
-3. **하드웨어 4대 한계** — pfSense를 별도 어플라이언스로 둘 수 없어 Proxmox VM으로 운영. → 해결: 발표용 다이어그램은 "별도 어플라이언스 2대"로 그리되, 실제 구성은 VM이라고 설명. 실무에서도 이런 절충은 흔해요.
+3. **하드웨어 4대 한계** — pfSense를 별도 어플라이언스로 둘 수 없어 Proxmox VM으로 운영. → 해결:
+   발표용 다이어그램은 "별도 어플라이언스 2대"로 그리되, 실제 구성은 VM이라고 설명. 실무에서도 이런
+   절충은 흔해요.
 
 **그래도 선택한 이유**:
 
@@ -326,17 +335,17 @@ Ceph 10G  10.10.10.0/24  (별도 L2, jumbo frame MTU 9000)
 
 ### 4.2 핵심 설정값과 근거 (왜 이 값?)
 
-| 설정 | 값 | 근거 |
-|---|---|---|
-| Proxmox 노드 수 | 4 | corosync quorum 최소 3, 4대면 1대 다운 허용. 4대는 하드웨어 예산 한계이기도. |
-| K8s CP 수 | 3 | etcd quorum (2n+1, 3대면 1대 다운 허용). 5대는 과함. |
-| K8s Worker 수 | 3 | 3개 노드 분산이면 Pod replicaCount 3을 진정한 anti-affinity로 배치 가능 |
-| Worker 메모리 | 6 GiB | Percona Pod (2 GiB) + Redis (1 GiB) + ticket-app (512 MiB) + 시스템 → 여유 ~2 GiB |
-| Ceph replicas | 3 | 1대 다운 + 1대 추가 다운까지 견딤, 가용용량 = Raw/3 = 2TB |
-| Ceph HDD | 1TB × 6 | 기존 보유. 6TB Raw는 K8s PV 용도로 충분 (DB ~100GB, 로그 ~50GB) |
-| MetalLB pool | 172.16.23.100~150 | K8s 노드(VLAN 30)와 같은 대역이어야 ARP 동작. (이전엔 VLAN 20에 뒀다가 함정) |
-| pfSense 메모리 | 4 GiB × 2 | pfSense 권장 사양 + 동시 세션 ~10만 처리 여유 |
-| AWS 예산 | 50만원 | 평시 NLB+EC2 ($90/월 × 12) + 데모 burst 약간 |
+| 설정            | 값                | 근거                                                                              |
+| --------------- | ----------------- | --------------------------------------------------------------------------------- |
+| Proxmox 노드 수 | 4                 | corosync quorum 최소 3, 4대면 1대 다운 허용. 4대는 하드웨어 예산 한계이기도.      |
+| K8s CP 수       | 3                 | etcd quorum (2n+1, 3대면 1대 다운 허용). 5대는 과함.                              |
+| K8s Worker 수   | 3                 | 3개 노드 분산이면 Pod replicaCount 3을 진정한 anti-affinity로 배치 가능           |
+| Worker 메모리   | 6 GiB             | Percona Pod (2 GiB) + Redis (1 GiB) + ticket-app (512 MiB) + 시스템 → 여유 ~2 GiB |
+| Ceph replicas   | 3                 | 1대 다운 + 1대 추가 다운까지 견딤, 가용용량 = Raw/3 = 2TB                         |
+| Ceph HDD        | 1TB × 6           | 기존 보유. 6TB Raw는 K8s PV 용도로 충분 (DB ~100GB, 로그 ~50GB)                   |
+| MetalLB pool    | 172.16.23.100~150 | K8s 노드(VLAN 30)와 같은 대역이어야 ARP 동작. (이전엔 VLAN 20에 뒀다가 함정)      |
+| pfSense 메모리  | 4 GiB × 2         | pfSense 권장 사양 + 동시 세션 ~10만 처리 여유                                     |
+| AWS 예산        | 50만원            | 평시 NLB+EC2 ($90/월 × 12) + 데모 burst 약간                                      |
 
 ### 4.3 다른 컴포넌트와의 연결
 
@@ -379,21 +388,20 @@ Ceph 10G  10.10.10.0/24  (별도 L2, jumbo frame MTU 9000)
 `inventory.md`의 표 1 (인프라 컴포넌트) 일부:
 
 ```markdown
-| Proxmox VE (kosa1~4) | VE 8.x | 192.168.21.2~5 |
-| pfSense HA (CARP)    | 2.7+   | VIP 192.168.21.10 |
-| Cloud-init 템플릿     | Ubuntu Noble 24.04 | VMID 9000 / kosa1 / ceph-rbd-team2 |
-| k8s-cp1              | VMID 210 / v1.30.14 | 172.16.23.10 / kosa4 |
-| k8s-cp2              | VMID 211 / v1.30.14 | 172.16.23.11 / kosa2 |
-| k8s-cp3              | VMID 212 / v1.30.14 | 172.16.23.12 / kosa3 |
-| k8s-w1~w3            | VMID 220~222        | 172.16.23.20~22 / 분산 |
-| bastion              | VMID 230            | 172.16.24.10 / kosa3 |
-| Ceph 클러스터 (외부)   | v18+   | 별도 6노드, 10GbE Spine-Leaf |
+| Proxmox VE (kosa1~4) | VE 8.x | 192.168.21.2~5 | | pfSense HA (CARP) | 2.7+ | VIP 192.168.21.10 |
+| Cloud-init 템플릿 | Ubuntu Noble 24.04 | VMID 9000 / kosa1 / ceph-rbd-team2 | | k8s-cp1 | VMID 210
+/ v1.30.14 | 172.16.23.10 / kosa4 | | k8s-cp2 | VMID 211 / v1.30.14 | 172.16.23.11 / kosa2 | |
+k8s-cp3 | VMID 212 / v1.30.14 | 172.16.23.12 / kosa3 | | k8s-w1~w3 | VMID 220~222 | 172.16.23.20~22
+/ 분산 | | bastion | VMID 230 | 172.16.24.10 / kosa3 | | Ceph 클러스터 (외부) | v18+ | 별도 6노드,
+10GbE Spine-Leaf |
 ```
 
 **줄별 의미**:
 
-- `VMID 210/211/212`가 CP 노드인 이유: 2번대(200번대)는 K8s, 200~219는 CP, 220~229는 Worker, 230~는 Bastion 등으로 **번호로 역할 식별** 가능하게 컨벤션.
-- `kosa4 / kosa2 / kosa3`로 흩어져 있는 이유: **한 Proxmox 다운 시에도 etcd quorum 유지** 위해 3노드를 다른 호스트에 분산.
+- `VMID 210/211/212`가 CP 노드인 이유: 2번대(200번대)는 K8s, 200~219는 CP, 220~229는 Worker, 230~는
+  Bastion 등으로 **번호로 역할 식별** 가능하게 컨벤션.
+- `kosa4 / kosa2 / kosa3`로 흩어져 있는 이유: **한 Proxmox 다운 시에도 etcd quorum 유지** 위해
+  3노드를 다른 호스트에 분산.
 - `VLAN 30` 의미: 모든 K8s 노드가 같은 L2 (172.16.23.0/24)에 있어야 MetalLB ARP가 동작.
 
 ---
@@ -463,12 +471,12 @@ $ ceph -s
 
 ## 7. 4인 팀 역할 분담
 
-| 역할 | 담당 영역 | 챕터 |
-|---|---|---|
-| **Member A: 인프라/네트워크 리드** | Proxmox 클러스터, pfSense HA, VLAN, Ceph 연동, 스위치 | 02, 03 |
-| **Member B: K8s 플랫폼** | kubeadm 부트스트랩, Calico, MetalLB, Ingress, Cert-Manager | 04, 05 |
-| **Member C: 데이터 & 앱** | Percona Operator, Redis Sentinel, FastAPI, DB 스키마 | 06 |
-| **Member D: CI/CD + 관찰 + AWS** | ArgoCD, GHCR, Prometheus/Grafana, AWS burst (Karpenter) | 07, 08 |
+| 역할                               | 담당 영역                                                  | 챕터   |
+| ---------------------------------- | ---------------------------------------------------------- | ------ |
+| **Member A: 인프라/네트워크 리드** | Proxmox 클러스터, pfSense HA, VLAN, Ceph 연동, 스위치      | 02, 03 |
+| **Member B: K8s 플랫폼**           | kubeadm 부트스트랩, Calico, MetalLB, Ingress, Cert-Manager | 04, 05 |
+| **Member C: 데이터 & 앱**          | Percona Operator, Redis Sentinel, FastAPI, DB 스키마       | 06     |
+| **Member D: CI/CD + 관찰 + AWS**   | ArgoCD, GHCR, Prometheus/Grafana, AWS burst (Karpenter)    | 07, 08 |
 
 **통합 포인트**:
 
@@ -500,7 +508,8 @@ $ ceph -s
 
 ### 함정 2: 발표용/실제용 토폴로지 차이
 
-**증상**: 하드웨어 4대 한계로 pfSense를 Proxmox VM에 얹어야 하는데, 이건 발표에서 "왜 그렇게 했냐"는 질문이 나올 수 있어요.
+**증상**: 하드웨어 4대 한계로 pfSense를 Proxmox VM에 얹어야 하는데, 이건 발표에서 "왜 그렇게 했냐"는
+질문이 나올 수 있어요.
 
 **해결**: **두 가지 다이어그램을 동시에 관리**.
 
@@ -518,7 +527,8 @@ $ ceph -s
 - 시점 폭증이 극단적이면 평시 비용 효율 위해 온프레미스가 합리적
 - 매번 "트래픽 패턴"을 보고 결정하는 게 현업 표준
 
-**왜 이 함정이 발생하는가**: 인프라 입문자는 "이론적으로 더 좋은 것"을 찾으려 하는데, 현업은 **도메인 패턴 × 비용 × 운영 부담**의 함수예요. 정답이 하나가 아니라 케이스마다 다릅니다.
+**왜 이 함정이 발생하는가**: 인프라 입문자는 "이론적으로 더 좋은 것"을 찾으려 하는데, 현업은
+**도메인 패턴 × 비용 × 운영 부담**의 함수예요. 정답이 하나가 아니라 케이스마다 다릅니다.
 
 ---
 
@@ -526,7 +536,8 @@ $ ceph -s
 
 ### 공식 / 1차 자료
 
-- **하이브리드 클라우드 일반론**: Gartner Magic Quadrant for Cloud Infrastructure, AWS Well-Architected Framework
+- **하이브리드 클라우드 일반론**: Gartner Magic Quadrant for Cloud Infrastructure, AWS
+  Well-Architected Framework
 - **Cloud Burst 패턴**: AWS "Hybrid Cloud Architecture" 백서
 - **Karpenter**: https://karpenter.sh/docs/
 - **ArgoCD GitOps**: https://argo-cd.readthedocs.io/
@@ -539,8 +550,11 @@ $ ceph -s
 
 ### 다음 챕터 미리보기
 
-다음 챕터(`02-proxmox-cloudinit.md`)에서는 이 큰 그림의 **2계층 (가상화)** 을 깊이 다룹니다. "왜 Proxmox VE인가, VM 7대를 어떻게 동일한 설정으로 만드나(Cloud-init)"를 단계별로 봐요.
+다음 챕터(`02-proxmox-cloudinit.md`)에서는 이 큰 그림의 **2계층 (가상화)** 을 깊이 다룹니다. "왜
+Proxmox VE인가, VM 7대를 어떻게 동일한 설정으로 만드나(Cloud-init)"를 단계별로 봐요.
 
 ---
 
-> **이 챕터 핵심 메시지**: KOSA 인프라 프로젝트는 "온프레미스 K8s + AWS burst"라는 현업 표준 하이브리드 패턴을, 한정 티켓팅 시나리오로 4인 팀이 학습/시연하는 프로젝트예요. 평시 비용 0, burst 1시간 $3가 핵심 메시지입니다.
+> **이 챕터 핵심 메시지**: KOSA 인프라 프로젝트는 "온프레미스 K8s + AWS burst"라는 현업 표준
+> 하이브리드 패턴을, 한정 티켓팅 시나리오로 4인 팀이 학습/시연하는 프로젝트예요. 평시 비용 0, burst
+> 1시간 $3가 핵심 메시지입니다.

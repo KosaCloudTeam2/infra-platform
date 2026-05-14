@@ -1,9 +1,7 @@
 # 챕터 03 — pfSense HA + 네트워크 설계 (VLAN, dual-NIC)
 
-> KOSA 인프라 프로젝트 학습용 문서 시리즈
-> 작성일: 2026-05-13
-> 선수 챕터: `01-project-overview.md`, `02-proxmox-cloudinit.md`
-> 후속 챕터: (예정) `04-k8s-bootstrap.md`
+> KOSA 인프라 프로젝트 학습용 문서 시리즈<br> 작성일: 2026-05-13<br> 선수 챕터:
+> `01-project-overview.md`, `02-proxmox-cloudinit.md`<br> 후속 챕터: (예정) `04-k8s-bootstrap.md`
 
 ---
 
@@ -15,7 +13,8 @@
 - **Dual-NIC 설계** (K8s 노드의 eth0 VLAN30 + eth1 Ceph 10G)가 왜 필요한지
 - **Spine-Leaf 패브릭**이 무엇이고 Ceph 클러스터에서 왜 쓰는지
 - **MTU 9000 (Jumbo Frame)** 이 왜 Ceph에 필요한지, 그리고 함정
-- 실전에서 만난 함정 5가지: MetalLB IP 풀, VLAN 서브인터페이스 잔재, ICMP 라우팅, multicast snooping, XMLRPC Skew 복제
+- 실전에서 만난 함정 5가지: MetalLB IP 풀, VLAN 서브인터페이스 잔재, ICMP 라우팅, multicast
+  snooping, XMLRPC Skew 복제
 
 ---
 
@@ -25,15 +24,20 @@
 
 #### pfSense
 
-**pfSense**는 FreeBSD 기반의 **오픈소스 통합 게이트웨이 소프트웨어**예요. 한 박스에서 **라우터 + 방화벽 + VPN 서버 + DHCP/DNS + IDS/IPS + Captive Portal**를 다 처리해요. 쉽게 말하면 "동네 공유기 풀-버전".
+**pfSense**는 FreeBSD 기반의 **오픈소스 통합 게이트웨이 소프트웨어**예요. 한 박스에서 **라우터 +
+방화벽 + VPN 서버 + DHCP/DNS + IDS/IPS + Captive Portal**를 다 처리해요. 쉽게 말하면 "동네 공유기
+풀-버전".
 
 #### VLAN
 
-**VLAN (Virtual LAN, 802.1Q)** 은 **하나의 물리 스위치를 여러 논리 스위치로 나누는 기술**. 이더넷 프레임에 4바이트 태그(VLAN ID 12비트)를 박아서 분리해요.
+**VLAN (Virtual LAN, 802.1Q)** 은 **하나의 물리 스위치를 여러 논리 스위치로 나누는 기술**. 이더넷
+프레임에 4바이트 태그(VLAN ID 12비트)를 박아서 분리해요.
 
 #### CARP
 
-**CARP (Common Address Redundancy Protocol)** 은 **여러 대 방화벽/라우터가 하나의 가상 IP(VIP)를 공유**하다가, MASTER 다운 시 BACKUP이 자동으로 그 VIP를 인계받는 프로토콜. BSD 진영의 VRRP 호환 구현체.
+**CARP (Common Address Redundancy Protocol)** 은 **여러 대 방화벽/라우터가 하나의 가상 IP(VIP)를
+공유**하다가, MASTER 다운 시 BACKUP이 자동으로 그 VIP를 인계받는 프로토콜. BSD 진영의 VRRP 호환
+구현체.
 
 ### 1.2 등장 배경 (어떤 문제 해결하려고?)
 
@@ -45,35 +49,40 @@
 - **Linux iptables**: 강력하지만 운영 GUI 0
 - **소호 공유기**: 쉬운데 기능 제한적
 
-→ **"FreeBSD의 강력한 네트워크 스택 + 쉬운 웹 UI + 오픈소스"** 조합이 필요했어요. pfSense가 그 자리를 차지.
+→ **"FreeBSD의 강력한 네트워크 스택 + 쉬운 웹 UI + 오픈소스"** 조합이 필요했어요. pfSense가 그
+자리를 차지.
 
 #### VLAN의 배경
 
-옛날엔 부서별로 **물리적으로 다른 스위치**를 두고 분리했어요. 비용도 비싸고 배선도 복잡. 1998년 IEEE 802.1Q 표준이 나오면서 **"하나의 스위치에서 논리적 분리"** 가 가능해졌고, 이게 사실상 모든 엔터프라이즈 네트워크의 기본이 됐어요.
+옛날엔 부서별로 **물리적으로 다른 스위치**를 두고 분리했어요. 비용도 비싸고 배선도 복잡. 1998년 IEEE
+802.1Q 표준이 나오면서 **"하나의 스위치에서 논리적 분리"** 가 가능해졌고, 이게 사실상 모든
+엔터프라이즈 네트워크의 기본이 됐어요.
 
 #### CARP의 배경
 
-방화벽이 단일 장애점(SPOF)이면 위험해요. 1990년대 후반 Cisco가 **HSRP**(독점)를, 이후 IETF가 **VRRP**(표준)를 만들었고, OpenBSD/FreeBSD 진영이 라이센스 회피 위해 **CARP**를 별도로 만들었어요. 동작 원리는 거의 같아요.
+방화벽이 단일 장애점(SPOF)이면 위험해요. 1990년대 후반 Cisco가 **HSRP**(독점)를, 이후 IETF가
+**VRRP**(표준)를 만들었고, OpenBSD/FreeBSD 진영이 라이센스 회피 위해 **CARP**를 별도로 만들었어요.
+동작 원리는 거의 같아요.
 
 ### 1.3 핵심 개념 + 용어 풀이
 
-| 용어 | 풀이 |
-|---|---|
-| **L2 / L3** | OSI 모델 2층(MAC, 같은 LAN) / 3층(IP, 라우팅). VLAN은 L2 분리, 라우팅은 L3. |
-| **VLAN ID** | 1~4094 범위 정수. 0과 4095는 예약. 우리는 10/20/30/40/99 사용. |
-| **Access 포트 vs Trunk 포트** | Access = 한 VLAN만 통과 (태그 없음, 일반 PC), Trunk = 여러 VLAN 통과 (태그 보존, 스위치↔하이퍼바이저) |
-| **PVID (Port VLAN ID)** | Access 포트에서 untagged 패킷에 자동으로 부여되는 VLAN ID |
-| **VLAN-aware bridge** | Linux 브리지가 802.1Q 태그를 인식하고 처리하는 모드. Proxmox에서 `bridge-vlan-aware yes`로 활성. |
-| **CIDR** | "172.16.23.0/24"처럼 IP + 서브넷 마스크 길이로 표기. /24는 256개 IP. |
-| **CARP MASTER/BACKUP** | 하나의 VIP를 두고 MASTER가 응답하다가 다운 시 BACKUP이 인계 |
-| **CARP Skew** | 우선순위 값 (0 = 가장 높음, 255 = 가장 낮음). 같은 VHID 그룹 안에서 낮은 쪽이 MASTER. |
-| **VHID** | Virtual Host ID. 같은 가상 IP를 공유하는 CARP 그룹 식별자. 1~255. |
-| **pfsync** | 두 pfSense 사이에서 **상태 테이블(state table)** 을 실시간 동기화. TCP 세션이 페일오버 후에도 유지되게. |
-| **XMLRPC Sync** | 두 pfSense의 **설정값**을 동기화 (방화벽 룰, NAT 등). 단, Virtual IP는 동기화 제외 권장. |
-| **MTU** | Maximum Transmission Unit. 한 번에 보내는 IP 패킷 최대 크기. 일반 1500, Jumbo 9000. |
-| **Jumbo Frame** | MTU 9000 이상 이더넷 프레임. 패킷 수 ÷ 6 → CPU 부담 감소, 처리량 ↑. |
-| **Spine-Leaf 패브릭** | 두 계층 (Spine 위 / Leaf 아래) 네트워크 토폴로지. 모든 Leaf가 모든 Spine에 연결. 데이터센터 표준. |
-| **MetalLB** | 온프레미스 K8s에서 LoadBalancer 타입 Service에 외부 IP 부여. L2 모드 (ARP) / BGP 모드. |
+| 용어                          | 풀이                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **L2 / L3**                   | OSI 모델 2층(MAC, 같은 LAN) / 3층(IP, 라우팅). VLAN은 L2 분리, 라우팅은 L3.                             |
+| **VLAN ID**                   | 1~4094 범위 정수. 0과 4095는 예약. 우리는 10/20/30/40/99 사용.                                          |
+| **Access 포트 vs Trunk 포트** | Access = 한 VLAN만 통과 (태그 없음, 일반 PC), Trunk = 여러 VLAN 통과 (태그 보존, 스위치↔하이퍼바이저)   |
+| **PVID (Port VLAN ID)**       | Access 포트에서 untagged 패킷에 자동으로 부여되는 VLAN ID                                               |
+| **VLAN-aware bridge**         | Linux 브리지가 802.1Q 태그를 인식하고 처리하는 모드. Proxmox에서 `bridge-vlan-aware yes`로 활성.        |
+| **CIDR**                      | "172.16.23.0/24"처럼 IP + 서브넷 마스크 길이로 표기. /24는 256개 IP.                                    |
+| **CARP MASTER/BACKUP**        | 하나의 VIP를 두고 MASTER가 응답하다가 다운 시 BACKUP이 인계                                             |
+| **CARP Skew**                 | 우선순위 값 (0 = 가장 높음, 255 = 가장 낮음). 같은 VHID 그룹 안에서 낮은 쪽이 MASTER.                   |
+| **VHID**                      | Virtual Host ID. 같은 가상 IP를 공유하는 CARP 그룹 식별자. 1~255.                                       |
+| **pfsync**                    | 두 pfSense 사이에서 **상태 테이블(state table)** 을 실시간 동기화. TCP 세션이 페일오버 후에도 유지되게. |
+| **XMLRPC Sync**               | 두 pfSense의 **설정값**을 동기화 (방화벽 룰, NAT 등). 단, Virtual IP는 동기화 제외 권장.                |
+| **MTU**                       | Maximum Transmission Unit. 한 번에 보내는 IP 패킷 최대 크기. 일반 1500, Jumbo 9000.                     |
+| **Jumbo Frame**               | MTU 9000 이상 이더넷 프레임. 패킷 수 ÷ 6 → CPU 부담 감소, 처리량 ↑.                                     |
+| **Spine-Leaf 패브릭**         | 두 계층 (Spine 위 / Leaf 아래) 네트워크 토폴로지. 모든 Leaf가 모든 Spine에 연결. 데이터센터 표준.       |
+| **MetalLB**                   | 온프레미스 K8s에서 LoadBalancer 타입 Service에 외부 IP 부여. L2 모드 (ARP) / BGP 모드.                  |
 
 ### 1.4 동작 원리 (내부 메커니즘)
 
@@ -91,7 +100,8 @@
 
 - **pf** (packet filter): OpenBSD에서 가져온 패킷 필터. iptables 대비 표현력 ↑, 성능 ↑.
 - **state table**: TCP 세션마다 1개 엔트리. 연결마다 5-tuple (src/dst IP, port, proto) 기록.
-- **Per-VLAN 인터페이스**: 같은 물리 NIC에 VLAN 태그별로 가상 인터페이스 (`igb0_vlan10`, `igb0_vlan20`...) 생성.
+- **Per-VLAN 인터페이스**: 같은 물리 NIC에 VLAN 태그별로 가상 인터페이스 (`igb0_vlan10`,
+  `igb0_vlan20`...) 생성.
 
 #### CARP의 동작
 
@@ -146,7 +156,8 @@
           └─ Ceph RBD IO 전용, jumbo frame
 ```
 
-**왜 분리?** Pod 통신(보통 1Gbps) + Ceph IO(많을 땐 5~10 Gbps)를 같은 NIC에 두면 서로 영향. 분리하면 Ceph IO 폭주해도 K8s API 응답 안정.
+**왜 분리?** Pod 통신(보통 1Gbps) + Ceph IO(많을 땐 5~10 Gbps)를 같은 NIC에 두면 서로 영향. 분리하면
+Ceph IO 폭주해도 K8s API 응답 안정.
 
 ### 1.5 주요 기능
 
@@ -173,31 +184,32 @@
 
 #### 게이트웨이/방화벽
 
-| 도구 | 라이센스 | 특징 |
-|---|---|---|
-| **pfSense (CE/Plus)** | Apache 2 | FreeBSD 기반, 풍부한 패키지, 현업 표준 |
-| **OPNsense** | BSD | pfSense 포크 (2015년), UI 다름, 보안 업데이트 빠름 |
-| **Cisco IOS** | 상용 | 강력, 비싸고 폐쇄, 대기업 표준 |
-| **MikroTik RouterOS** | 상용 (저렴) | 가성비 좋음, CLI 깊음, 학습 곡선 가파름 |
-| **Linux iptables/nftables + scripts** | GPL | 완전 자유, GUI 0, 운영 부담 ↑ |
+| 도구                                  | 라이센스    | 특징                                               |
+| ------------------------------------- | ----------- | -------------------------------------------------- |
+| **pfSense (CE/Plus)**                 | Apache 2    | FreeBSD 기반, 풍부한 패키지, 현업 표준             |
+| **OPNsense**                          | BSD         | pfSense 포크 (2015년), UI 다름, 보안 업데이트 빠름 |
+| **Cisco IOS**                         | 상용        | 강력, 비싸고 폐쇄, 대기업 표준                     |
+| **MikroTik RouterOS**                 | 상용 (저렴) | 가성비 좋음, CLI 깊음, 학습 곡선 가파름            |
+| **Linux iptables/nftables + scripts** | GPL         | 완전 자유, GUI 0, 운영 부담 ↑                      |
 
 #### CARP / VRRP / HSRP
 
-| 프로토콜 | 출처 | 특징 |
-|---|---|---|
-| **CARP** | OpenBSD | 라이센스 무료, pfSense/OPNsense 표준 |
+| 프로토콜 | 출처          | 특징                                 |
+| -------- | ------------- | ------------------------------------ |
+| **CARP** | OpenBSD       | 라이센스 무료, pfSense/OPNsense 표준 |
 | **VRRP** | IETF RFC 5798 | 표준, Cisco/Juniper/Linux Keepalived |
-| **HSRP** | Cisco 독점 | 가장 오래됨, Cisco 전용 |
+| **HSRP** | Cisco 독점    | 가장 오래됨, Cisco 전용              |
 
-세 프로토콜 모두 **"가상 IP + 가상 MAC + 우선순위 + multicast heartbeat"** 동일한 패턴이에요. 사실상 호환 가능 (단, 같은 프로토콜끼리만 동작).
+세 프로토콜 모두 **"가상 IP + 가상 MAC + 우선순위 + multicast heartbeat"** 동일한 패턴이에요. 사실상
+호환 가능 (단, 같은 프로토콜끼리만 동작).
 
 #### 데이터센터 네트워크
 
-| 토폴로지 | 특징 |
-|---|---|
-| **3-tier (Core/Aggregation/Access)** | 옛 표준, North-South 트래픽 위주 |
-| **Spine-Leaf** | 모던 표준, East-West (서버간) 트래픽 최적화. Ceph/K8s에 적합. |
-| **Hyperscale (Fat-Tree, CLOS)** | Google/Facebook 규모 |
+| 토폴로지                             | 특징                                                          |
+| ------------------------------------ | ------------------------------------------------------------- |
+| **3-tier (Core/Aggregation/Access)** | 옛 표준, North-South 트래픽 위주                              |
+| **Spine-Leaf**                       | 모던 표준, East-West (서버간) 트래픽 최적화. Ceph/K8s에 적합. |
+| **Hyperscale (Fat-Tree, CLOS)**      | Google/Facebook 규모                                          |
 
 우리 Ceph 클러스터는 **Spine 2 / Leaf 5의 미니 Spine-Leaf** 구조예요.
 
@@ -253,15 +265,15 @@
 
 엔터프라이즈 표준 분류:
 
-| VLAN 용도 | 일반적인 ID 범위 |
-|---|---|
-| Management | 1, 99, 999 |
-| Server (Internal) | 100~199 |
-| DMZ | 200~299 |
-| User VLAN | 10~50 |
-| VoIP | 4 (Cisco 권장), 100 |
-| Guest Wi-Fi | 80, 200 |
-| Storage / iSCSI | 500~600 |
+| VLAN 용도         | 일반적인 ID 범위    |
+| ----------------- | ------------------- |
+| Management        | 1, 99, 999          |
+| Server (Internal) | 100~199             |
+| DMZ               | 200~299             |
+| User VLAN         | 10~50               |
+| VoIP              | 4 (Cisco 권장), 100 |
+| Guest Wi-Fi       | 80, 200             |
+| Storage / iSCSI   | 500~600             |
 
 > 우리 환경은 **10/20/30/40/99**로 단순화. 학습 환경에 적정.
 
@@ -302,7 +314,8 @@
 
 - **오픈소스 방화벽 점유**: pfSense ~45%, OPNsense ~30%, 기타 (Spiceworks 2024)
 - **글로벌 SMB 방화벽**: pfSense는 Top 3 (FortiGate, SonicWall과 함께)
-- **트렌드**: 2020년 이후 pfSense Plus (유료 SaaS화) 노선과 OPNsense (완전 무료) 분기. 학습 환경엔 pfSense CE도 무료.
+- **트렌드**: 2020년 이후 pfSense Plus (유료 SaaS화) 노선과 OPNsense (완전 무료) 분기. 학습 환경엔
+  pfSense CE도 무료.
 
 ---
 
@@ -312,49 +325,53 @@
 
 #### 방화벽
 
-| 대안 | 장점 | 단점 | 우리 결정 |
-|---|---|---|---|
-| **pfSense** | 무료, 풍부한 GUI, VPN/IDS 통합, HA 표준 | UI 일부 옛 디자인 | ✅ 선택 |
-| OPNsense | 더 신선한 UI, 보안 빠름 | 패키지 생태계 pfSense보다 작음 | 거의 동급, pfSense 이력서 가치 ↑ |
-| Linux iptables + Keepalived | 완전 자유 | GUI 0, 운영 부담 | ❌ 학습 환경 부적합 |
-| Cisco ASA | 강력, 표준 | 라이센스 비쌈, 학습 자원 부족 | ❌ 예산 |
+| 대안                        | 장점                                    | 단점                           | 우리 결정                        |
+| --------------------------- | --------------------------------------- | ------------------------------ | -------------------------------- |
+| **pfSense**                 | 무료, 풍부한 GUI, VPN/IDS 통합, HA 표준 | UI 일부 옛 디자인              | ✅ 선택                          |
+| OPNsense                    | 더 신선한 UI, 보안 빠름                 | 패키지 생태계 pfSense보다 작음 | 거의 동급, pfSense 이력서 가치 ↑ |
+| Linux iptables + Keepalived | 완전 자유                               | GUI 0, 운영 부담               | ❌ 학습 환경 부적합              |
+| Cisco ASA                   | 강력, 표준                              | 라이센스 비쌈, 학습 자원 부족  | ❌ 예산                          |
 
 #### VLAN 분리
 
-| 대안 | 장점 | 단점 | 우리 결정 |
-|---|---|---|---|
-| **VLAN 분리 (10/20/30/40)** | 표준, 보안 분리, 운영 단순 | 약간의 학습 곡선 | ✅ 선택 |
-| 단일 LAN | 가장 단순 | 보안/관리 권한 분리 불가 | ❌ 현업 표준 아님 |
-| L3 segmentation (별도 라우터) | 강한 분리 | 비용 ↑, 학습 가치 분산 | 과한 설계 |
+| 대안                          | 장점                       | 단점                     | 우리 결정         |
+| ----------------------------- | -------------------------- | ------------------------ | ----------------- |
+| **VLAN 분리 (10/20/30/40)**   | 표준, 보안 분리, 운영 단순 | 약간의 학습 곡선         | ✅ 선택           |
+| 단일 LAN                      | 가장 단순                  | 보안/관리 권한 분리 불가 | ❌ 현업 표준 아님 |
+| L3 segmentation (별도 라우터) | 강한 분리                  | 비용 ↑, 학습 가치 분산   | 과한 설계         |
 
 #### HA
 
-| 대안 | 장점 | 단점 | 우리 결정 |
-|---|---|---|---|
-| **CARP (pfSense 표준)** | pfSense 네이티브, 3초 페일오버 | VRRP/HSRP와 비호환 | ✅ 선택 |
-| 단일 pfSense | 단순 | SPOF | ❌ 학습 가치 ↓ |
-| Active-Active | 처리량 ↑ | 설정 복잡, 비대칭 라우팅 | 단순화 위해 Active-Passive |
+| 대안                    | 장점                           | 단점                     | 우리 결정                  |
+| ----------------------- | ------------------------------ | ------------------------ | -------------------------- |
+| **CARP (pfSense 표준)** | pfSense 네이티브, 3초 페일오버 | VRRP/HSRP와 비호환       | ✅ 선택                    |
+| 단일 pfSense            | 단순                           | SPOF                     | ❌ 학습 가치 ↓             |
+| Active-Active           | 처리량 ↑                       | 설정 복잡, 비대칭 라우팅 | 단순화 위해 Active-Passive |
 
 ### 3.2 현업 표준과의 정합성
 
 우리 구성은 **중견기업 표준** 그대로예요:
 
-| 우리 컴포넌트 | 현업 대응물 |
-|---|---|
-| pfSense HA | Palo Alto HA, Fortinet HA, F5 |
-| L3 매니지드 스위치 | Cisco Catalyst, Aruba |
-| VLAN 10/20/30/40 | 거의 모든 엔터프라이즈가 비슷한 패턴 |
-| Spine-Leaf 패브릭 | 데이터센터 모던 표준 |
-| Jumbo Frame on Storage VLAN | iSCSI/Ceph 등 스토리지망 표준 |
+| 우리 컴포넌트               | 현업 대응물                          |
+| --------------------------- | ------------------------------------ |
+| pfSense HA                  | Palo Alto HA, Fortinet HA, F5        |
+| L3 매니지드 스위치          | Cisco Catalyst, Aruba                |
+| VLAN 10/20/30/40            | 거의 모든 엔터프라이즈가 비슷한 패턴 |
+| Spine-Leaf 패브릭           | 데이터센터 모던 표준                 |
+| Jumbo Frame on Storage VLAN | iSCSI/Ceph 등 스토리지망 표준        |
 
 ### 3.3 선택 근거 (트레이드오프)
 
 **받아들인 단점**:
 
-1. **pfSense가 Proxmox VM에 얹어짐** — 하드웨어 4대 한계. 발표용 다이어그램은 별도 어플라이언스로 그리되 멘트로 설명.
-2. **Active-Passive (Active-Active 아님)** — pfsense는 둘 다 동시 active 운영 가능하나 비대칭 라우팅 함정. 단순화 선택.
-3. **MTU 9000은 Ceph 망에만** — 외부망까지 적용 시 어디서든 1500 패킷 만나면 fragmentation. 분리 운영.
-4. **XMLRPC Sync 부분 사용** — Virtual IP는 동기화 안 함 (Skew까지 복사되어 split-brain 위험). 수동 관리 부담 있음.
+1. **pfSense가 Proxmox VM에 얹어짐** — 하드웨어 4대 한계. 발표용 다이어그램은 별도 어플라이언스로
+   그리되 멘트로 설명.
+2. **Active-Passive (Active-Active 아님)** — pfsense는 둘 다 동시 active 운영 가능하나 비대칭 라우팅
+   함정. 단순화 선택.
+3. **MTU 9000은 Ceph 망에만** — 외부망까지 적용 시 어디서든 1500 패킷 만나면 fragmentation. 분리
+   운영.
+4. **XMLRPC Sync 부분 사용** — Virtual IP는 동기화 안 함 (Skew까지 복사되어 split-brain 위험). 수동
+   관리 부담 있음.
 
 **그래도 선택한 이유**:
 
@@ -412,38 +429,38 @@
 
 #### VIP 매핑
 
-| 인터페이스 | 네트워크 | 게이트웨이 VIP | VHID |
-|---|---|---|---|
-| WAN | 192.168.21.0/24 | 192.168.21.10 | 1 |
-| VLAN10 (Public) | 172.16.21.0/24 | 172.16.21.1 | 10 |
-| VLAN20 (DMZ) | 172.16.22.0/24 | 172.16.22.1 | 20 |
-| VLAN30 (Internal) | 172.16.23.0/24 | 172.16.23.1 | 30 |
-| VLAN40 (Management) | 172.16.24.0/24 | 172.16.24.1 | 40 |
+| 인터페이스          | 네트워크        | 게이트웨이 VIP | VHID |
+| ------------------- | --------------- | -------------- | ---- |
+| WAN                 | 192.168.21.0/24 | 192.168.21.10  | 1    |
+| VLAN10 (Public)     | 172.16.21.0/24  | 172.16.21.1    | 10   |
+| VLAN20 (DMZ)        | 172.16.22.0/24  | 172.16.22.1    | 20   |
+| VLAN30 (Internal)   | 172.16.23.0/24  | 172.16.23.1    | 30   |
+| VLAN40 (Management) | 172.16.24.0/24  | 172.16.24.1    | 40   |
 
 #### pfSense 노드별 IP
 
-| 항목 | kosa1 (MASTER) | kosa2 (BACKUP) |
-|---|---|---|
-| Proxmox 관리 | 192.168.21.2 | 192.168.21.3 |
-| pfSense WAN | 192.168.21.2 | 192.168.21.3 |
-| pfSense LAN (VLAN10) | 172.16.21.2 | 172.16.21.3 |
-| pfSense VLAN20 | 172.16.22.2 | 172.16.22.3 |
-| pfSense VLAN30 | 172.16.23.2 | 172.16.23.3 |
-| pfSense VLAN40 | 172.16.24.2 | 172.16.24.3 |
-| pfSense SYNC (VLAN 99) | 10.10.99.1 | 10.10.99.2 |
-| CARP Skew | **0** (우선순위 높음) | **100** (낮음) |
+| 항목                   | kosa1 (MASTER)        | kosa2 (BACKUP) |
+| ---------------------- | --------------------- | -------------- |
+| Proxmox 관리           | 192.168.21.2          | 192.168.21.3   |
+| pfSense WAN            | 192.168.21.2          | 192.168.21.3   |
+| pfSense LAN (VLAN10)   | 172.16.21.2           | 172.16.21.3    |
+| pfSense VLAN20         | 172.16.22.2           | 172.16.22.3    |
+| pfSense VLAN30         | 172.16.23.2           | 172.16.23.3    |
+| pfSense VLAN40         | 172.16.24.2           | 172.16.24.3    |
+| pfSense SYNC (VLAN 99) | 10.10.99.1            | 10.10.99.2     |
+| CARP Skew              | **0** (우선순위 높음) | **100** (낮음) |
 
 #### K8s 노드 Dual-NIC
 
-| VM | eth0 (VLAN 30) | eth1 (Ceph 10G) |
-|---|---|---|
+| VM      | eth0 (VLAN 30)                  | eth1 (Ceph 10G)        |
+| ------- | ------------------------------- | ---------------------- |
 | k8s-cp1 | 172.16.23.10/24, gw 172.16.23.1 | 10.10.10.110/24, no gw |
 | k8s-cp2 | 172.16.23.11/24, gw 172.16.23.1 | 10.10.10.111/24, no gw |
 | k8s-cp3 | 172.16.23.12/24, gw 172.16.23.1 | 10.10.10.112/24, no gw |
-| k8s-w1 | 172.16.23.20/24, gw 172.16.23.1 | 10.10.10.120/24, no gw |
-| k8s-w2 | 172.16.23.21/24, gw 172.16.23.1 | 10.10.10.121/24, no gw |
-| k8s-w3 | 172.16.23.22/24, gw 172.16.23.1 | 10.10.10.122/24, no gw |
-| bastion | 172.16.24.10/24, gw 172.16.24.1 | (없음) |
+| k8s-w1  | 172.16.23.20/24, gw 172.16.23.1 | 10.10.10.120/24, no gw |
+| k8s-w2  | 172.16.23.21/24, gw 172.16.23.1 | 10.10.10.121/24, no gw |
+| k8s-w3  | 172.16.23.22/24, gw 172.16.23.1 | 10.10.10.122/24, no gw |
+| bastion | 172.16.24.10/24, gw 172.16.24.1 | (없음)                 |
 
 > Bastion은 K8s 트래픽 없으므로 single-NIC. K8s 노드만 dual-NIC.
 
@@ -451,46 +468,46 @@
 
 #### VLAN 설계
 
-| VLAN ID | 이름 | CIDR | 게이트웨이 | 왜? |
-|---|---|---|---|---|
-| 1 (default) | (untagged) | - | - | 스위치 기본값. 사용하지 않지만 trunk 통과는 허용. |
-| 10 | Public DMZ | 172.16.21.0/24 | 172.16.21.1 | 외부 노출 후보. 현재 미사용 (확장 여지). |
-| 20 | DMZ / 외부 | 172.16.22.0/24 | 172.16.22.1 | MetalLB 후보 대역이었으나 ARP 함정으로 30으로 통일. |
-| 30 | Internal (K8s) | 172.16.23.0/24 | 172.16.23.1 | K8s 노드 6대 + MetalLB pool (172.16.23.100~150) |
-| 40 | Management | 172.16.24.0/24 | 172.16.24.1 | Bastion, 관리 인터페이스 |
-| 99 | SYNC | 10.10.99.0/24 | - | pfsync HA 동기화 전용 |
+| VLAN ID     | 이름           | CIDR           | 게이트웨이  | 왜?                                                 |
+| ----------- | -------------- | -------------- | ----------- | --------------------------------------------------- |
+| 1 (default) | (untagged)     | -              | -           | 스위치 기본값. 사용하지 않지만 trunk 통과는 허용.   |
+| 10          | Public DMZ     | 172.16.21.0/24 | 172.16.21.1 | 외부 노출 후보. 현재 미사용 (확장 여지).            |
+| 20          | DMZ / 외부     | 172.16.22.0/24 | 172.16.22.1 | MetalLB 후보 대역이었으나 ARP 함정으로 30으로 통일. |
+| 30          | Internal (K8s) | 172.16.23.0/24 | 172.16.23.1 | K8s 노드 6대 + MetalLB pool (172.16.23.100~150)     |
+| 40          | Management     | 172.16.24.0/24 | 172.16.24.1 | Bastion, 관리 인터페이스                            |
+| 99          | SYNC           | 10.10.99.0/24  | -           | pfsync HA 동기화 전용                               |
 
 #### Ceph 10G
 
-| 항목 | 값 | 근거 |
-|---|---|---|
-| CIDR | 10.10.10.0/24 | RFC1918 사설 대역, 외부와 격리 |
-| MTU | 9000 (Jumbo) | Ceph IO에서 패킷당 데이터 ↑, CPU 부담 ↓ (6배 효율) |
-| 게이트웨이 | 없음 | 같은 L2 안에서 직접 통신, 라우팅 불필요 |
-| 토폴로지 | Spine-Leaf | East-West (Ceph 노드 ↔ K8s 노드 + Ceph 노드 ↔ Ceph 노드) 트래픽 최적화 |
+| 항목       | 값            | 근거                                                                   |
+| ---------- | ------------- | ---------------------------------------------------------------------- |
+| CIDR       | 10.10.10.0/24 | RFC1918 사설 대역, 외부와 격리                                         |
+| MTU        | 9000 (Jumbo)  | Ceph IO에서 패킷당 데이터 ↑, CPU 부담 ↓ (6배 효율)                     |
+| 게이트웨이 | 없음          | 같은 L2 안에서 직접 통신, 라우팅 불필요                                |
+| 토폴로지   | Spine-Leaf    | East-West (Ceph 노드 ↔ K8s 노드 + Ceph 노드 ↔ Ceph 노드) 트래픽 최적화 |
 
 #### CARP 설정
 
-| 항목 | 값 | 근거 |
-|---|---|---|
-| Skew (MASTER) | 0 | 최고 우선순위, 살아있을 땐 항상 MASTER |
-| Skew (BACKUP) | 100 | 충분히 낮은 우선순위, MASTER 다운 시 인계 |
-| Advertise base | 1 | 1초 간격 multicast (기본값) |
-| 페일오버 timeout | 3초 | 3 × advertise base = 3초 미수신 시 인계 |
-| Multicast addr | 224.0.0.18 | CARP 표준 |
-| pfsync MTU | 1500 | 단일 망 안이라 jumbo 불필요 |
+| 항목             | 값         | 근거                                      |
+| ---------------- | ---------- | ----------------------------------------- |
+| Skew (MASTER)    | 0          | 최고 우선순위, 살아있을 땐 항상 MASTER    |
+| Skew (BACKUP)    | 100        | 충분히 낮은 우선순위, MASTER 다운 시 인계 |
+| Advertise base   | 1          | 1초 간격 multicast (기본값)               |
+| 페일오버 timeout | 3초        | 3 × advertise base = 3초 미수신 시 인계   |
+| Multicast addr   | 224.0.0.18 | CARP 표준                                 |
+| pfsync MTU       | 1500       | 단일 망 안이라 jumbo 불필요               |
 
 #### 방화벽 룰 (요약)
 
-| Source | Destination | Action | 근거 |
-|---|---|---|---|
-| VLAN 40 (Mgmt) | 모든 VLAN | Pass | 관리망은 어디든 접근 |
-| VLAN 30 (K8s) | VLAN 30 내부 | Pass | K8s 내부 통신 |
-| VLAN 30 | VLAN 20 (DMZ) | Pass | DMZ 서버 호출 |
-| VLAN 30 | VLAN 40 | Pass (특정 포트) | bastion에 응답 |
-| VLAN 30 | Internet | Pass | apt update 등 |
-| VLAN 20 | VLAN 30 | Block | DMZ → Internal 차단 (방향성) |
-| Any | Any | Block (Default deny) | 명시적 허용 외 차단 |
+| Source         | Destination   | Action               | 근거                         |
+| -------------- | ------------- | -------------------- | ---------------------------- |
+| VLAN 40 (Mgmt) | 모든 VLAN     | Pass                 | 관리망은 어디든 접근         |
+| VLAN 30 (K8s)  | VLAN 30 내부  | Pass                 | K8s 내부 통신                |
+| VLAN 30        | VLAN 20 (DMZ) | Pass                 | DMZ 서버 호출                |
+| VLAN 30        | VLAN 40       | Pass (특정 포트)     | bastion에 응답               |
+| VLAN 30        | Internet      | Pass                 | apt update 등                |
+| VLAN 20        | VLAN 30       | Block                | DMZ → Internal 차단 (방향성) |
+| Any            | Any           | Block (Default deny) | 명시적 허용 외 차단          |
 
 ### 4.3 다른 컴포넌트와의 연결
 
@@ -571,7 +588,9 @@ iface eno1.10 inet manual
     vlan-raw-device eno1
 ```
 
-**왜?** Linux 커널은 `eno1.10` 같은 VLAN 서브인터페이스가 있으면 VLAN 10 프레임을 그쪽으로 demux. 이게 별도 브리지에 연결되면 pfSense VM의 LAN 트렁크와 분리됨. VLAN-aware 브리지를 쓰면 **이런 서브인터페이스를 호스트 레벨에서 절대 만들지 말 것**.
+**왜?** Linux 커널은 `eno1.10` 같은 VLAN 서브인터페이스가 있으면 VLAN 10 프레임을 그쪽으로 demux.
+이게 별도 브리지에 연결되면 pfSense VM의 LAN 트렁크와 분리됨. VLAN-aware 브리지를 쓰면 **이런
+서브인터페이스를 호스트 레벨에서 절대 만들지 말 것**.
 
 ### 5.2 pfSense VM NIC 설정
 
@@ -585,9 +604,11 @@ iface eno1.10 inet manual
 **줄별 설명**:
 
 - `net0` (WAN): vmbr0 trunk에 연결, **태그 없음** = WAN(VLAN 1, untagged) 통과
-- `net1` (LAN trunk): vmbr0 trunk에 연결, **태그 없음** = 모든 VLAN 통과 (pfSense 내부에서 VLAN 분기)
+- `net1` (LAN trunk): vmbr0 trunk에 연결, **태그 없음** = 모든 VLAN 통과 (pfSense 내부에서 VLAN
+  분기)
 - `net2` (SYNC): `tag=99` = Proxmox에서 VLAN 99 access 포트처럼 동작 → pfSense에 들어갈 땐 untagged
-- `firewall=0` 필수: Proxmox 측 방화벽 비활성화. 이게 1이면 fwbr/fwln 추가 브리지 생성 → CARP 가상 MAC이 여러 브리지에 학습되며 **MAC flapping → split-brain**.
+- `firewall=0` 필수: Proxmox 측 방화벽 비활성화. 이게 1이면 fwbr/fwln 추가 브리지 생성 → CARP 가상
+  MAC이 여러 브리지에 학습되며 **MAC flapping → split-brain**.
 
 ### 5.3 Terraform K8s 노드 (dual-NIC)
 
@@ -695,9 +716,11 @@ variable "mgmt_gateway" {
 | Uplink | Omada Router | Untagged VLAN 1 |
 ```
 
-**왜 kosa3/kosa4는 VLAN 99 없음?** SYNC(VLAN 99)는 pfSense가 있는 kosa1/kosa2 사이만 동작. 다른 노드는 받을 필요 없음.
+**왜 kosa3/kosa4는 VLAN 99 없음?** SYNC(VLAN 99)는 pfSense가 있는 kosa1/kosa2 사이만 동작. 다른
+노드는 받을 필요 없음.
 
-**왜 노트북은 Access 모드?** 노트북 NIC는 802.1Q 태그를 처리 못 함. Access면 untagged 패킷을 PVID 40으로 자동 마킹 → VLAN 40 정상 합류.
+**왜 노트북은 Access 모드?** 노트북 NIC는 802.1Q 태그를 처리 못 함. Access면 untagged 패킷을 PVID
+40으로 자동 마킹 → VLAN 40 정상 합류.
 
 ---
 
@@ -792,7 +815,8 @@ default via 172.16.23.1 dev ens18      ← pfSense CARP VIP
 
 기대: 정상 응답 (loss 0%).
 
-만약 `Frag needed and DF set` 에러 → MTU 어디선가 1500. 경로상 모든 장비(Proxmox vmbr1 + 물리 NIC + 스위치 + Ceph 노드) 모두 9000이어야 함.
+만약 `Frag needed and DF set` 에러 → MTU 어디선가 1500. 경로상 모든 장비(Proxmox vmbr1 + 물리 NIC +
+스위치 + Ceph 노드) 모두 9000이어야 함.
 
 ### 6.6 Ceph 클러스터 확인
 
@@ -820,7 +844,9 @@ default via 172.16.23.1 dev ens18      ← pfSense CARP VIP
 
 **증상**: `kubectl get svc` 에 EXTERNAL-IP는 172.16.22.X로 할당됐는데, 그 IP로 접속이 안 됨.
 
-**원인**: MetalLB IP pool을 **VLAN 20 (172.16.22.0/24)** 에 뒀는데, K8s 노드는 **VLAN 30 (172.16.23.0/24)** 에 있음. MetalLB L2 모드는 ARP로 외부 IP를 알리는데, K8s 노드는 VLAN 20에 인터페이스가 없어서 ARP 응답 자체가 불가능.
+**원인**: MetalLB IP pool을 **VLAN 20 (172.16.22.0/24)** 에 뒀는데, K8s 노드는 **VLAN 30
+(172.16.23.0/24)** 에 있음. MetalLB L2 모드는 ARP로 외부 IP를 알리는데, K8s 노드는 VLAN 20에
+인터페이스가 없어서 ARP 응답 자체가 불가능.
 
 **해결**:
 
@@ -845,7 +871,9 @@ default via 172.16.23.1 dev ens18      ← pfSense CARP VIP
 
 **증상**: VLAN 20/30/40 페일오버는 OK인데 VLAN 10에서만 양쪽 다 MASTER가 됨.
 
-**원인**: Proxmox 호스트에 옛 VLAN 서브인터페이스(`nic0.10`)와 옛 브리지(`vmbr0v10`)가 남아있었음. Linux 커널이 VLAN 10 프레임을 그쪽으로 demux시키면서 pfSense VM의 LAN trunk와 분리. CARP advertise 패킷이 두 노드 간 도달 못 함.
+**원인**: Proxmox 호스트에 옛 VLAN 서브인터페이스(`nic0.10`)와 옛 브리지(`vmbr0v10`)가 남아있었음.
+Linux 커널이 VLAN 10 프레임을 그쪽으로 demux시키면서 pfSense VM의 LAN trunk와 분리. CARP advertise
+패킷이 두 노드 간 도달 못 함.
 
 **해결**:
 
@@ -868,7 +896,8 @@ default via 172.16.23.1 dev ens18      ← pfSense CARP VIP
 
 **증상**: HA 구성 후 일주일 정도 정상 동작하다 양쪽 다 MASTER가 됨.
 
-**원인**: pfSense의 XMLRPC Configuration Sync에서 "Virtual IPs" 항목을 sync 대상에 포함시킴. MASTER의 Skew=0이 BACKUP에 복제되어 둘 다 Skew=0 → 같은 우선순위 → 둘 다 MASTER 주장.
+**원인**: pfSense의 XMLRPC Configuration Sync에서 "Virtual IPs" 항목을 sync 대상에 포함시킴.
+MASTER의 Skew=0이 BACKUP에 복제되어 둘 다 Skew=0 → 같은 우선순위 → 둘 다 MASTER 주장.
 
 **해결**:
 
@@ -886,7 +915,9 @@ default via 172.16.23.1 dev ens18      ← pfSense CARP VIP
 
 **증상**: K8s 노드에서 ping은 잘 되는데 일부 TCP 연결이 가끔 끊김. 특히 외부 API 호출.
 
-**원인**: 일부 트래픽이 pfSense-1로 나가고 응답은 pfSense-2로 돌아옴 (비대칭 경로). pfSense의 stateful 방화벽은 "outbound 상태를 본 쪽이 inbound도 처리"하는데, 다른 노드가 받으면 state 없음 → drop.
+**원인**: 일부 트래픽이 pfSense-1로 나가고 응답은 pfSense-2로 돌아옴 (비대칭 경로). pfSense의
+stateful 방화벽은 "outbound 상태를 본 쪽이 inbound도 처리"하는데, 다른 노드가 받으면 state 없음 →
+drop.
 
 **해결**:
 
@@ -905,7 +936,8 @@ default via 172.16.23.1 dev ens18      ← pfSense CARP VIP
 
 **증상**: Ceph 쓰기 IO가 들쭉날쭉. 같은 K8s 노드에서도 어떤 Pod는 빠르고 어떤 Pod는 느림.
 
-**원인**: 경로상 한 장비라도 MTU 1500이면 ICMP "Frag needed"가 돌아가야 하는데, 방화벽이 그걸 차단하면 silently drop. 또는 K8s Pod 내부 인터페이스(veth)는 1500이라 외부와 mismatch.
+**원인**: 경로상 한 장비라도 MTU 1500이면 ICMP "Frag needed"가 돌아가야 하는데, 방화벽이 그걸
+차단하면 silently drop. 또는 K8s Pod 내부 인터페이스(veth)는 1500이라 외부와 mismatch.
 
 **해결**:
 
@@ -953,8 +985,14 @@ K8s Pod 내부 트래픽은 1500 유지하되, Ceph IO는 **K8s 노드 → Ceph 
 
 ### 다음 챕터 미리보기
 
-다음 챕터(예정 `04-k8s-bootstrap.md`)에서는 이 네트워크 위에 **K8s 클러스터를 부트스트랩**하는 과정을 다룹니다. kubeadm + Ansible로 6 노드(CP 3 + Worker 3) 구성, Calico CNI 설치, MetalLB(이 챕터에서 함정 1로 본 그 컴포넌트) 설치, 그리고 etcd quorum이 어떻게 동작하는지 봐요.
+다음 챕터(예정 `04-k8s-bootstrap.md`)에서는 이 네트워크 위에 **K8s 클러스터를 부트스트랩**하는
+과정을 다룹니다. kubeadm + Ansible로 6 노드(CP 3 + Worker 3) 구성, Calico CNI 설치, MetalLB(이
+챕터에서 함정 1로 본 그 컴포넌트) 설치, 그리고 etcd quorum이 어떻게 동작하는지 봐요.
 
 ---
 
-> **이 챕터 핵심 메시지**: pfSense HA(CARP) + VLAN 분리 + Dual-NIC + Spine-Leaf 패브릭은 **중견기업/데이터센터 네트워크 표준**이에요. 우리는 한정된 하드웨어(Proxmox 4대)에서 이 표준을 거의 그대로 구현했고, 함정 5가지(MetalLB ARP, VLAN 잔재, XMLRPC Skew, 비대칭 라우팅, MTU 일치)를 거치며 실전 학습했어요. 게이트웨이가 죽어도 서비스가 살아있는 인프라가 어떻게 만들어지는지 직접 보여줄 수 있는 구성입니다.
+> **이 챕터 핵심 메시지**: pfSense HA(CARP) + VLAN 분리 + Dual-NIC + Spine-Leaf 패브릭은
+> **중견기업/데이터센터 네트워크 표준**이에요. 우리는 한정된 하드웨어(Proxmox 4대)에서 이 표준을
+> 거의 그대로 구현했고, 함정 5가지(MetalLB ARP, VLAN 잔재, XMLRPC Skew, 비대칭 라우팅, MTU 일치)를
+> 거치며 실전 학습했어요. 게이트웨이가 죽어도 서비스가 살아있는 인프라가 어떻게 만들어지는지 직접
+> 보여줄 수 있는 구성입니다.
