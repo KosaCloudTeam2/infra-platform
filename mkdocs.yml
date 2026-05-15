@@ -90,3 +90,6 @@ nav:
       - TS-02 terraform hook: troubleshooting/TS-02-terraform-hook.md
       - TS-03 husky/pre-commit: troubleshooting/TS-03-husky-precommit.md
       - TS-04 ruff/pip-audit: troubleshooting/TS-04-ruff-pipaudit.md
+      - TS-05 ceph endpoint ip mismatch: troubleshooting/TS-05-ceph-endpoint-ip-mismatch.md
+      - TS-06 flask s3 image proxy: troubleshooting/TS-06-flask-s3-image-proxy.md
+      - TS-07 bastion rgw route timeout: troubleshooting/TS-07-bastion-rgw-route-timeout.md
