@@ -6,82 +6,95 @@
 
 ## 프로젝트 핵심 개념 (쉽게 알아보기)
 
-| 용어                    | 쉽게 말하면                                                    | 이 프로젝트에서의 의미                        |
-| :---------------------- | :------------------------------------------------------------- | :-------------------------------------------- |
-| 온프레미스(On-premises) | 직접 소유하거나 직접 관리하는 서버 환경                        | Proxmox 장비와 그 위의 VM, Kubernetes, Ceph   |
-| Proxmox                 | 서버 한 대 또는 여러 대에서 VM을 만들고 관리하는 가상화 플랫폼 | 온프레미스 VM과 Ceph 운영 기반                |
-| Kubernetes(K8s)         | 여러 서버 위에 컨테이너 앱을 배포하고 자동 복구하는 플랫폼     | 온프레미스 앱 실행의 중심 후보                |
-| Cluster                 | 여러 서버를 하나의 묶음처럼 관리하는 단위                      | Kubernetes 클러스터 또는 DB 클러스터          |
-| Node                    | 클러스터에 참여하는 서버 또는 VM                               | Kubernetes worker node, AWS EC2 node 등       |
-| Pod                     | Kubernetes에서 앱 컨테이너가 실행되는 가장 작은 단위           | 웹앱 컨테이너 실행 단위                       |
-| Ingress                 | Kubernetes 내부 앱을 외부에서 접근 가능하게 하는 입구          | 온프레미스 웹앱 진입점                        |
-| EC2                     | AWS에서 빌려 쓰는 가상 서버                                    | 부하 증가 시 추가 실행되는 burst 서버         |
-| ALB                     | HTTP/HTTPS 요청을 여러 서버로 나누어 보내는 AWS 로드밸런서     | AWS burst 영역의 외부 진입점                  |
-| NLB                     | 네트워크 트래픽을 여러 서버로 나누어 보내는 AWS 로드밸런서     | AWS burst 영역의 외부 진입점                  |
-| Auto Scaling Group(ASG) | 조건에 따라 EC2를 자동으로 늘리거나 줄이는 AWS 기능            | 부하 증가 시 AWS EC2 생성, 부하 감소 시 종료  |
-| Launch Template         | 새 EC2를 만들 때 사용할 서버 설정 템플릿                       | AMI, 인스턴스 타입, user data, 보안그룹 정의  |
-| CloudWatch              | AWS 로그, 지표, 알람 서비스                                    | CPU, 요청 수, 장애 감지와 scale-out 기준      |
-| ECS                     | AWS의 컨테이너 실행 서비스                                     | 기존 fallback 구조. Kubernetes는 아님         |
-| Fargate                 | 서버를 직접 관리하지 않고 컨테이너만 실행하는 AWS 방식         | ECS fallback에서 사용 가능                    |
-| EKS                     | AWS가 관리해주는 Kubernetes 서비스                             | 비용과 관리 편의성 사이의 선택지              |
-| EKS Hybrid Nodes        | 온프레미스 서버를 EKS 클러스터 노드처럼 붙이는 AWS 기능        | 정석적인 hybrid Kubernetes 후보지만 비용 증가 |
-| S3                      | AWS 객체 저장소 서비스                                         | 파일, 백업, 정적 자산 저장 후보               |
-| Ceph                    | 직접 운영하는 분산 스토리지                                    | 온프레미스 저장소                             |
-| Ceph RGW                | Ceph를 S3처럼 사용할 수 있게 해주는 게이트웨이                 | 온프레미스 S3 호환 저장소                     |
-| RBD                     | Ceph의 블록 스토리지                                           | Proxmox VM 디스크, Kubernetes PV 후보         |
-| CephFS                  | Ceph의 공유 파일 시스템                                        | 여러 노드가 공유하는 파일 저장 후보           |
-| PXC                     | MySQL 호환 DB를 여러 노드로 묶는 Percona DB 클러스터           | RDS 대신 직접 운영하는 DB 후보                |
-| Percona Operator        | MySQL 클러스터를 자동화하여 관리하는 도구                      | RDS 대신 직접 운영하는 DB 후보                |
-| ProxySQL                | 앱과 DB 사이에서 DB 접속을 중계하는 프록시                     | 앱은 DB 노드가 아니라 ProxySQL로 접속         |
+| 용어                    | 쉽게 말하면                                                    | 이 프로젝트에서의 의미                         |
+| :---------------------- | :------------------------------------------------------------- | :--------------------------------------------- |
+| 온프레미스(On-premises) | 직접 소유하거나 직접 관리하는 서버 환경                        | Proxmox 장비와 그 위의 VM, Kubernetes, Ceph    |
+| Proxmox                 | 서버 한 대 또는 여러 대에서 VM을 만들고 관리하는 가상화 플랫폼 | 온프레미스 VM과 Ceph 운영 기반                 |
+| Kubernetes(K8s)         | 여러 서버 위에 컨테이너 앱을 배포하고 자동 복구하는 플랫폼     | 온프레미스 앱 실행의 중심 후보                 |
+| Cluster                 | 여러 서버를 하나의 묶음처럼 관리하는 단위                      | Kubernetes 클러스터 또는 DB 클러스터           |
+| Node                    | 클러스터에 참여하는 서버 또는 VM                               | Kubernetes worker node, AWS EC2 node 등        |
+| Pod                     | Kubernetes에서 앱 컨테이너가 실행되는 가장 작은 단위           | 웹앱 컨테이너 실행 단위                        |
+| Ingress                 | Kubernetes 내부 앱을 외부에서 접근 가능하게 하는 입구          | 온프레미스 웹앱 진입점                         |
+| Control Plane(CP)       | Kubernetes 클러스터를 제어하는 관리 계층                       | API Server, Scheduler, Controller Manager 포함 |
+| Service                 | Pod 집합 앞에 두는 접근 추상화 계층                            | 내부 통신 안정화와 로드밸런싱 수행             |
+| EC2                     | AWS에서 빌려 쓰는 가상 서버                                    | 부하 증가 시 추가 실행되는 burst 서버          |
+| ALB                     | HTTP/HTTPS 요청을 여러 서버로 나누어 보내는 AWS 로드밸런서     | AWS burst 영역의 외부 진입점                   |
+| NLB                     | 네트워크 트래픽을 여러 서버로 나누어 보내는 AWS 로드밸런서     | AWS burst 영역의 외부 진입점                   |
+| Auto Scaling Group(ASG) | 조건에 따라 EC2를 자동으로 늘리거나 줄이는 AWS 기능            | 부하 증가 시 AWS EC2 생성, 부하 감소 시 종료   |
+| Launch Template         | 새 EC2를 만들 때 사용할 서버 설정 템플릿                       | AMI, 인스턴스 타입, user data, 보안그룹 정의   |
+| CloudWatch              | AWS 로그, 지표, 알람 서비스                                    | CPU, 요청 수, 장애 감지와 scale-out 기준       |
+| ECS                     | AWS의 컨테이너 실행 서비스                                     | 기존 fallback 구조. Kubernetes는 아님          |
+| Fargate                 | 서버를 직접 관리하지 않고 컨테이너만 실행하는 AWS 방식         | ECS fallback에서 사용 가능                     |
+| EKS                     | AWS가 관리해주는 Kubernetes 서비스                             | 비용과 관리 편의성 사이의 선택지               |
+| EKS Hybrid Nodes        | 온프레미스 서버를 EKS 클러스터 노드처럼 붙이는 AWS 기능        | 정석적인 hybrid Kubernetes 후보지만 비용 증가  |
+| S3                      | AWS 객체 저장소 서비스                                         | 파일, 백업, 정적 자산 저장 후보                |
+| Ceph                    | 직접 운영하는 분산 스토리지                                    | 온프레미스 저장소                              |
+| Ceph RGW                | Ceph를 S3처럼 사용할 수 있게 해주는 게이트웨이                 | 온프레미스 S3 호환 저장소                      |
+| RBD                     | Ceph의 블록 스토리지                                           | Proxmox VM 디스크, Kubernetes PV 후보          |
+| CephFS                  | Ceph의 공유 파일 시스템                                        | 여러 노드가 공유하는 파일 저장 후보            |
+| PXC                     | MySQL 호환 DB를 여러 노드로 묶는 Percona DB 클러스터           | RDS 대신 직접 운영하는 DB 후보                 |
+| Percona Operator        | MySQL 클러스터를 자동화하여 관리하는 도구                      | RDS 대신 직접 운영하는 DB 후보                 |
+| ProxySQL                | 앱과 DB 사이에서 DB 접속을 중계하는 프록시                     | 앱은 DB 노드가 아니라 ProxySQL로 접속          |
 
 ---
 
 ## AWS / 네트워크
 
-| 약어           | Full name                        | 의미                                                             |
-| :------------- | :------------------------------- | :--------------------------------------------------------------- |
-| ACM            | AWS Certificate Manager          | HTTPS 인증서 발급/관리 서비스                                    |
-| ALB            | Application Load Balancer        | HTTP/HTTPS 요청을 여러 대상에 분산하는 L7 로드밸런서             |
-| NLB            | Network Load Balancer            | TCP/UDP 트래픽을 분산하는 L4 로드밸런서                          |
-| NLB Target 5xx | Network Load Balancer Target 5xx | NLB 뒤의 앱 서버가 반환한 `500`번대 서버 오류 수                 |
-| ASG            | Auto Scaling Group               | 부하나 정책에 따라 EC2 인스턴스 수를 자동 조정하는 그룹          |
-| AZ             | Availability Zone                | AWS 리전 안의 독립 데이터센터 영역                               |
-| CloudWatch     | Amazon CloudWatch                | AWS 로그, 지표, 알람을 수집하고 확인하는 운영 관측 서비스        |
-| EC2            | Elastic Compute Cloud            | AWS 가상 서버 서비스                                             |
-| EKS            | Elastic Kubernetes Service       | AWS 관리형 Kubernetes 서비스. MVP에서는 최소 PoC로 사용          |
-| Health Check   | Health Check                     | NLB나 Kubernetes가 앱이 정상 응답하는지 주기적으로 확인하는 검사 |
-| IGW            | Internet Gateway                 | VPC와 인터넷 연결 게이트웨이                                     |
-| NAT            | Network Address Translation      | Private Subnet 리소스의 외부 통신 경로                           |
-| VIP            | Virtual IP                       | 장애 전환을 위해 여러 서버 앞에 두는 공유 가상 IP                |
-| RDS            | Relational Database Service      | AWS 관리형 관계형 데이터베이스 서비스                            |
-| S3             | Simple Storage Service           | AWS 객체 스토리지 서비스                                         |
-| SG             | Security Group                   | AWS 리소스 단위 가상 방화벽                                      |
-| Target Group   | Target Group                     | NLB/NLB가 트래픽을 전달할 EC2, IP, 컨테이너 대상 묶음            |
-| VPC            | Virtual Private Cloud            | AWS 계정 안의 격리된 가상 네트워크                               |
-| WAF            | Web Application Firewall         | 웹 요청 필터링과 공격 차단 서비스                                |
+| 약어                 | Full name                         | 의미                                                             |
+| :------------------- | :-------------------------------- | :--------------------------------------------------------------- |
+| ACM                  | AWS Certificate Manager           | HTTPS 인증서 발급/관리 서비스                                    |
+| ALB                  | Application Load Balancer         | HTTP/HTTPS 요청을 여러 대상에 분산하는 L7 로드밸런서             |
+| NLB                  | Network Load Balancer             | TCP/UDP 트래픽을 분산하는 L4 로드밸런서                          |
+| NLB Target 5xx       | Network Load Balancer Target 5xx  | NLB 뒤의 앱 서버가 반환한 `500`번대 서버 오류 수                 |
+| ASG                  | Auto Scaling Group                | 부하나 정책에 따라 EC2 인스턴스 수를 자동 조정하는 그룹          |
+| AZ                   | Availability Zone                 | AWS 리전 안의 독립 데이터센터 영역                               |
+| CloudWatch           | Amazon CloudWatch                 | AWS 로그, 지표, 알람을 수집하고 확인하는 운영 관측 서비스        |
+| EC2                  | Elastic Compute Cloud             | AWS 가상 서버 서비스                                             |
+| EKS                  | Elastic Kubernetes Service        | AWS 관리형 Kubernetes 서비스. MVP에서는 최소 PoC로 사용          |
+| ENI                  | Elastic Network Interface         | EC2에 부착하는 가상 NIC                                          |
+| Secondary Private IP | Secondary Private IP              | ENI/EC2에 추가로 부여 가능한 보조 사설 IP                        |
+| EventBridge cron     | Amazon EventBridge Scheduler/cron | cron 표현식 기반 스케줄 실행 서비스                              |
+| Health Check         | Health Check                      | NLB나 Kubernetes가 앱이 정상 응답하는지 주기적으로 확인하는 검사 |
+| IGW                  | Internet Gateway                  | VPC와 인터넷 연결 게이트웨이                                     |
+| NAT                  | Network Address Translation       | Private Subnet 리소스의 외부 통신 경로                           |
+| VIP                  | Virtual IP                        | 장애 전환을 위해 여러 서버 앞에 두는 공유 가상 IP                |
+| Multi DC             | Multi Data Center                 | 여러 데이터센터를 동시에 운영하는 구조                           |
+| RDS                  | Relational Database Service       | AWS 관리형 관계형 데이터베이스 서비스                            |
+| S3                   | Simple Storage Service            | AWS 객체 스토리지 서비스                                         |
+| SG                   | Security Group                    | AWS 리소스 단위 가상 방화벽                                      |
+| Target Group         | Target Group                      | NLB/NLB가 트래픽을 전달할 EC2, IP, 컨테이너 대상 묶음            |
+| VPC                  | Virtual Private Cloud             | AWS 계정 안의 격리된 가상 네트워크                               |
+| WAF                  | Web Application Firewall          | 웹 요청 필터링과 공격 차단 서비스                                |
 
 ## 배포 / 컨테이너
 
-| 약어                  | Full name                                    | 의미                                                                        |
-| :-------------------- | :------------------------------------------- | :-------------------------------------------------------------------------- |
-| Argo CD               | Argo Continuous Delivery                     | Git 저장소의 Kubernetes manifest를 클러스터에 동기화하는 GitOps 배포 도구   |
-| CI/CD                 | Continuous Integration / Continuous Delivery | 코드 통합, 빌드, 테스트, 배포 자동화 흐름                                   |
-| Drift                 | Configuration Drift                          | Git에 선언된 상태와 실제 클러스터 상태가 달라진 상황                        |
-| Docker Hub            | Docker Hub                                   | Docker 이미지 저장소. MVP 기본 이미지 레지스트리                            |
-| Private Registry      | Private Registry                             | 팀 내부망 또는 온프레미스에 직접 운영하는 이미지 저장소                     |
-| Harbor                | Harbor                                       | 권한, 프로젝트, 이미지 스캔 기능을 제공하는 Private Registry 구현체         |
-| ECR                   | Elastic Container Registry                   | AWS 관리형 Docker 이미지 저장소. AWS-only 비교안 대체안                     |
-| ECS                   | Elastic Container Service                    | AWS 컨테이너 실행 서비스                                                    |
-| Fargate               | AWS Fargate                                  | 서버를 직접 관리하지 않고 ECS/EKS 컨테이너를 실행하는 방식                  |
-| KEDA                  | Kubernetes Event-driven Autoscaling          | 외부 이벤트나 지표를 기준으로 Kubernetes workload를 자동 확장하는 도구      |
-| Argo Rollouts         | Argo Rollouts                                | Kubernetes Blue/Green, Canary 배포를 지원하는 progressive delivery 도구     |
-| GitOps                | Git Operations                               | Git 저장소 선언 상태를 실제 인프라/클러스터 상태로 동기화하는 운영 방식     |
-| Kubernetes Deployment | Kubernetes Deployment                        | Pod 개수와 배포 버전을 선언하고 rolling update를 수행하는 Kubernetes 리소스 |
-| Kubernetes Ingress    | Kubernetes Ingress                           | 클러스터 외부 HTTP/HTTPS 요청을 Service로 연결하는 Kubernetes 리소스        |
-| Kubernetes Service    | Kubernetes Service                           | Pod 집합에 안정적인 내부 접근 경로를 제공하는 Kubernetes 리소스             |
-| OIDC                  | OpenID Connect                               | GitHub Actions가 AWS 임시 권한을 받기 위한 인증 방식                        |
-| Pod                   | Kubernetes Pod                               | Kubernetes에서 컨테이너가 실행되는 가장 작은 배포 단위                      |
-| PR                    | Pull Request                                 | 변경사항 병합 전 리뷰 요청                                                  |
+| 약어                    | Full name                                    | 의미                                                                        |
+| :---------------------- | :------------------------------------------- | :-------------------------------------------------------------------------- |
+| Argo CD                 | Argo Continuous Delivery                     | Git 저장소의 Kubernetes manifest를 클러스터에 동기화하는 GitOps 배포 도구   |
+| CI/CD                   | Continuous Integration / Continuous Delivery | 코드 통합, 빌드, 테스트, 배포 자동화 흐름                                   |
+| Drift                   | Configuration Drift                          | Git에 선언된 상태와 실제 클러스터 상태가 달라진 상황                        |
+| Docker Hub              | Docker Hub                                   | Docker 이미지 저장소. MVP 기본 이미지 레지스트리                            |
+| Private Registry        | Private Registry                             | 팀 내부망 또는 온프레미스에 직접 운영하는 이미지 저장소                     |
+| Harbor                  | Harbor                                       | 권한, 프로젝트, 이미지 스캔 기능을 제공하는 Private Registry 구현체         |
+| ECR                     | Elastic Container Registry                   | AWS 관리형 Docker 이미지 저장소. AWS-only 비교안 대체안                     |
+| ECS                     | Elastic Container Service                    | AWS 컨테이너 실행 서비스                                                    |
+| Fargate                 | AWS Fargate                                  | 서버를 직접 관리하지 않고 ECS/EKS 컨테이너를 실행하는 방식                  |
+| KEDA                    | Kubernetes Event-driven Autoscaling          | 외부 이벤트나 지표를 기준으로 Kubernetes workload를 자동 확장하는 도구      |
+| Argo Rollouts           | Argo Rollouts                                | Kubernetes Blue/Green, Canary 배포를 지원하는 progressive delivery 도구     |
+| GitOps                  | Git Operations                               | Git 저장소 선언 상태를 실제 인프라/클러스터 상태로 동기화하는 운영 방식     |
+| Kubernetes Deployment   | Kubernetes Deployment                        | Pod 개수와 배포 버전을 선언하고 rolling update를 수행하는 Kubernetes 리소스 |
+| Kubernetes Ingress      | Kubernetes Ingress                           | 클러스터 외부 HTTP/HTTPS 요청을 Service로 연결하는 Kubernetes 리소스        |
+| Ingress Controller      | Ingress Controller                           | Ingress 규칙을 실제로 처리하는 컨트롤러(예: HAProxy Ingress, ingress-nginx) |
+| Kubernetes Service      | Kubernetes Service                           | Pod 집합에 안정적인 내부 접근 경로를 제공하는 Kubernetes 리소스             |
+| ClusterIP               | Kubernetes Service Type ClusterIP            | 클러스터 내부 전용 Service IP 타입                                          |
+| NodePort                | Kubernetes Service Type NodePort             | 노드 포트를 직접 개방해 접근하는 Service 타입                               |
+| Karpenter               | Karpenter                                    | Kubernetes 노드 자동 확장/축소 도구                                         |
+| Karpenter Consolidation | Karpenter Consolidation                      | 불필요한 노드를 자동 정리해 비용을 줄이는 기능                              |
+| Leader Election         | Leader Election                              | 다중 인스턴스 중 대표 1개를 선출해 중복 동작을 방지하는 메커니즘            |
+| podAntiAffinity         | Pod Anti-Affinity                            | 동일 계열 Pod가 한 노드에 몰리지 않게 분산 배치하는 스케줄 정책             |
+| OIDC                    | OpenID Connect                               | GitHub Actions가 AWS 임시 권한을 받기 위한 인증 방식                        |
+| Pod                     | Kubernetes Pod                               | Kubernetes에서 컨테이너가 실행되는 가장 작은 배포 단위                      |
+| PR                      | Pull Request                                 | 변경사항 병합 전 리뷰 요청                                                  |
 
 ## 보안 / 운영
 
@@ -89,6 +102,9 @@
 | :---------- | :----------------------------- | :-------------------------------------------------------------- |
 | CLI         | Command Line Interface         | 터미널 기반 명령 실행 도구                                      |
 | Bastion     | Bastion Host                   | 내부망 서버에 접속하기 위한 제한된 관리용 진입 서버             |
+| DMZ         | Demilitarized Zone             | 외부 접근을 허용하되 내부망과 분리된 중간 보안 네트워크 영역    |
+| Edge        | Edge Layer                     | 외부 네트워크가 처음 진입하는 경계 계층                         |
+| GHCR        | GitHub Container Registry      | GitHub 제공 컨테이너 이미지 레지스트리                          |
 | IAM         | Identity and Access Management | AWS 사용자, 역할, 권한 관리 서비스                              |
 | Keepalived  | Keepalived                     | VIP를 active/standby 서버 사이에서 넘겨주는 고가용성 도구       |
 | Keycloak    | Keycloak                       | SSO, MFA, 사용자 인증과 권한 관리를 제공하는 오픈소스 IAM 도구  |
@@ -97,6 +113,25 @@
 | Role Assume | AssumeRole                     | 사용자나 GitHub Actions가 IAM Role의 임시 권한을 빌려 쓰는 동작 |
 | SSM         | Systems Manager                | EC2 접속, 명령 실행, 운영 자동화 서비스                         |
 | Vault       | HashiCorp Vault                | 비밀번호, 토큰, 인증서 같은 시크릿을 중앙 관리하는 도구         |
+
+## 네트워크 / 트래픽 심화
+
+| 약어/용어       | Full name                          | 의미                                                                 |
+| :-------------- | :--------------------------------- | :------------------------------------------------------------------- |
+| ARP             | Address Resolution Protocol        | IP 주소를 MAC 주소로 매핑하는 L2 네트워크 프로토콜                   |
+| BGP             | Border Gateway Protocol            | 라우터 간 경로 정보를 교환하는 인터넷 핵심 라우팅 프로토콜           |
+| ECMP            | Equal-Cost Multi-Path              | 동일 비용 경로를 여러 개 동시에 사용해 분산/가용성을 높이는 기법     |
+| CARP            | Common Address Redundancy Protocol | pfSense에서 VIP failover에 사용하는 이중화 프로토콜                  |
+| VRRP            | Virtual Router Redundancy Protocol | 라우터/VIP 장애조치를 위한 표준 이중화 프로토콜                      |
+| FRR             | Free Range Routing                 | BGP/OSPF 등 동적 라우팅을 지원하는 오픈소스 라우팅 소프트웨어        |
+| L4              | Layer 4                            | TCP/UDP 전송 계층 기준 트래픽 처리 계층                              |
+| L7              | Layer 7                            | HTTP/HTTPS 애플리케이션 계층 기준 트래픽 처리 계층                   |
+| Reverse Proxy   | Reverse Proxy                      | 클라이언트 대신 백엔드와 통신하며 요청을 중계/제어하는 프록시        |
+| HAProxy         | High Availability Proxy            | L4/L7 로드밸런서 및 리버스 프록시 구현체                             |
+| TLS             | Transport Layer Security           | HTTPS 통신 암호화 및 무결성 보호 프로토콜                            |
+| LoadBalancer IP | LoadBalancer IP                    | 외부 서비스 접근용 대표 IP(예: MetalLB/kube-vip로 제공)              |
+| kube-vip        | kube-vip                           | Kubernetes에서 VIP를 제공해 Control Plane/Service HA를 지원하는 도구 |
+| MetalLB         | MetalLB                            | Bare Metal Kubernetes에서 LoadBalancer 타입 Service를 구현하는 도구  |
 
 ## 데이터 / 스토리지
 
