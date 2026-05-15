@@ -1,4 +1,7 @@
-# TS-01 Windows에서 `winget`/`terraform` 명령 미인식
+# TS-01 winget-terraform
+
+- Status: **Resolved**
+- Date: 2026-05-15
 
 ## 증상
 

@@ -1,4 +1,7 @@
-# TS-02 Terraform hook에서 `Executable terraform not found`
+# TS-02 terraform-hook
+
+- Status: **Resolved**
+- Date: 2026-05-15
 
 ## 증상
 

@@ -75,6 +75,8 @@ nav:
       - Q&A: presentation/qna.md
   - Decisions:
       - Summary: architecture/decisions/README.md
+      - DR Template: architecture/decisions/DR-TEMPLATE.md
+      - DR-01 k6 vs jmeter: architecture/decisions/DR-01-k6-vs-jmeter.md
   - Project Info:
       - Security Policy: project_info/05_security_policy.md
       - Definition of Done: project_info/07_definition_of_done.md
@@ -84,8 +86,7 @@ nav:
       - Team Decision Checklist: project_info/21_team_decision_checklist.md
   - Troubleshooting:
       - Index: troubleshooting/README.md
-      - Issues:
-          - TS-01 winget/terraform: troubleshooting/issues/TS-01-winget-terraform.md
-          - TS-02 terraform hook: troubleshooting/issues/TS-02-terraform-hook.md
-          - TS-03 husky/pre-commit: troubleshooting/issues/TS-03-husky-precommit.md
-          - TS-04 ruff/pip-audit: troubleshooting/issues/TS-04-ruff-pipaudit.md
+      - TS-01 winget/terraform: troubleshooting/TS-01-winget-terraform.md
+      - TS-02 terraform hook: troubleshooting/TS-02-terraform-hook.md
+      - TS-03 husky/pre-commit: troubleshooting/TS-03-husky-precommit.md
+      - TS-04 ruff/pip-audit: troubleshooting/TS-04-ruff-pipaudit.md

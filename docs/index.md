@@ -33,7 +33,7 @@
 - [GitHub Setup](./project_info/11_github_setup.md)
 - [Quality Checks](./project_info/18_quality_checks.md)
 - [Troubleshooting Index](./troubleshooting/README.md)
-- [Troubleshooting Issues](./troubleshooting/issues/TS-01-winget-terraform.md)
+- [Troubleshooting Issues](./troubleshooting/TS-01-winget-terraform.md)
 - [Team Decision Checklist](./project_info/21_team_decision_checklist.md)
 
 ## 4. 아키텍처 및 구축 문서

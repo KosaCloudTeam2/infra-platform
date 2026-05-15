@@ -1,4 +1,7 @@
-# TS-03 Husky/pre-commit 동작 불안정
+# TS-03 husky-precommit
+
+- Status: **Resolved**
+- Date: 2026-05-15
 
 ## 증상
 

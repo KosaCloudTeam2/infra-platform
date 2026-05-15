@@ -1,4 +1,7 @@
-# TS-04 `ruff`/`pip-audit` 실행 실패
+# TS-04 ruff-pipaudit
+
+- Status: **Resolved**
+- Date: 2026-05-15
 
 ## 증상
 

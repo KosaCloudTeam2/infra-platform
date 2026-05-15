@@ -1,21 +1,24 @@
-# Troubleshooting Index
+# Troubleshooting
 
-트러블슈팅 항목을 표 형태로 빠르게 확인하는 인덱스 문서.
+트러블슈팅 이슈 문서 목록.
 
----
+## 네이밍 규칙
 
-## 이슈 요약표
+- 파일명: `TS-NN-<1~3단어-kebab-case>.md`
+- 예: `TS-01-winget-terraform.md`
+- 번호 중복은 허용하되, 발견 시 수동으로 정정함.
 
-| ID    | 증상                                           | 빠른 점검                               | 상세 가이드                                 |
-| :---- | :--------------------------------------------- | :-------------------------------------- | :------------------------------------------ |
-| TS-01 | Windows에서 `winget`/`terraform` 명령 미인식   | `winget --version`, `terraform version` | [TS-01](./issues/TS-01-winget-terraform.md) |
-| TS-02 | Git hook에서 `terraform` 실행 파일을 찾지 못함 | `where.exe terraform`                   | [TS-02](./issues/TS-02-terraform-hook.md)   |
-| TS-03 | Husky/pre-commit 동작 불안정                   | `git config core.hooksPath .husky`      | [TS-03](./issues/TS-03-husky-precommit.md)  |
-| TS-04 | `ruff`, `pip-audit` 실행 실패                  | `uv sync --group dev`                   | [TS-04](./issues/TS-04-ruff-pipaudit.md)    |
+## 상태 규칙
 
----
+- Open: 미해결
+- Resolved: 해결 완료
+- Deprecated: 더 이상 유효하지 않음
 
-## 운영 규칙
+## 이슈 목록
 
-- 신규 이슈는 `docs/troubleshooting/issues/TS-XX-*.md` 파일로 추가하고, 본 인덱스 표를 동기화함.
-- 검증은 `uv run mkdocs build` 기준으로 수행함.
+| ID    | Status   | 제목                            | 파일                                                  |
+| :---- | :------- | :------------------------------ | :---------------------------------------------------- |
+| TS-01 | Resolved | winget/terraform 명령 미인식    | [TS-01-winget-terraform](./TS-01-winget-terraform.md) |
+| TS-02 | Resolved | terraform hook 실행 파일 미인식 | [TS-02-terraform-hook](./TS-02-terraform-hook.md)     |
+| TS-03 | Resolved | husky/pre-commit 동작 불안정    | [TS-03-husky-precommit](./TS-03-husky-precommit.md)   |
+| TS-04 | Resolved | ruff/pip-audit 실행 실패        | [TS-04-ruff-pipaudit](./TS-04-ruff-pipaudit.md)       |
