@@ -1,11 +1,8 @@
 # Architecture Decisions (Demo Version)
 
-> **주의**: 본 문서는 프로젝트의 **데모(Demo) 버전** 또는 **임시 구조**를 설명하고 있습니다. 향후
-> 전체적인 프로젝트 구조가 변경될 예정이므로 참고하시기 바랍니다.
+이 디렉토리는 프로젝트의 설계 결정 사항(ADR 요약)을 관리함.
 
-이 디렉토리는 프로젝트의 설계 결정 사항을 관리합니다. 현재 대부분의 초기 ADR은 아카이브되거나
-삭제되었으며, 새로운 구조에 맞춘 결정 사항들이 보완될 예정입니다.
+## 안내
 
-## 주요 설계도
-
-- [Network Architecture](./network-arch.md): 하이브리드 클라우드 네트워크 구조 (데모용)
+- 기존 `network-arch.md`는 구현 중심 문서로 분류하여 `build-up`으로 이동함.
+- 참조: [Cloud / Network / IaC - network-arch.md](../build-up/cloud_network_iac/network-arch.md)

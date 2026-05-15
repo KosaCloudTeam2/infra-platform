@@ -1,25 +1,21 @@
 # Build-up Guide (Demo Version)
 
-> **주의**: 본 문서는 프로젝트의 **데모(Demo) 버전** 또는 **임시 구조**를 설명하고 있습니다. 향후
-> 전체적인 프로젝트 구조가 변경될 예정이므로 참고하시기 바랍니다.
-
-13일 시스템 구축 + 3일 발표 준비를 위한 역할 기반 상세 구현 가이드
+13일 시스템 구축 + 3일 발표 준비를 위한 역할 기반 상세 구현 가이드.
 
 ---
 
-## 1. Build-up 구조 (데모)
+## 1. 폴더 구조
 
-현재 데모 버전에서는 핵심 인프라와 스토리지 구성을 중심으로 진행합니다.
+`_workspace` 임시 경로는 제거하고, 역할별 폴더를 `build-up/` 바로 아래로 통합함.
 
-## 2. 문서 목록
+| 폴더                         | 설명                                      | 진입 문서                                       |
+| :--------------------------- | :---------------------------------------- | :---------------------------------------------- |
+| `cloud_network_iac/`         | 클라우드/네트워크/IaC 관련 설계·구현 문서 | [README](./cloud_network_iac/README.md)         |
+| `db_storage/`                | DB/스토리지 구축 및 검증 문서             | [README](./db_storage/README.md)                |
+| `cicd_app_runtime/`          | CI/CD 및 앱 런타임 문서                   | [README](./cicd_app_runtime/README.md)          |
+| `observability_integration/` | 관측/통합 문서                            | [README](./observability_integration/README.md) |
 
-| 담당                  | 핵심 문서                                                                                                                                          | 목표                                              |
-| :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------ |
-| Cloud / Network / IaC | [README.md](./README.md)                                                                                                                           | VPC, NLB, EC2 ASG, WAF, App/Data Private Subnet   |
-| DB / Storage          | [RBD Register Guide](./_workspace/db_storage/01_rbd_register_guide.md), [Template Clone Guide](./_workspace/db_storage/02_template_clone_guide.md) | Percona Operator, XtraBackup, Ceph RGW            |
-| CI/CD / App Runtime   | [README.md](./README.md)                                                                                                                           | GitHub Actions, Docker Hub, Argo CD, K8s manifest |
-
-## 3. 공통 원칙
+## 2. 공통 원칙
 
 - DB 노드는 Data Private Subnet에만 배치함
 - DB 관련 포트는 인터넷에 열지 않음

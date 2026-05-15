@@ -60,6 +60,10 @@ nav:
       - Change Log: change_log.md
   - Architecture Build-up:
       - Guide: architecture/build-up/README.md
+      - Cloud / Network / IaC: architecture/build-up/cloud_network_iac/README.md
+      - DB / Storage: architecture/build-up/db_storage/README.md
+      - CI/CD / App Runtime: architecture/build-up/cicd_app_runtime/README.md
+      - Observability / Integration: architecture/build-up/observability_integration/README.md
   - Runbooks:
       - Rollback: runbooks/rollback.md
       - Monitoring: runbooks/monitoring.md
