@@ -3,6 +3,11 @@
 > **주의**: 본 문서는 프로젝트의 **데모(Demo) 버전** 또는 **임시 구조**를 설명하고 있습니다. 향후
 > 전체적인 프로젝트 구조가 변경될 예정이므로 참고하시기 바랍니다.
 
+## 0. 상세 정리 Runbook
+
+- cloud_network_iac 관련 AWS 자원 정리 절차:
+  - `docs/architecture/build-up/cloud_network_iac/aws-resource-cleanup-checklist.md`
+
 ## 1. 정리 대상
 
 - AWS EC2 Auto Scaling Group
