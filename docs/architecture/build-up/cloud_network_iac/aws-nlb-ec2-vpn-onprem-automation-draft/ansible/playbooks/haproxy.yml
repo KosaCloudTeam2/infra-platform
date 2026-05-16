@@ -1,0 +1,35 @@
+---
+- name: Configure HAProxy edge nodes
+  hosts: haproxy
+  become: true
+  vars:
+    onprem_edge_backends:
+      - "172.16.20.10:443"
+      - "172.16.20.11:443"
+
+  tasks:
+    - name: Install haproxy
+      ansible.builtin.package:
+        name: haproxy
+        state: present
+
+    - name: Deploy haproxy config
+      ansible.builtin.template:
+        src: ../templates/haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: "0644"
+      notify: restart haproxy
+
+    - name: Ensure haproxy enabled
+      ansible.builtin.service:
+        name: haproxy
+        enabled: true
+        state: started
+
+  handlers:
+    - name: restart haproxy
+      ansible.builtin.service:
+        name: haproxy
+        state: restarted

@@ -1,0 +1,45 @@
+---
+- name: Configure WireGuard relay on AWS
+  hosts: relay
+  become: true
+  vars:
+    wg_interface: wg0
+    wg_address: 10.200.0.1/24
+    wg_listen_port: 51820
+    onprem_public_key: "REPLACE_ONPREM_PUBLIC_KEY"
+    onprem_allowed_ips: "10.200.0.2/32,172.16.20.0/24"
+    relay_private_key: "REPLACE_RELAY_PRIVATE_KEY"
+
+  tasks:
+    - name: Install wireguard packages
+      ansible.builtin.package:
+        name: wireguard-tools
+        state: present
+
+    - name: Enable IPv4 forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: "1"
+        state: present
+        reload: true
+
+    - name: Deploy wireguard config
+      ansible.builtin.template:
+        src: ../templates/wg0.conf.j2
+        dest: /etc/wireguard/{{ wg_interface }}.conf
+        owner: root
+        group: root
+        mode: "0600"
+      notify: restart wireguard
+
+    - name: Ensure wireguard service enabled
+      ansible.builtin.service:
+        name: wg-quick@{{ wg_interface }}
+        enabled: true
+        state: started
+
+  handlers:
+    - name: restart wireguard
+      ansible.builtin.service:
+        name: wg-quick@{{ wg_interface }}
+        state: restarted

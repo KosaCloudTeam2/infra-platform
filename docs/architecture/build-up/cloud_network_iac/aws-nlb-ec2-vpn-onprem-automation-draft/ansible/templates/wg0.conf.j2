@@ -1,0 +1,8 @@
+[Interface]
+Address = {{ wg_address }}
+ListenPort = {{ wg_listen_port }}
+PrivateKey = {{ relay_private_key }}
+
+[Peer]
+PublicKey = {{ onprem_public_key }}
+AllowedIPs = {{ onprem_allowed_ips }}

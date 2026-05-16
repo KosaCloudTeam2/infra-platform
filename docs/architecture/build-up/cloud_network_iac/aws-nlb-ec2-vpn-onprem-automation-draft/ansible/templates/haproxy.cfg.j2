@@ -1,0 +1,18 @@
+global
+  log /dev/log local0
+
+defaults
+  mode tcp
+  timeout connect 5s
+  timeout client  60s
+  timeout server  60s
+
+frontend fe_tls
+  bind *:443
+  default_backend be_onprem_edge
+
+backend be_onprem_edge
+  option tcp-check
+{% for backend in onprem_edge_backends %}
+  server edge{{ loop.index }} {{ backend }} check
+{% endfor %}

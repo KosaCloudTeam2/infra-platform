@@ -1,0 +1,33 @@
+aws_region           = "ap-northeast-2"
+name_prefix          = "hybrid-edge"
+vpc_cidr             = "10.30.0.0/16"
+public_subnet_a_cidr = "10.30.1.0/24"
+public_subnet_c_cidr = "10.30.2.0/24"
+az_a                 = "ap-northeast-2a"
+az_c                 = "ap-northeast-2c"
+admin_cidr           = "x.x.x.x/32"
+
+# AL2023 AMI ID를 리전별로 조회해서 입력
+haproxy_ami_id       = "ami-xxxxxxxx"
+haproxy_instance_type = "t3.small"
+key_name              = "kp-haproxy-edge"
+onprem_edge_backends  = ["172.16.20.10:443", "172.16.20.11:443"]
+
+# 경로 B(온프레 공인 IP 없음) 사용 시 true
+create_wireguard_relay = false
+relay_ami_id           = "ami-xxxxxxxx"
+relay_instance_type    = "t3.small"
+relay_allowed_udp_cidr = "0.0.0.0/0"
+
+# 경로 A(Site-to-Site VPN) 사용 시 true
+create_site_to_site_vpn    = false
+customer_gateway_public_ip = ""
+customer_gateway_bgp_asn   = 65000
+onprem_cidr                = "172.16.20.0/24"
+vpn_static_routes_only     = false
+
+# Route 53
+create_route53_zone         = false
+domain_name                 = "sjkim686.store"
+create_route53_alias_record = false
+app_fqdn                    = "api.sjkim686.store"

@@ -1,0 +1,6 @@
+aws_region             = "ap-northeast-2"
+cluster_name           = "ticket-burst-eks"
+nodegroup_name         = "base-ng"
+scale_lambda_zip_path  = "./artifacts/scale-eks-nodegroup.zip"
+scale_out_schedule     = "cron(30 8 ? * SAT *)"
+scale_in_schedule      = "cron(30 14 ? * SAT *)"
