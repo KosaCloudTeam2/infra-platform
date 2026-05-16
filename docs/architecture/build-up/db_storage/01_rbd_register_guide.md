@@ -1,5 +1,7 @@
 # Proxmox-Ceph RBD 등록 가이드 (TEAM2 전용)
 
+> Status: Verified
+
 `rbd-team2` 풀을 Proxmox Storage로 등록하는 **선행 단계 전용** 문서임.
 
 ---

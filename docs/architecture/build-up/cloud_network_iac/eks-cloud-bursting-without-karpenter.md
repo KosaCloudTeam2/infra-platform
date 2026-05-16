@@ -1,5 +1,7 @@
 # EKS Cloud Bursting (Karpenter 미사용) A to Z
 
+> Status: Unverified
+
 > 목적: **EventBridge Scheduler + Lambda + EKS Managed Node Group(MNG/ASG)** 만으로 예약형 burst
 > 트래픽을 대응하는 구현 절차를 정리함.
 

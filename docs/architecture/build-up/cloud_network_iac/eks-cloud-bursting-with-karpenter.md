@@ -1,5 +1,7 @@
 # EKS Cloud Bursting (Karpenter 포함) A to Z
 
+> Status: Unverified
+
 > 목적: **예측 불가 트래픽 급증**까지 대응하기 위해 EventBridge Scheduler + Lambda(예약 사전 확장) +
 > Karpenter(실시간 Pending Pod 대응) 조합을 구현함.
 >

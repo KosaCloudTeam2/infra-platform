@@ -1,5 +1,7 @@
 # Team2 RGW/S3 설정 및 등록 가이드 (AWS CLI 미사용)
 
+> Status: Verified
+
 Team2 기준으로 RGW endpoint를 고정하고, **AWS CLI 없이** `radosgw-admin` + `python(boto3)`로 Ceph S3
 동작을 검증하는 절차임.
 

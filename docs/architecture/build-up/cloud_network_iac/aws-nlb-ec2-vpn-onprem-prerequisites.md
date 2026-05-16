@@ -1,5 +1,7 @@
 # AWS NLB-EC2-VPN-OnPrem 구성 전 사전 준비 체크리스트
 
+> Status: Unverified
+
 본 문서는 아래 구현 문서의 공통 선행 조건을 정리함.
 
 - CLI: `aws-nlb-ec2-vpn-onprem-haproxyedge-cli.md`

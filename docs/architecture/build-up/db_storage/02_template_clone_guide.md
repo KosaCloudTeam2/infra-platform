@@ -1,5 +1,7 @@
 # Cloud Image → Template → Clone 가이드 (RBD 등록 이후)
 
+> Status: Verified
+
 `ceph-rbd-team2`가 이미 등록되어 있다는 전제로, VM 템플릿/클론 생성 절차만 다룸.
 
 ---

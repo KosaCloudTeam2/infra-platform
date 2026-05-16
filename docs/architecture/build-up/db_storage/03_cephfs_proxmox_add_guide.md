@@ -1,5 +1,7 @@
 # CephFS Proxmox UI 등록 가이드 (Team2)
 
+> Status: Verified
+
 Team2 기준으로 CephFS를 Proxmox Storage에 추가하는 절차를 정리함.
 
 ---

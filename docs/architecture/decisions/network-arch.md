@@ -1,3 +1,7 @@
+# network arch
+
+> Status: Proposed
+
 ## 결론
 
 - AWS NLB 와 On-Prem 중간의 VPN 터널을 명확히 잡아야 함

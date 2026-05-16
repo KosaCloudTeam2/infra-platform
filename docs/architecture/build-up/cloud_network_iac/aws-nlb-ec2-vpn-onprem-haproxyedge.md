@@ -1,5 +1,7 @@
 # AWS NLB -> EC2(HAProxy 2대) -> VPN -> On-Prem HAProxyEdge 가이드
 
+> Status: Unverified
+
 본 문서는 실행 방식별로 분리함.
 
 - 선행 준비: [aws-nlb-ec2-vpn-onprem-prerequisites.md](./aws-nlb-ec2-vpn-onprem-prerequisites.md)
