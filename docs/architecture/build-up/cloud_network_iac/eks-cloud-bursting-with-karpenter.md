@@ -9,6 +9,12 @@
 
 ---
 
+## 0. Terraform 초안 경로
+
+- `./eks-cloud-bursting-with-karpenter-terraform-draft/`
+
+> 현재 미검증(Unverified) 초안이며, 사용자 실검증 후 Verified 기준에 따라 승격함.
+
 ## 1. 이 방식이 필요한 경우
 
 아래 조건이면 without-karpenter보다 with-karpenter가 유리함.

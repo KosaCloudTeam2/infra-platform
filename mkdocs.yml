@@ -6,6 +6,9 @@ use_directory_urls: true
 exclude_docs: |
   engineering/**
   operations/**
+  architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform/**
+  architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/ansible/**
+  architecture/build-up/cloud_network_iac/eks-cloud-bursting-with-karpenter-terraform-draft/terraform/**
 not_in_nav: |
   daily_notice/[0-9]*.md
 

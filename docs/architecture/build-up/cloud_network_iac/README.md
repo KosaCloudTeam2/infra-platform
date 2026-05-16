@@ -12,12 +12,16 @@
 
 ## 파일 목록
 
-| 파일                                                                                             | Status     | 용도                                              |
-| :----------------------------------------------------------------------------------------------- | :--------- | :------------------------------------------------ |
-| [README.md](./README.md)                                                                         | Unverified | cloud_network_iac 문서 인덱스                     |
-| [eks-cloud-bursting-without-karpenter.md](./eks-cloud-bursting-without-karpenter.md)             | Unverified | EventBridge+Lambda+EKS MNG 예약 확장(A to Z)      |
-| [eks-cloud-bursting-with-karpenter.md](./eks-cloud-bursting-with-karpenter.md)                   | Unverified | 예측 불가 피크 대응용 Karpenter 포함 확장(A to Z) |
-| [aws-nlb-ec2-vpn-onprem-prerequisites.md](./aws-nlb-ec2-vpn-onprem-prerequisites.md)             | Unverified | VPC/네트워크/권한 선행 준비 체크리스트            |
-| [aws-nlb-ec2-vpn-onprem-haproxyedge.md](./aws-nlb-ec2-vpn-onprem-haproxyedge.md)                 | Unverified | AWS NLB-EC2-VPN-온프레 HAProxyEdge 가이드 인덱스  |
-| [aws-nlb-ec2-vpn-onprem-haproxyedge-cli.md](./aws-nlb-ec2-vpn-onprem-haproxyedge-cli.md)         | Unverified | CLI 기반 구현 절차                                |
-| [aws-nlb-ec2-vpn-onprem-haproxyedge-console.md](./aws-nlb-ec2-vpn-onprem-haproxyedge-console.md) | Unverified | AWS 콘솔 클릭 기반 구현 절차                      |
+| 파일                                                                                                                         | Status     | 용도                                              |
+| :--------------------------------------------------------------------------------------------------------------------------- | :--------- | :------------------------------------------------ |
+| [README.md](./README.md)                                                                                                     | Unverified | cloud_network_iac 문서 인덱스                     |
+| [eks-cloud-bursting-without-karpenter.md](./eks-cloud-bursting-without-karpenter.md)                                         | Unverified | EventBridge+Lambda+EKS MNG 예약 확장(A to Z)      |
+| [eks-cloud-bursting-with-karpenter.md](./eks-cloud-bursting-with-karpenter.md)                                               | Unverified | 예측 불가 피크 대응용 Karpenter 포함 확장(A to Z) |
+| [aws-nlb-ec2-vpn-onprem-prerequisites.md](./aws-nlb-ec2-vpn-onprem-prerequisites.md)                                         | Unverified | VPC/네트워크/권한 선행 준비 체크리스트            |
+| [aws-nlb-ec2-vpn-onprem-haproxyedge.md](./aws-nlb-ec2-vpn-onprem-haproxyedge.md)                                             | Unverified | AWS NLB-EC2-VPN-온프레 HAProxyEdge 가이드 인덱스  |
+| [aws-nlb-ec2-vpn-onprem-haproxyedge-cli.md](./aws-nlb-ec2-vpn-onprem-haproxyedge-cli.md)                                     | Unverified | CLI 기반 구현 절차                                |
+| [aws-nlb-ec2-vpn-onprem-haproxyedge-console.md](./aws-nlb-ec2-vpn-onprem-haproxyedge-console.md)                             | Unverified | AWS 콘솔 클릭 기반 구현 절차                      |
+| [aws-resource-cleanup-checklist.md](./aws-resource-cleanup-checklist.md)                                                     | Unverified | cloud_network_iac 문서군 AWS 자원 정리 체크리스트 |
+| [aws-nlb-ec2-vpn-onprem-value-discovery-guide.md](./aws-nlb-ec2-vpn-onprem-value-discovery-guide.md)                         | Unverified | placeholder 값 설정/확인 위치 가이드              |
+| [aws-nlb-ec2-vpn-onprem-automation-draft/README.md](./aws-nlb-ec2-vpn-onprem-automation-draft/README.md)                     | Unverified | NLB-EC2-VPN-OnPrem Terraform/Ansible 미검증 초안  |
+| [eks-cloud-bursting-with-karpenter-terraform-draft/README.md](./eks-cloud-bursting-with-karpenter-terraform-draft/README.md) | Unverified | EKS bursting with Karpenter Terraform 미검증 초안 |

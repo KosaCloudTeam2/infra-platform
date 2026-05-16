@@ -13,3 +13,5 @@ Ansible로 처리함. Day 14 발표 가능 상태가 우선이므로 처음부�
 - Bastion 또는 관리 VM 보안 하드닝
 - CloudWatch Agent 설치
 - Prometheus Node Exporter 설치
+- cloud_network_iac 미검증 플레이북은 docs 경로에서 관리
+  - `docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/ansible/`

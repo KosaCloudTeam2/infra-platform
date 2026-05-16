@@ -16,6 +16,31 @@ Internet Client
  -> On-Prem Kubernetes Ingress/Service
 ```
 
+## 1.1 Terraform/Ansible 자동화 경로
+
+수동 CLI 대신 아래 스캐폴드 사용 가능:
+
+- Terraform: `./aws-nlb-ec2-vpn-onprem-automation-draft/terraform/`
+- Ansible: `./aws-nlb-ec2-vpn-onprem-automation-draft/ansible/`
+
+빠른 시작:
+
+```bash
+# AWS 인프라 생성
+cd docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform apply
+
+# EC2 내부 설정(HAProxy)
+ansible-playbook -i ../ansible/inventory.cloud_network_iac.example.ini ../ansible/playbooks/haproxy.yml
+
+# Relay 경로 사용 시 WireGuard 설정
+ansible-playbook -i ../ansible/inventory.cloud_network_iac.example.ini ../ansible/playbooks/wireguard_relay.yml
+```
+
+> 가비아 NS 변경, pfSense BGP/FRR 설정은 별도 수동 작업이 필요함.
+
 ## 2. 온프레 공인 IP 유무에 따른 경로
 
 - **경로 A (정석)**: 온프레 고정 공인 IP 있음
