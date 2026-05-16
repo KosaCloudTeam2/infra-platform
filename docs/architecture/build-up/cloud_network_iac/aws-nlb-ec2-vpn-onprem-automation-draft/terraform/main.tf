@@ -23,9 +23,9 @@ locals {
 
     backend be_onprem_edge
       option tcp-check
-    %{ for b in var.onprem_edge_backends ~}
+    %{for b in var.onprem_edge_backends~}
       server ${replace(b, ":", "-")} ${b} check
-    %{ endfor ~}
+    %{endfor~}
     CFG
 
     systemctl enable haproxy
