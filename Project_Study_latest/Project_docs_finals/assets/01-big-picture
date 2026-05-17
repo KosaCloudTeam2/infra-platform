@@ -1,0 +1,73 @@
+digraph "KOSA Team2 — 전체 시스템 토폴로지" {
+	graph [bgcolor=white fontcolor="#2D3436" fontname="Sans-Serif" fontsize=16 label="KOSA Team2 — 전체 시스템 토폴로지" nodesep=0.60 pad=0.5 rankdir=TB ranksep=0.75 splines=ortho]
+	node [fixedsize=true fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 height=1.4 imagescale=true labelloc=b shape=box style=rounded width=1.4]
+	edge [color="#7B8894"]
+	df0297cd360c422da463a805dcb01ca1 [label="Internet
+외부 사용자" height=2.3 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/onprem/network/internet.png" shape=none]
+	subgraph "cluster_WAN / Edge" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="WAN / Edge" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"19c080bbbca1485eb28265be650d3a40" [label="Router
+192.168.21.1" height=2.3 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/generic/network/router.png" shape=none]
+		"8dfadec43f854fbdb8cbae4b4b86cbed" [label="pfSense HA
+(CARP+pfsync)" height=2.3 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/onprem/network/pfsense.png" shape=none]
+	}
+	subgraph "cluster_VLAN 20 — DMZ" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="VLAN 20 — DMZ" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"92c0f7f3d9064900872bc95dc520504f" [label="edge-haproxy
+172.16.22.10" height=2.3 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/onprem/network/haproxy.png" shape=none]
+		"612870a91d4149b6b6ea6cfd4ee46b4c" [label="edge-haproxy2
+172.16.22.11" height=2.3 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/onprem/network/haproxy.png" shape=none]
+		"5125aabc434b4d0b966711c5cb24fdcd" [label="VIP 172.16.22.5
+(1차 TLS 종료)" height=2.3 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/onprem/network/haproxy.png" shape=none]
+	}
+	subgraph "cluster_VLAN 30 — K8s Cluster" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="VLAN 30 — K8s Cluster" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		subgraph "cluster_HA Control Plane (× 3)" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="HA Control Plane (× 3)" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"2022a0e7b9d34f7cb95214386aa5e62c" [label=cp1 height=1.9 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/infra/master.png" shape=none]
+			dcb685f03ab14e0197e141a4bd4308a6 [label=cp2 height=1.9 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/infra/master.png" shape=none]
+			"3930b25ba76a4be8baa2e8ddc34968f5" [label=cp3 height=1.9 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/infra/master.png" shape=none]
+		}
+		subgraph "cluster_API VIP (HAProxy+Keepalived)" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="API VIP (HAProxy+Keepalived)" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			b8d8ace40f0f406fa07847dea3c59fa5 [label="172.16.23.5:6443" height=1.9 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/onprem/network/haproxy.png" shape=none]
+		}
+		subgraph "cluster_Worker Nodes" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Worker Nodes" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"892c4ebb16f74f22942663936e78e116" [label="sys1
+(system)
+16GB" height=2.7 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/infra/node.png" shape=none]
+			"6f33e6627cb640228f967987d04f788d" [label=w1 height=1.9 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/infra/node.png" shape=none]
+			"6c5a49b77713487b99c54e4a476abe6f" [label=w2 height=1.9 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/infra/node.png" shape=none]
+			f722f8df19ae43a19791bf5819f5bf74 [label=w3 height=1.9 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/infra/node.png" shape=none]
+		}
+		subgraph "cluster_Ingress LB (MetalLB L2)" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Ingress LB (MetalLB L2)" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"96b83548df6f42f78b3ca4adf5ec7baf" [label="172.16.23.50
+(2차 TLS)" height=2.3 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/k8s/network/svc.png" shape=none]
+		}
+	}
+	subgraph "cluster_Ceph 10G Fabric" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Ceph 10G Fabric" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"5d2f9c2d79f64a2ab0d0a18223e3c396" [label="Ceph 6-Node
+6×1TB HDD
+RBD + RGW S3" height=2.7 image="/sessions/peaceful-lucid-noether/.local/lib/python3.10/site-packages/resources/onprem/storage/ceph.png" shape=none]
+	}
+	df0297cd360c422da463a805dcb01ca1 -> "19c080bbbca1485eb28265be650d3a40" [label=HTTPS dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"19c080bbbca1485eb28265be650d3a40" -> "8dfadec43f854fbdb8cbae4b4b86cbed" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"8dfadec43f854fbdb8cbae4b4b86cbed" -> "5125aabc434b4d0b966711c5cb24fdcd" [label=NAT dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"5125aabc434b4d0b966711c5cb24fdcd" -> "92c0f7f3d9064900872bc95dc520504f" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"5125aabc434b4d0b966711c5cb24fdcd" -> "612870a91d4149b6b6ea6cfd4ee46b4c" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"92c0f7f3d9064900872bc95dc520504f" -> "96b83548df6f42f78b3ca4adf5ec7baf" [label=HTTPS dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96b83548df6f42f78b3ca4adf5ec7baf" -> "892c4ebb16f74f22942663936e78e116" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96b83548df6f42f78b3ca4adf5ec7baf" -> "6f33e6627cb640228f967987d04f788d" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96b83548df6f42f78b3ca4adf5ec7baf" -> "6c5a49b77713487b99c54e4a476abe6f" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96b83548df6f42f78b3ca4adf5ec7baf" -> f722f8df19ae43a19791bf5819f5bf74 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"2022a0e7b9d34f7cb95214386aa5e62c" -> b8d8ace40f0f406fa07847dea3c59fa5 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 style=dashed]
+	dcb685f03ab14e0197e141a4bd4308a6 -> b8d8ace40f0f406fa07847dea3c59fa5 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 style=dashed]
+	"3930b25ba76a4be8baa2e8ddc34968f5" -> b8d8ace40f0f406fa07847dea3c59fa5 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 style=dashed]
+	b8d8ace40f0f406fa07847dea3c59fa5 -> "892c4ebb16f74f22942663936e78e116" [label="kubectl
+kubelet" dir=back fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 style=dashed]
+	"892c4ebb16f74f22942663936e78e116" -> "5d2f9c2d79f64a2ab0d0a18223e3c396" [color=gray dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 style=dotted]
+	"6f33e6627cb640228f967987d04f788d" -> "5d2f9c2d79f64a2ab0d0a18223e3c396" [color=gray dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 style=dotted]
+}
