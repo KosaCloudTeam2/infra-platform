@@ -1,11 +1,16 @@
 # Terraform
 **/.terraform/
-*.tfstate
-*.tfstate.*
-crash.log
-crash.*.log
-*.tfvars.local
+**/*.tfstate
+**/*.tfstate.*
+**/crash.log
+**/crash.*.log
+**/*.tfvars.local
 **/terraform.tfvars
+**/*.auto.tfvars
+**/tfplan
+**/*.tfplan
+**/.terraform.lock.hcl
+
 override.tf
 override.tf.json
 *_override.tf
@@ -37,6 +42,7 @@ build/
 site/
 site-learning/
 site-project-study-latest/
+site-project-docs-finals/
 .venv/
 .audit_cache/
 __pycache__/

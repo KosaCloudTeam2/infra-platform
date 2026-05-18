@@ -1,0 +1,59 @@
+site_name: Project Docs Finals
+site_description: Project_Study_latest/Project_docs_finals 문서 사이트
+docs_dir: Project_Study_latest/Project_docs_finals
+site_dir: site-project-docs-finals
+use_directory_urls: true
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - 00. README: 00-README.md
+  - 01. Overview: 01-overview.md
+  - 02. Physical Network: 02-physical-network.md
+  - 03. Proxmox: 03-proxmox.md
+  - 04. Ceph: 04-ceph.md
+  - 05. Kubernetes: 05-kubernetes.md
+  - 06. Security TLS: 06-security-tls.md
+  - 07. GitOps ArgoCD: 07-gitops-argocd.md
+  - 08. Harbor Registry: 08-harbor-registry.md
+  - 09. Jenkins CI: 09-jenkins-ci.md
+  - 10. CICD Pipeline: 10-cicd-pipeline.md
+  - 11. Observability: 11-observability.md
+  - 12. Operations: 12-operations.md
+  - 13. Validation: 13-validation.md
