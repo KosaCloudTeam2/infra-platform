@@ -20,16 +20,16 @@
 
 ## 1. 사전 결정값
 
-| 항목            | 예시 값              | 비고                    |
-| :-------------- | :------------------- | :---------------------- |
-| AWS Region      | `ap-northeast-2`     | 전체 리소스 동일 리전   |
-| 도메인          | `sjkim686.store`     | Route 53 위임 대상      |
-| 앱 FQDN         | `api.sjkim686.store` | NLB Alias 연결          |
-| VPC CIDR        | `10.30.0.0/16`       | 온프레 CIDR과 중복 금지 |
-| Public Subnet A | `10.30.1.0/24`       | AZ-a                    |
-| Public Subnet C | `10.30.2.0/24`       | AZ-c                    |
-| 온프레 CIDR     | 예: `172.16.20.0/24` | 라우팅 목적지           |
-| 관리자 공인 IP  | `x.x.x.x/32`         | SSH 최소 허용           |
+| 항목            | 예시 값                                    | 비고                                     |
+| :-------------- | :----------------------------------------- | :--------------------------------------- |
+| AWS Region      | `ap-northeast-2`                           | 전체 리소스 동일 리전                    |
+| 도메인          | `sjkim686.store`                           | Route 53 위임 대상                       |
+| 앱 FQDN         | `ticket.kosa.team2`                        | 기본값(현재 Edge ACL 허용 Host)          |
+| VPC CIDR        | `10.30.0.0/16`                             | 온프레 CIDR과 중복 금지                  |
+| Public Subnet A | `10.30.1.0/24`                             | AZ-a                                     |
+| Public Subnet C | `10.30.2.0/24`                             | AZ-c                                     |
+| 온프레 CIDR     | 예: `172.16.22.0/24` 또는 `172.16.22.0/23` | 라우팅 목적지(범위 선택은 아래 1.2 참고) |
+| 관리자 공인 IP  | `x.x.x.x/32`                               | SSH 최소 허용                            |
 
 ---
 
@@ -60,9 +60,21 @@
 
 스캐폴드 시작:
 
+1. `terraform.tfvars` 생성 후 값 입력
+
+- `terraform.tfvars.example`를 복사한 뒤, 값 입력은 아래 가이드를 기준으로 진행
+- 참조:
+  [aws-nlb-ec2-vpn-onprem-value-discovery-guide.md](./aws-nlb-ec2-vpn-onprem-value-discovery-guide.md)
+
 ```bash
 cd docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform
 cp terraform.tfvars.example terraform.tfvars
+# terraform.tfvars 값을 먼저 수정
+```
+
+2. Terraform 초기화/Plan 실행
+
+```bash
 terraform init
 terraform plan
 ```
@@ -71,16 +83,36 @@ terraform plan
 ansible-playbook -i docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/ansible/inventory.cloud_network_iac.example.ini docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/ansible/playbooks/haproxy.yml
 ```
 
+## 1.1 현재 실측 반영 예시 (팀2)
+
+- On-Prem Edge HAProxy #1: `172.16.22.10:443`
+- On-Prem Edge HAProxy #2: `172.16.22.11:443`
+- Kubernetes Ingress LB VIP(MetalLB): `172.16.23.50:443`
+
+> 실제 운영값이 다르면 이 값을 우선 갱신함.
+
+## 1.2 온프레 CIDR 범위 선택 (`/24` vs `/23`)
+
+- 최소 범위(권장 시작): `172.16.22.0/24`
+  - AWS -> OnPrem 경로에서 Edge HAProxy(172.16.22.10/11)만 접근하면 충분한 경우
+- 확장 범위: `172.16.22.0/23`
+  - Edge 뒤 MetalLB VIP 대역(`172.16.23.x`)까지 AWS에서 직접 라우팅/점검해야 하는 경우
+
+정리:
+
+- **현재 구조에서 기본값은 `/24`**로 시작하고,
+- 운영/점검 요구가 있으면 `/23`으로 확장함.
+
 ## 4. AWS CLI로 가능한 범위/불가능한 범위
 
-### 3.1 AWS CLI로 가능한 작업
+### 4.1 AWS CLI로 가능한 작업
 
 - VPC/Subnet/IGW/Route table 생성 및 연결
 - Key pair 생성
 - Route 53 Hosted Zone 생성 및 NS 조회
 - (후속 단계) NLB/VPN 리소스 생성
 
-### 3.2 AWS CLI로 불가능(또는 AWS 외부) 작업
+### 4.2 AWS CLI로 불가능(또는 AWS 외부) 작업
 
 - 가비아 네임서버 변경
 - 온프레 방화벽 포트 오픈
@@ -90,7 +122,7 @@ ansible-playbook -i docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn
 
 ## 5. VPC 기본 구성 (AWS CLI)
 
-## 4.1 환경변수 선언
+### 5.1 환경변수 선언
 
 ```bash
 export AWS_REGION=ap-northeast-2
@@ -106,7 +138,7 @@ export AZ_C=ap-northeast-2c
 
 - 이후 명령에서 반복 입력할 값을 변수로 고정해 오타를 줄임.
 
-## 4.2 VPC 생성
+### 5.2 VPC 생성
 
 ```bash
 VPC_ID=$(aws ec2 create-vpc \
@@ -135,7 +167,7 @@ aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-hostnames '{"Value"
 
 - EC2 내부 DNS 해석과 호스트네임 부여 활성화.
 
-## 4.3 Public Subnet 2개 생성
+### 5.3 Public Subnet 2개 생성
 
 ```bash
 SUBNET_A_ID=$(aws ec2 create-subnet \
@@ -173,7 +205,7 @@ aws ec2 modify-subnet-attribute --subnet-id ${SUBNET_C_ID} --map-public-ip-on-la
 
 - 해당 Subnet에서 생성되는 EC2에 공인 IP 자동 부여.
 
-## 4.4 Internet Gateway 생성/연결
+### 5.4 Internet Gateway 생성/연결
 
 ```bash
 IGW_ID=$(aws ec2 create-internet-gateway \
@@ -190,7 +222,7 @@ aws ec2 attach-internet-gateway --internet-gateway-id ${IGW_ID} --vpc-id ${VPC_I
 
 - VPC에 인터넷 출구(IGW)를 연결.
 
-## 4.5 Route Table 생성/연결
+### 5.5 Route Table 생성/연결
 
 ```bash
 RTB_ID=$(aws ec2 create-route-table \
@@ -247,7 +279,7 @@ AWS/온프레 CIDR이 겹치면 라우팅 충돌이 발생하므로 사전 확�
 python - <<'PY'
 import ipaddress
 aws = ipaddress.ip_network('10.30.0.0/16')
-onprem = ipaddress.ip_network('172.16.20.0/24')
+onprem = ipaddress.ip_network('172.16.22.0/24')  # 필요 시 172.16.22.0/23로 확장
 print('overlap=', aws.overlaps(onprem))
 PY
 ```
@@ -297,4 +329,4 @@ aws route53 list-resource-record-sets \
 - [ ] 관리자 공인 IP(/32) 확정
 - [ ] 온프레 공인 IP 유무 확인 (경로 A/B 결정)
 - [ ] pfSense FRR/BGP 가능 여부 확인
-- [ ] 도메인/레코드(`api.sjkim686.store`) 확정
+- [ ] 도메인/레코드(`ticket.kosa.team2` 또는 운영 목표 FQDN) 확정

@@ -58,9 +58,99 @@ ansible-playbook -i ../ansible/inventory.cloud_network_iac.example.ini ../ansibl
 - `[EC2-RELAY]` : AWS Relay EC2 내부 쉘
 - `[ONPREM-GW]` : 온프레미스 게이트웨이 내부 쉘
 
+### 2.2 자주 쓰는 ID 의미/조회
+
+- `RTB_ID`: VPC Route Table ID
+- `VPN_ID`: Site-to-Site VPN Connection ID
+
+조회 예시:
+
+```bash
+# VPC의 Route Table 조회
+aws ec2 describe-route-tables \
+  --filters Name=vpc-id,Values=${VPC_ID} \
+  --region ${AWS_REGION} \
+  --query 'RouteTables[*].RouteTableId' --output text
+
+# VPN Connection 조회
+aws ec2 describe-vpn-connections \
+  --region ${AWS_REGION} \
+  --query 'VpnConnections[*].VpnConnectionId' --output text
+```
+
+### 2.3 Edge ACL 의미 (중요)
+
+- Edge HAProxy의 `acl ... hdr(host)`는 **허용할 Host 헤더 목록**임.
+- 목록에 없는 Host는 `default_backend default-404`로 가서 404가 발생함.
+
+예시(`edge-haproxy`):
+
+- 허용 Host: `ticket.kosa.team2`, `grafana.kosa.team2`, `argocd.kosa.team2`, `harbor.kosa.team2`,
+  `jenkins.kosa.team2`
+- `api.sjkim686.store`를 사용할 경우, 아래 중 하나를 선택해야 함.
+  1. Edge ACL에 `api.sjkim686.store` 추가
+  2. Route53에서 허용 Host 중 하나로 서비스 정책을 맞춤
+
 ---
 
 ## 3. 공통: NLB/HAProxy 구성
+
+### 3.0 AWS HAProxy EC2 생성 (아직 없을 때)
+
+실행 위치: **[AWS-OP]**
+
+```bash
+export AWS_REGION=ap-northeast-2
+export VPC_ID=vpc-xxxxxxxx
+export SUBNET_A=subnet-aaaa
+export SUBNET_C=subnet-cccc
+export KEY_NAME=kp-haproxy-edge
+export AMI_ID=ami-xxxxxxxx
+export ADMIN_CIDR=x.x.x.x/32
+```
+
+Security Group 생성(SSH + 443 허용):
+
+```bash
+SG_HAP_ID=$(aws ec2 create-security-group \
+  --group-name sg-haproxy-edge \
+  --description "haproxy edge ec2" \
+  --vpc-id ${VPC_ID} \
+  --region ${AWS_REGION} \
+  --query 'GroupId' --output text)
+
+aws ec2 authorize-security-group-ingress --group-id ${SG_HAP_ID} --protocol tcp --port 22 --cidr ${ADMIN_CIDR} --region ${AWS_REGION}
+aws ec2 authorize-security-group-ingress --group-id ${SG_HAP_ID} --protocol tcp --port 443 --cidr 0.0.0.0/0 --region ${AWS_REGION}
+```
+
+EC2 2대 생성:
+
+```bash
+EC2_ID_A=$(aws ec2 run-instances \
+  --image-id ${AMI_ID} \
+  --instance-type t3.small \
+  --subnet-id ${SUBNET_A} \
+  --security-group-ids ${SG_HAP_ID} \
+  --key-name ${KEY_NAME} \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=haproxy-a}]' \
+  --region ${AWS_REGION} \
+  --query 'Instances[0].InstanceId' --output text)
+
+EC2_ID_C=$(aws ec2 run-instances \
+  --image-id ${AMI_ID} \
+  --instance-type t3.small \
+  --subnet-id ${SUBNET_C} \
+  --security-group-ids ${SG_HAP_ID} \
+  --key-name ${KEY_NAME} \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=haproxy-c}]' \
+  --region ${AWS_REGION} \
+  --query 'Instances[0].InstanceId' --output text)
+
+echo ${EC2_ID_A}
+echo ${EC2_ID_C}
+```
+
+> 이미 EC2가 있으면 이 단계는 건너뜀.
 
 ### 3.1 HAProxy 설치
 
@@ -89,8 +179,8 @@ frontend fe_tls
 
 backend be_onprem_edge
   option tcp-check
-  server edge1 172.16.20.10:443 check
-  server edge2 172.16.20.11:443 check
+  server edge1 172.16.22.10:443 check
+  server edge2 172.16.22.11:443 check
 ```
 
 ```bash
@@ -112,7 +202,7 @@ export NLB_NAME=nlb-haproxy-edge
 ```
 
 ```bash
-aws elbv2 create-target-group \
+TG_ARN=$(aws elbv2 create-target-group \
   --name tg-haproxy-edge \
   --protocol TCP \
   --port 443 \
@@ -120,26 +210,31 @@ aws elbv2 create-target-group \
   --vpc-id ${VPC_ID} \
   --health-check-protocol TCP \
   --health-check-port 443 \
-  --region ${AWS_REGION}
+  --region ${AWS_REGION} \
+  --query 'TargetGroups[0].TargetGroupArn' --output text)
 
-aws elbv2 create-load-balancer \
+NLB_ARN=$(aws elbv2 create-load-balancer \
   --name ${NLB_NAME} \
   --type network \
   --scheme internet-facing \
   --subnets ${SUBNET_A} ${SUBNET_C} \
-  --region ${AWS_REGION}
+  --region ${AWS_REGION} \
+  --query 'LoadBalancers[0].LoadBalancerArn' --output text)
 
 aws elbv2 register-targets \
-  --target-group-arn <TG_ARN> \
-  --targets Id=<EC2_ID_A> Id=<EC2_ID_C> \
+  --target-group-arn ${TG_ARN} \
+  --targets Id=${EC2_ID_A} Id=${EC2_ID_C} \
   --region ${AWS_REGION}
 
 aws elbv2 create-listener \
-  --load-balancer-arn <NLB_ARN> \
+  --load-balancer-arn ${NLB_ARN} \
   --protocol TCP \
   --port 443 \
-  --default-actions Type=forward,TargetGroupArn=<TG_ARN> \
+  --default-actions Type=forward,TargetGroupArn=${TG_ARN} \
   --region ${AWS_REGION}
+
+echo ${TG_ARN}
+echo ${NLB_ARN}
 ```
 
 ---
@@ -288,7 +383,7 @@ PostUp = sysctl -w net.ipv4.ip_forward=1
 
 [Peer]
 PublicKey = REPLACE_ONPREM_PUBLIC_KEY
-AllowedIPs = 10.200.0.2/32,172.16.20.0/24
+AllowedIPs = 10.200.0.2/32,REPLACE_ONPREM_CIDR
 CFG
 
 sudo sed -i "s|REPLACE_RELAY_PRIVATE_KEY|$(cat /tmp/relay.key)|" /etc/wireguard/wg0.conf
@@ -447,3 +542,44 @@ sudo wg show
 - (경로 B) `latest handshake` 갱신
 - `api.sjkim686.store`가 NLB로 해석됨
 - 외부에서 `api.sjkim686.store:443` 접속 성공
+
+## 7.1 Host 헤더 404 진단 체크리스트
+
+404가 발생하면 아래 순서로 확인함.
+
+1. DNS가 NLB로 해석되는지
+
+```bash
+nslookup api.sjkim686.store
+```
+
+2. Edge에서 MetalLB VIP 연결 자체는 되는지 (Host 미지정 시 404는 정상 가능)
+
+```bash
+curl -kI https://172.16.23.50
+```
+
+3. Host 헤더를 명시했을 때 정상 라우팅 되는지
+
+```bash
+curl -kI https://172.16.23.50 -H 'Host: ticket.kosa.team2'
+```
+
+4. Edge ACL에 해당 Host가 등록돼 있는지
+
+```bash
+sudo grep -n "acl .*hdr(host)" /etc/haproxy/haproxy.cfg
+```
+
+5. `api.sjkim686.store`를 직접 쓰려면 ACL 추가 여부 확인
+
+```cfg
+acl api hdr(host) -i api.sjkim686.store
+use_backend k8s-ingress if api
+```
+
+6. Ingress 리소스에 해당 host 규칙이 있는지
+
+```bash
+kubectl get ingress -A | grep -E 'ticket.kosa.team2|api.sjkim686.store'
+```

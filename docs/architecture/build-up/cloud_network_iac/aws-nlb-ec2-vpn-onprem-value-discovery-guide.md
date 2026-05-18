@@ -100,31 +100,56 @@ aws sts get-caller-identity
 기준 파일:
 `docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform/terraform.tfvars.example`
 
-| 변수                          | 의미                       | 어디서 확인/결정          | 확인/입력 예시                                                                                       |
-| :---------------------------- | :------------------------- | :------------------------ | :--------------------------------------------------------------------------------------------------- |
-| `aws_region`                  | AWS 리전                   | 팀 표준 리전              | `aws configure get region` → `ap-northeast-2`                                                        |
-| `name_prefix`                 | 리소스 이름 접두어         | 팀 네이밍 규칙            | 예시: `hybrid-edge`                                                                                  |
-| `vpc_cidr`                    | VPC CIDR                   | 온프레와 비중복 대역 설계 | 예시: `10.30.0.0/16`                                                                                 |
-| `public_subnet_a_cidr`        | Public Subnet A CIDR       | VPC CIDR 하위 대역        | 예시: `10.30.1.0/24`                                                                                 |
-| `public_subnet_c_cidr`        | Public Subnet C CIDR       | VPC CIDR 하위 대역        | 예시: `10.30.2.0/24`                                                                                 |
-| `az_a`, `az_c`                | 가용영역                   | 리전 내 사용 가능 AZ      | `aws ec2 describe-availability-zones --region ap-northeast-2 --query 'AvailabilityZones[].ZoneName'` |
-| `admin_cidr`                  | SSH 허용 CIDR              | 관리자 PC 공인 IP         | `curl ifconfig.me` 결과가 `1.2.3.4`면 `1.2.3.4/32`                                                   |
-| `haproxy_ami_id`              | HAProxy EC2 AMI            | AL2023 최신 AMI           | 아래 3.1 조회값 (예: `ami-0abc1234...`)                                                              |
-| `haproxy_instance_type`       | 인스턴스 타입              | 성능/비용 기준            | 예시: `t3.small`                                                                                     |
-| `key_name`                    | EC2 접속 키페어명          | 기존/신규 키페어          | `aws ec2 describe-key-pairs --query 'KeyPairs[].KeyName'`                                            |
-| `onprem_edge_backends`        | 온프레 HAProxyEdge IP:Port | 온프레 운영값(고정)       | **임의 지정 금지**, 아래 `3.3.1` 확인                                                                |
-| `create_wireguard_relay`      | Relay 경로 사용 여부       | 공인IP 유무 기준          | 예시: 공인IP 없음 → `true`, 공인IP 있음 → `false`                                                    |
-| `relay_ami_id`                | Relay EC2 AMI              | AL2023 최신 AMI           | 아래 3.1 조회값 (예: `ami-0abc1234...`)                                                              |
-| `relay_allowed_udp_cidr`      | Relay UDP 허용 대역        | 온프레 NAT 공인IP 우선    | **임의 지정 지양**, 아래 `3.3.2` 확인                                                                |
-| `create_site_to_site_vpn`     | S2S VPN 사용 여부          | 공인IP + 장비 지원 여부   | 예시: 공인IP+BGP 가능 → `true`, 공인IP 없음 → `false`                                                |
-| `customer_gateway_public_ip`  | 온프레 공인IP              | 온프레 회선/NAT 공인IP    | **임의 지정 금지**, 아래 `3.3.3` 확인                                                                |
-| `customer_gateway_bgp_asn`    | 온프레 BGP ASN             | pfSense FRR/BGP 설정값    | **임의 지정 지양**, 아래 `3.3.4` 확인                                                                |
-| `onprem_cidr`                 | 온프레 내부 대역           | 라우팅 대상 CIDR          | **임의 지정 금지**, 아래 `3.3.5` 확인                                                                |
-| `vpn_static_routes_only`      | Static 모드 여부           | BGP 미지원 시 true        | 예시: BGP 사용 시 `false`, BGP 미사용 시 `true`                                                      |
-| `create_route53_zone`         | Hosted Zone 생성 여부      | 도메인 운영 방식          | 예시: Route53에 존 신규 생성 시 `true`                                                               |
-| `domain_name`                 | 루트 도메인                | 구매 도메인               | **임의 지정 금지**, 아래 `3.3.6` 확인                                                                |
-| `create_route53_alias_record` | Alias 레코드 생성 여부     | 앱 도메인 사용 여부       | 예시: `api.sjkim686.store` 연결 시 `true`                                                            |
-| `app_fqdn`                    | 앱 FQDN                    | 도메인 정책               | **임의 지정 지양**, 아래 `3.3.7` 확인                                                                |
+### 3.0 경로 A/B별 필수 변수 요약
+
+#### 경로 A (온프레 공인 IP 있음, Site-to-Site VPN)
+
+- 필수/사용:
+  - `create_site_to_site_vpn = true`
+  - `customer_gateway_public_ip = "<온프레 공인IP>"`
+  - `customer_gateway_bgp_asn = <ASN>`
+  - `onprem_cidr = "..."`
+  - `vpn_static_routes_only = true|false`
+- 비활성/미사용 권장:
+  - `create_wireguard_relay = false`
+
+#### 경로 B (온프레 공인 IP 없음, WireGuard Relay)
+
+- 필수/사용:
+  - `create_site_to_site_vpn = false`
+  - `create_wireguard_relay = true`
+  - `relay_allowed_udp_cidr = "<온프레 출구 공인IP>/32"`
+  - `onprem_cidr = "..."`
+- 미사용(값 영향 없음):
+  - `customer_gateway_public_ip`
+  - `customer_gateway_bgp_asn`
+  - `vpn_static_routes_only`
+
+| 변수                          | 의미                       | 어디서 확인/결정          | 확인/입력 예시                                                                                                                                  |
+| :---------------------------- | :------------------------- | :------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aws_region`                  | AWS 리전                   | 팀 표준 리전              | `aws configure get region` → `ap-northeast-2`                                                                                                   |
+| `name_prefix`                 | 리소스 이름 접두어         | 팀 네이밍 규칙            | 예시: `hybrid-edge`                                                                                                                             |
+| `vpc_cidr`                    | VPC CIDR                   | 온프레와 비중복 대역 설계 | 예시: `10.30.0.0/16`                                                                                                                            |
+| `public_subnet_a_cidr`        | Public Subnet A CIDR       | VPC CIDR 하위 대역        | 예시: `10.30.1.0/24`                                                                                                                            |
+| `public_subnet_c_cidr`        | Public Subnet C CIDR       | VPC CIDR 하위 대역        | 예시: `10.30.2.0/24`                                                                                                                            |
+| `az_a`, `az_c`                | 가용영역                   | 리전 내 사용 가능 AZ      | `aws ec2 describe-availability-zones --region ap-northeast-2 --query 'AvailabilityZones[].ZoneName'`                                            |
+| `admin_cidr`                  | SSH 허용 CIDR              | 관리자 PC 공인 IP         | Windows: `(Invoke-RestMethod "https://ifconfig.me/ip").Trim()`<br>Ubuntu: `curl -s https://ifconfig.me/ip`<br>조회값이 `1.2.3.4`면 `1.2.3.4/32` |
+| `haproxy_ami_id`              | HAProxy EC2 AMI            | AL2023 최신 AMI           | 아래 3.1 조회값 (예: `ami-0abc1234...`)                                                                                                         |
+| `haproxy_instance_type`       | 인스턴스 타입              | 성능/비용 기준            | 예시: `t3.small`                                                                                                                                |
+| `key_name`                    | EC2 접속 키페어명          | 기존/신규 키페어          | `aws ec2 describe-key-pairs --query 'KeyPairs[].KeyName'`                                                                                       |
+| `onprem_edge_backends`        | 온프레 HAProxyEdge IP:Port | 온프레 운영값(고정)       | **임의 지정 금지**, 실측 예시: `["172.16.22.10:443","172.16.22.11:443"]`                                                                        |
+| `create_wireguard_relay`      | Relay 경로 사용 여부       | 공인IP 유무 기준          | 예시: 공인IP 없음 → `true`, 공인IP 있음 → `false`                                                                                               |
+| `relay_ami_id`                | Relay EC2 AMI              | AL2023 최신 AMI           | 아래 3.1 조회값 (예: `ami-0abc1234...`)                                                                                                         |
+| `relay_allowed_udp_cidr`      | Relay UDP 허용 대역        | 온프레 NAT 공인IP 우선    | **임의 지정 지양**, 아래 `3.3.2` 확인                                                                                                           |
+| `create_site_to_site_vpn`     | S2S VPN 사용 여부          | 공인IP + 장비 지원 여부   | 예시: 공인IP+BGP 가능 → `true`, 공인IP 없음 → `false`                                                                                           |
+| `customer_gateway_public_ip`  | 온프레 공인IP              | 온프레 회선/NAT 공인IP    | **임의 지정 금지**, 아래 `3.3.3` 확인                                                                                                           |
+| `customer_gateway_bgp_asn`    | 온프레 BGP ASN             | pfSense FRR/BGP 설정값    | **임의 지정 지양**, 아래 `3.3.4` 확인                                                                                                           |
+| `onprem_cidr`                 | 온프레 내부 대역           | 라우팅 대상 CIDR          | 기본 `172.16.22.0/24`, 필요 시 `172.16.22.0/23` (아래 `3.3.5`)                                                                                  |
+| `vpn_static_routes_only`      | Static 모드 여부           | BGP 미지원 시 true        | 예시: BGP 사용 시 `false`, BGP 미사용 시 `true`                                                                                                 |
+| `create_route53_zone`         | Hosted Zone 생성 여부      | 도메인 운영 방식          | 예시: Route53에 존 신규 생성 시 `true`                                                                                                          |
+| `domain_name`                 | 루트 도메인                | 구매 도메인               | **임의 지정 금지**, 아래 `3.3.6` 확인                                                                                                           |
+| `create_route53_alias_record` | Alias 레코드 생성 여부     | 앱 도메인 사용 여부       | 예시: `ticket.kosa.team2` 연결 시 `true`                                                                                                        |
+| `app_fqdn`                    | 앱 FQDN                    | 도메인 정책               | 기본값: `ticket.kosa.team2` (Edge ACL 허용 Host 기준, 아래 `3.3.7`)                                                                             |
 
 ### 3.1 AL2023 AMI ID 조회
 
@@ -141,60 +166,159 @@ aws ssm get-parameters \
 - 본 문서의 예시값을 바로 써도 되지만, 실제 온프레 CIDR/공인IP와 충돌 없는지 반드시 확인 후 적용해야
   함.
 
+### 3.2.1 실행 위치 태그 요약
+
+| 태그          | 의미                                        |
+| :------------ | :------------------------------------------ |
+| `[AWS-OP]`    | AWS CLI 실행 단말(CloudShell/운영자 터미널) |
+| `[ONPREM-GW]` | 온프레 게이트웨이(pfSense/라우터)           |
+| `[EDGE-HAP]`  | 온프레 edge-haproxy VM                      |
+| `[BASTION]`   | 온프레 bastion VM(kubectl/운영 점검용)      |
+
 ### 3.3 임의 지정하면 안 되는 값 확인 방법
 
 #### 3.3.1 `onprem_edge_backends`
 
 - 의미: AWS HAProxy가 넘길 **온프레 HAProxyEdge 실제 백엔드 주소(IP:Port)**
-- 확인 우선순위:
-  1. 팀 표준 문서/Runbook 값 확인
-  2. 온프레 HAProxyEdge 서버 실측
-- 온프레 HAProxyEdge에서 확인:
+- 확인 위치: **[EDGE-HAP]** (`edge-haproxy`, `edge-haproxy2`)
+- 확인 명령:
 
 ```bash
+hostname -I
 sudo grep -E '^\s*server\s+' /etc/haproxy/haproxy.cfg
 ```
 
-- 위 결과의 `IP:Port`를 `onprem_edge_backends`에 그대로 반영
+- 반영 규칙: 실IP 기준으로 `onprem_edge_backends = ["<edge1_ip>:443", "<edge2_ip>:443"]`
 
 #### 3.3.2 `relay_allowed_udp_cidr`
 
 - 의미: WireGuard Relay(51820/UDP)에 접속 허용할 **온프레 NAT 공인IP 대역**
-- 확인 항목 1: 온프레 인터넷 라우터/방화벽의 WAN 공인IP
-- 확인 항목 2: 가능하면 `/32`로 제한 (예: `203.0.113.10/32`)
+- 확인 위치: **[ONPREM-GW]**(pfSense/라우터)가 기준, 보조로 **[BASTION]**
+- 확인 방법 A (기준, pfSense WebUI):
+  - `Status > Interfaces`에서 WAN IP 확인
+- 확인 방법 B (보조, bastion에서 외부 조회):
+
+```bash
+curl -s https://ifconfig.me/ip
+```
+
+- 반영 규칙: 조회값이 `x.x.x.x`면 `relay_allowed_udp_cidr = "x.x.x.x/32"` 권장
+- 주의: 운영자 노트북 IP는 온프레 WAN과 다를 수 있으므로 **relay_allowed_udp_cidr 기준값으로
+  사용하지 않음**
 
 #### 3.3.3 `customer_gateway_public_ip`
 
 - 의미: AWS VPN의 Customer Gateway로 등록할 **온프레 공인IP**
-- 확인 항목 1: pfSense/온프레 GW WAN 인터페이스 공인IP
-- 확인 항목 2: ISP 고정 공인IP 계약값
+- 확인 위치: **[ONPREM-GW]**(pfSense/라우터), 계약정보는 ISP 문서
+- 확인 방법:
+  - pfSense WebUI `Status > Interfaces`의 WAN IP
+  - ISP 고정 공인IP 계약값과 일치하는지 대조
 - 주의: NAT 뒤 사설IP를 넣으면 VPN 터널이 올라오지 않음
 
 #### 3.3.4 `customer_gateway_bgp_asn`
 
 - 의미: 온프레 BGP ASN
-- 확인 항목 1: pfSense FRR BGP 설정값과 동일 여부
-- 예시: `65000` (팀 실사용값 우선)
+- 확인 위치: **[ONPREM-GW]**
+- 확인 방법 A (pfSense WebUI):
+  - `Services > FRR BGP`의 Local ASN 확인
+- 확인 방법 B (FRR 쉘 접근 가능 시):
+
+```bash
+sudo grep -n "router bgp" /usr/local/etc/frr/frr.conf
+```
+
+- 반영 규칙: `customer_gateway_bgp_asn`와 동일값 입력
 
 #### 3.3.5 `onprem_cidr`
 
 - 의미: AWS에서 온프레로 라우팅할 내부 대역
-- 확인 항목 1: `docs/runbooks/onprem_port_vlan_vm_layout.md`
-- 확인 항목 2: pfSense 라우팅/인터페이스 설정
-- 주의: 실제 운영 대역과 다르면 경로가 잘못 잡힘
+- 확인 위치: **[문서] + [ONPREM-GW] + [BASTION]**
+- 확인 방법:
+  1. 문서: `docs/runbooks/onprem_port_vlan_vm_layout.md`
+  2. Edge 대역 실측([EDGE-HAP]):
+
+```bash
+ip -4 addr show
+```
+
+3. MetalLB 대역 실측([BASTION]):
+
+```bash
+kubectl get ipaddresspool -A
+kubectl get svc -A | grep -E 'LoadBalancer|haproxy-ingress'
+```
+
+- 반영 규칙:
+  - 기본 `172.16.22.0/24` (Edge 대역만)
+  - 필요 시 `172.16.22.0/23` (Edge + MetalLB `172.16.23.x` 포함)
 
 #### 3.3.6 `domain_name`
 
 - 의미: Route53 Hosted Zone 대상 루트 도메인
-- 확인 항목 1: 도메인 등록기관(가비아)에서 보유한 실제 도메인
+- 확인 위치: **[가비아 콘솔] + [AWS-OP]**
+- 확인 방법:
+  - 가비아 콘솔 도메인 관리에서 보유 도메인 확인
+  - AWS에서 Hosted Zone 존재 확인:
+
+```bash
+aws route53 list-hosted-zones-by-name --dns-name sjkim686.store
+```
+
 - 예시: `sjkim686.store`
 
 #### 3.3.7 `app_fqdn`
 
 - 의미: 외부 노출 서비스 FQDN
-- 확인 항목 1: 발표/운영에서 쓰는 실제 엔드포인트 정책
-- 확인 항목 2: Route53 레코드 이름과 일치 여부
-- 예시: `api.sjkim686.store`
+- 확인 위치: **[EDGE-HAP] + [BASTION] + [AWS-OP]**
+- 확인 방법:
+  1. Edge ACL host 확인([EDGE-HAP]):
+
+```bash
+sudo grep -n "acl .*hdr(host)" /etc/haproxy/haproxy.cfg
+```
+
+2. Ingress host 확인([BASTION]):
+
+```bash
+kubectl get ingress -A
+```
+
+3. Route53 레코드 확인([AWS-OP]):
+
+```bash
+aws route53 list-resource-record-sets --hosted-zone-id <HZ_ID>
+```
+
+- 기본값 예시: `ticket.kosa.team2` (현재 Edge ACL 허용 Host 기준)
+- 반영 규칙: `app_fqdn`는 Edge ACL 허용 Host + Ingress host + Route53 레코드와 일치해야 함
+- 주의: Edge ACL에 없는 Host로 접속하면 404가 발생함
+
+### 3.4 Edge ACL 빠른 확인
+
+```bash
+sudo grep -n "acl .*hdr(host)" /etc/haproxy/haproxy.cfg
+```
+
+- 위 출력의 host 목록과 `app_fqdn`/Ingress host를 동일하게 맞춤.
+
+### 3.5 `admin_cidr` 조회 방법 (운영자 단말)
+
+`admin_cidr`는 **AWS EC2에 SSH 접속하는 단말의 출발지 공인 IP**임.
+
+- Windows PowerShell:
+
+```powershell
+(Invoke-RestMethod "https://ifconfig.me/ip").Trim()
+```
+
+- Ubuntu/Linux:
+
+```bash
+curl -s https://ifconfig.me/ip
+```
+
+- 조회 결과가 `x.x.x.x`이면 `admin_cidr = "x.x.x.x/32"`로 입력.
+- 예: 노트북에서 직접 SSH하면 노트북 IP, bastion에서 SSH하면 bastion 출구 IP를 사용.
 
 ---
 
@@ -253,4 +377,6 @@ sudo grep -E '^\s*server\s+' /etc/haproxy/haproxy.cfg
 - [ ] 관리자 SSH 대역 `/32` 제한
 - [ ] 온프레 공인 IP 유무에 따라 경로 A/B 결정
 - [ ] pfSense FRR/BGP 가능 여부 확인
-- [ ] 도메인(`sjkim686.store`)과 앱 FQDN(`api.sjkim686.store`) 확정
+- [ ] `onprem_cidr`를 `/24`로 시작할지 `/23`으로 확장할지 결정
+- [ ] 도메인(`sjkim686.store`)과 앱 FQDN(`ticket.kosa.team2` 또는 운영 목표 FQDN) 확정
+- [ ] Edge ACL host와 앱 FQDN/Ingress host 일치 확인
