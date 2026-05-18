@@ -323,21 +323,28 @@ spec:
 
 ```
 # lb-1 /etc/keepalived/keepalived.conf
-vrrp_instance K8S_API {
-    state MASTER
-    interface ens18
-    virtual_router_id 51
-    priority 110          # ← 높은 쪽 MASTER
-    advert_int 1
-    authentication { auth_type PASS; auth_pass kosa1004 }
-    virtual_ipaddress { 172.16.23.5/24 }
+vrrp_instance VI_1 {
+  state MASTER
+  interface eth0
+  virtual_router_id 51
+  priority 150          #  ← 높음
+  advert_int 1
+
+  authentication {
+  auth_type PASS
+  auth_pass kosa1004
+  }
+
+  virtual_ipaddress {
+    172.16.23.5
+  }
 }
 
 # lb-2
-vrrp_instance K8S_API {
-    state BACKUP
-    priority 100          # ← 낮음
-    ... (나머지 동일)
+vrrp_instance VI_1 {
+  state BACKUP
+  priority 100          # ← 낮음
+  ... (나머지 동일)
 }
 ```
 
@@ -353,10 +360,12 @@ frontend k8s-api
 backend k8s-cp
     mode tcp
     balance roundrobin
-    option tcp-check
-    server cp1 172.16.23.10:6443 check
-    server cp2 172.16.23.11:6443 check
-    server cp3 172.16.23.12:6443 check
+    httpchk GET /readyz
+    http-check expect status 200
+
+    server cp1 172.16.23.10:6443 check check-ssl verify none
+    server cp2 172.16.23.11:6443 check check-ssl verify none
+    server cp3 172.16.23.12:6443 check check-ssl verify none
 ```
 
 > 💡 **왜 mode tcp?**<br> 6443은 K8s API mTLS 종단. HAProxy가 L7으로 풀면 인증서가 깨짐. L4 (TCP)로
