@@ -11,30 +11,19 @@ admin_cidr           = "x.x.x.x/32"
 haproxy_ami_id        = ""
 haproxy_instance_type = "t3.small"
 key_name              = "kp-haproxy-edge"
-# 팀2 실측 예시 (edge-haproxy)
+
+# 팀2 실측 예시 (on-prem edge-haproxy)
 onprem_edge_backends = ["172.16.22.10:443", "172.16.22.11:443"]
 
-# 경로 B(온프레 공인 endpoint 확보 불가 시) 사용
-create_wireguard_relay = false
-relay_ami_id           = ""
-relay_instance_type    = "t3.small"
-# 보안상 0.0.0.0/0 지양, 온프레 NAT 공인IP/32 권장
-relay_allowed_udp_cidr = "203.0.113.10/32"
-
-# 경로 A(Site-to-Site VPN) 기본
+# 경로 A: AWS Site-to-Site VPN (정석)
 create_site_to_site_vpn    = true
-# 예시: 팀2 실측 온프레 인터넷 출구 공인 IP = 125.131.208.229
-customer_gateway_public_ip = "x.x.x.x"
+customer_gateway_public_ip = "125.131.208.229" # 온프레미스 인터넷 출구 공인 IP
 customer_gateway_bgp_asn   = 65000
-# 현재 AWS RTB 실측: 172.16.0.0/12 -> VGW
-onprem_cidr            = "172.16.0.0/12"
-vpn_static_routes_only = true
+onprem_cidr                = "172.16.0.0/12"
+vpn_static_routes_only     = true
 
-# Route 53
-# - 내부 도메인(ticket.kosa.team2)만 쓸 때: create_route53_zone=false, create_route53_alias_record=false
-# - 외부 도메인(sjkim686.store) 쓸 때: create_route53_zone=true, create_route53_alias_record=true
+# Route 53 및 도메인 설정
 create_route53_zone         = true
 domain_name                 = "sjkim686.store"
 create_route53_alias_record = true
-# 방식 B(외부 -> 내부 Host rewrite) 기준: 외부 진입 FQDN
-app_fqdn = "sjkim686.store"
+app_fqdn                    = "sjkim686.store" # 방식 B (Host Rewrite) 적용 시 루트 도메인 사용
