@@ -34,7 +34,8 @@ variable "admin_cidr" {
 
 variable "haproxy_ami_id" {
   type        = string
-  description = "AL2023 AMI ID를 리전별로 직접 지정"
+  default     = ""
+  description = "HAProxy EC2 AMI ID. 비우면 리전의 최신 AL2023 x86_64 AMI를 자동 조회"
 }
 
 variable "haproxy_instance_type" {
@@ -57,8 +58,9 @@ variable "create_wireguard_relay" {
 }
 
 variable "relay_ami_id" {
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
+  description = "WireGuard Relay EC2 AMI ID. 비우면 리전의 최신 AL2023 x86_64 AMI를 자동 조회"
 }
 
 variable "relay_instance_type" {

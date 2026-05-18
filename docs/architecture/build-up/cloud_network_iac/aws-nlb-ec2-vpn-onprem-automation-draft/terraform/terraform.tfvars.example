@@ -1,38 +1,40 @@
 aws_region           = "ap-northeast-2"
 name_prefix          = "hybrid-edge"
-vpc_cidr             = "10.30.0.0/16"
-public_subnet_a_cidr = "10.30.1.0/24"
-public_subnet_c_cidr = "10.30.2.0/24"
+vpc_cidr             = "10.20.0.0/16"
+public_subnet_a_cidr = "10.20.1.0/24"
+public_subnet_c_cidr = "10.20.2.0/24"
 az_a                 = "ap-northeast-2a"
 az_c                 = "ap-northeast-2c"
 admin_cidr           = "x.x.x.x/32"
 
-# AL2023 AMI ID를 리전별로 조회해서 입력
-haproxy_ami_id       = "ami-xxxxxxxx"
+# 비워두면 Terraform이 리전의 최신 AL2023 AMI를 자동 조회
+haproxy_ami_id        = ""
 haproxy_instance_type = "t3.small"
-key_name               = "kp-haproxy-edge"
+key_name              = "kp-haproxy-edge"
 # 팀2 실측 예시 (edge-haproxy)
-onprem_edge_backends   = ["172.16.22.10:443", "172.16.22.11:443"]
+onprem_edge_backends = ["172.16.22.10:443", "172.16.22.11:443"]
 
-# 경로 B(온프레 공인 IP 없음) 사용 시 true
-# 온프레 공인 IP가 없으면 true 권장
+# 경로 B(온프레 공인 endpoint 확보 불가 시) 사용
 create_wireguard_relay = false
-relay_ami_id            = "ami-xxxxxxxx"
-relay_instance_type     = "t3.small"
+relay_ami_id           = ""
+relay_instance_type    = "t3.small"
 # 보안상 0.0.0.0/0 지양, 온프레 NAT 공인IP/32 권장
-relay_allowed_udp_cidr  = "203.0.113.10/32"
+relay_allowed_udp_cidr = "203.0.113.10/32"
 
-# 경로 A(Site-to-Site VPN) 사용 시 true
-create_site_to_site_vpn    = false
-customer_gateway_public_ip = ""
+# 경로 A(Site-to-Site VPN) 기본
+create_site_to_site_vpn    = true
+# 예시: 팀2 실측 온프레 인터넷 출구 공인 IP = 125.131.208.229
+customer_gateway_public_ip = "x.x.x.x"
 customer_gateway_bgp_asn   = 65000
-# 기본: Edge 대역만 포함(172.16.22.0/24), 필요 시 172.16.22.0/23로 확장
-onprem_cidr                = "172.16.22.0/24"
-vpn_static_routes_only     = false
+# 현재 AWS RTB 실측: 172.16.0.0/12 -> VGW
+onprem_cidr            = "172.16.0.0/12"
+vpn_static_routes_only = true
 
 # Route 53
-create_route53_zone         = false
+# - 내부 도메인(ticket.kosa.team2)만 쓸 때: create_route53_zone=false, create_route53_alias_record=false
+# - 외부 도메인(sjkim686.store) 쓸 때: create_route53_zone=true, create_route53_alias_record=true
+create_route53_zone         = true
 domain_name                 = "sjkim686.store"
 create_route53_alias_record = true
-# Edge ACL 허용 host와 반드시 일치시킬 것
-app_fqdn                    = "ticket.kosa.team2"
+# 방식 B(외부 -> 내부 Host rewrite) 기준: 외부 진입 FQDN
+app_fqdn = "sjkim686.store"

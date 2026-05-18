@@ -4,14 +4,27 @@
 
 `x.x.x.x`, `vpc-xxxx`, `ami-xxxx` 같은 placeholder 값을 실제 값으로 바꾸기 위한 가이드임.
 
+현재 AWS 실측값/재구축 기준은
+[aws-site-to-site-vpn-rebuild-guide.md](./aws-site-to-site-vpn-rebuild-guide.md)를 우선 참고함.
+
 ---
 
 ## 1. 우선순위
 
-1. 네트워크 값 확정 (CIDR/AZ/Subnet)
-2. 인스턴스 값 확정 (AMI/타입/키페어)
-3. VPN 값 확정 (온프레 공인 IP, ASN, 라우팅 방식)
-4. DNS 값 확정 (도메인/레코드)
+1. 외부 도메인 연결 전략 선결정 (방식 A/B)
+2. 네트워크 값 확정 (CIDR/AZ/Subnet)
+3. 인스턴스 값 확정 (AMI/타입/키페어)
+4. VPN 값 확정 (온프레 공인 IP, ASN, 라우팅 방식)
+5. DNS 값 확정 (도메인/레코드)
+
+### 1.1 `terraform init` 전에 반드시 결정할 항목
+
+- `aws-nlb-ec2-vpn-onprem-prerequisites.md`의 **`1.3 외부 도메인 연결 전략 선결정`**(방식 A/B)부터
+  먼저 확정
+- 방식 B(외부 `sjkim686.store` -> 내부 `ticket.kosa.team2` rewrite)라면, Terraform 전에 Edge 인증서
+  SAN/ACL/Host rewrite 준비 여부를 먼저 점검
+
+> 이유: 이 결정이 `app_fqdn`, `create_route53_alias_record`, Edge ACL 정책에 직접 영향을 주기 때문.
 
 ---
 
@@ -102,6 +115,11 @@ aws sts get-caller-identity
 
 ### 3.0 경로 A/B별 필수 변수 요약
 
+> 운영 기준(2026-05-18 실측): 경로 A(Site-to-Site VPN) 운용 가능
+>
+> - 온프레 인터넷 출구 공인 IP(= CGW endpoint): `125.131.208.229`
+> - 터널 2개 `UP`
+
 #### 경로 A (온프레 공인 IP 있음, Site-to-Site VPN)
 
 - 필수/사용:
@@ -113,7 +131,7 @@ aws sts get-caller-identity
 - 비활성/미사용 권장:
   - `create_wireguard_relay = false`
 
-#### 경로 B (온프레 공인 IP 없음, WireGuard Relay)
+#### 경로 B (온프레 공인 endpoint 확보 불가 시, WireGuard Relay 대안)
 
 - 필수/사용:
   - `create_site_to_site_vpn = false`
@@ -129,9 +147,9 @@ aws sts get-caller-identity
 | :---------------------------- | :------------------------- | :------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `aws_region`                  | AWS 리전                   | 팀 표준 리전              | `aws configure get region` → `ap-northeast-2`                                                                                                   |
 | `name_prefix`                 | 리소스 이름 접두어         | 팀 네이밍 규칙            | 예시: `hybrid-edge`                                                                                                                             |
-| `vpc_cidr`                    | VPC CIDR                   | 온프레와 비중복 대역 설계 | 예시: `10.30.0.0/16`                                                                                                                            |
-| `public_subnet_a_cidr`        | Public Subnet A CIDR       | VPC CIDR 하위 대역        | 예시: `10.30.1.0/24`                                                                                                                            |
-| `public_subnet_c_cidr`        | Public Subnet C CIDR       | VPC CIDR 하위 대역        | 예시: `10.30.2.0/24`                                                                                                                            |
+| `vpc_cidr`                    | VPC CIDR                   | 온프레와 비중복 대역 설계 | 현재 실측: `10.20.0.0/16`                                                                                                                       |
+| `public_subnet_a_cidr`        | Public Subnet A CIDR       | VPC CIDR 하위 대역        | 현재 실측: `10.20.1.0/24`                                                                                                                       |
+| `public_subnet_c_cidr`        | Public Subnet C CIDR       | VPC CIDR 하위 대역        | 현재 실측: `10.20.2.0/24`                                                                                                                       |
 | `az_a`, `az_c`                | 가용영역                   | 리전 내 사용 가능 AZ      | `aws ec2 describe-availability-zones --region ap-northeast-2 --query 'AvailabilityZones[].ZoneName'`                                            |
 | `admin_cidr`                  | SSH 허용 CIDR              | 관리자 PC 공인 IP         | Windows: `(Invoke-RestMethod "https://ifconfig.me/ip").Trim()`<br>Ubuntu: `curl -s https://ifconfig.me/ip`<br>조회값이 `1.2.3.4`면 `1.2.3.4/32` |
 | `haproxy_ami_id`              | HAProxy EC2 AMI            | AL2023 최신 AMI           | 아래 3.1 조회값 (예: `ami-0abc1234...`)                                                                                                         |
@@ -144,12 +162,12 @@ aws sts get-caller-identity
 | `create_site_to_site_vpn`     | S2S VPN 사용 여부          | 공인IP + 장비 지원 여부   | 예시: 공인IP+BGP 가능 → `true`, 공인IP 없음 → `false`                                                                                           |
 | `customer_gateway_public_ip`  | 온프레 공인IP              | 온프레 회선/NAT 공인IP    | **임의 지정 금지**, 아래 `3.3.3` 확인                                                                                                           |
 | `customer_gateway_bgp_asn`    | 온프레 BGP ASN             | pfSense FRR/BGP 설정값    | **임의 지정 지양**, 아래 `3.3.4` 확인                                                                                                           |
-| `onprem_cidr`                 | 온프레 내부 대역           | 라우팅 대상 CIDR          | 기본 `172.16.22.0/24`, 필요 시 `172.16.22.0/23` (아래 `3.3.5`)                                                                                  |
+| `onprem_cidr`                 | 온프레 내부 대역           | 라우팅 대상 CIDR          | 현재 실측: `172.16.0.0/12` (Edge만 최소화 시 `172.16.22.0/24`, 아래 `3.3.5`)                                                                    |
 | `vpn_static_routes_only`      | Static 모드 여부           | BGP 미지원 시 true        | 예시: BGP 사용 시 `false`, BGP 미사용 시 `true`                                                                                                 |
 | `create_route53_zone`         | Hosted Zone 생성 여부      | 도메인 운영 방식          | 예시: Route53에 존 신규 생성 시 `true`                                                                                                          |
 | `domain_name`                 | 루트 도메인                | 구매 도메인               | **임의 지정 금지**, 아래 `3.3.6` 확인                                                                                                           |
-| `create_route53_alias_record` | Alias 레코드 생성 여부     | 앱 도메인 사용 여부       | 예시: `ticket.kosa.team2` 연결 시 `true`                                                                                                        |
-| `app_fqdn`                    | 앱 FQDN                    | 도메인 정책               | 기본값: `ticket.kosa.team2` (Edge ACL 허용 Host 기준, 아래 `3.3.7`)                                                                             |
+| `create_route53_alias_record` | Alias 레코드 생성 여부     | 앱 도메인 사용 여부       | 내부 도메인만 사용 시 `false`, Route53 외부 도메인 사용 시 `true`                                                                               |
+| `app_fqdn`                    | 앱 FQDN                    | 도메인 정책               | 방식 B 기준 예: `sjkim686.store` (Edge에서 내부 host로 rewrite, 아래 `3.3.7`)                                                                   |
 
 ### 3.1 AL2023 AMI ID 조회
 
@@ -249,7 +267,8 @@ kubectl get svc -A | grep -E 'LoadBalancer|haproxy-ingress'
 ```
 
 - 반영 규칙:
-  - 기본 `172.16.22.0/24` (Edge 대역만)
+  - 현재 AWS 실측/운영값: `172.16.0.0/12`
+  - 최소화 시: `172.16.22.0/24` (Edge 대역만)
   - 필요 시 `172.16.22.0/23` (Edge + MetalLB `172.16.23.x` 포함)
 
 #### 3.3.6 `domain_name`
@@ -289,9 +308,11 @@ kubectl get ingress -A
 aws route53 list-resource-record-sets --hosted-zone-id <HZ_ID>
 ```
 
-- 기본값 예시: `ticket.kosa.team2` (현재 Edge ACL 허용 Host 기준)
-- 반영 규칙: `app_fqdn`는 Edge ACL 허용 Host + Ingress host + Route53 레코드와 일치해야 함
-- 주의: Edge ACL에 없는 Host로 접속하면 404가 발생함
+- 방식 A(Host 통일) 예시: `ticket.sjkim686.store`
+- 방식 B(Host rewrite) 예시: `sjkim686.store` -> Edge에서 `ticket.kosa.team2`로 변환
+- 반영 규칙: `app_fqdn`는 Route53 레코드 기준이며, Edge ACL/Rewrite 및 Ingress host 정책과 정합성을
+  맞춰야 함
+- 주의: Edge ACL/Rewrite가 누락되면 404가 발생함
 
 ### 3.4 Edge ACL 빠른 확인
 
@@ -378,5 +399,5 @@ curl -s https://ifconfig.me/ip
 - [ ] 온프레 공인 IP 유무에 따라 경로 A/B 결정
 - [ ] pfSense FRR/BGP 가능 여부 확인
 - [ ] `onprem_cidr`를 `/24`로 시작할지 `/23`으로 확장할지 결정
-- [ ] 도메인(`sjkim686.store`)과 앱 FQDN(`ticket.kosa.team2` 또는 운영 목표 FQDN) 확정
+- [ ] 도메인(`sjkim686.store`)과 앱 FQDN(`sjkim686.store`/`ticket.sjkim686.store` 등) 확정
 - [ ] Edge ACL host와 앱 FQDN/Ingress host 일치 확인

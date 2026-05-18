@@ -2,10 +2,14 @@
 - name: Configure HAProxy edge nodes
   hosts: haproxy
   become: true
-  vars:
-    onprem_edge_backends:
-      - "172.16.20.10:443"
-      - "172.16.20.11:443"
+
+  pre_tasks:
+    - name: Validate onprem_edge_backends is provided
+      ansible.builtin.assert:
+        that:
+          - onprem_edge_backends is defined
+          - onprem_edge_backends | length >= 1
+        fail_msg: "onprem_edge_backends 값을 inventory에서 설정해야 함"
 
   tasks:
     - name: Install haproxy
@@ -20,6 +24,7 @@
         owner: root
         group: root
         mode: "0644"
+        validate: "/usr/sbin/haproxy -c -f %s"
       notify: restart haproxy
 
     - name: Ensure haproxy enabled

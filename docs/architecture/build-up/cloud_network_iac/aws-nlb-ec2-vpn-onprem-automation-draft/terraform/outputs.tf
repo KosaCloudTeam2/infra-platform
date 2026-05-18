@@ -10,6 +10,18 @@ output "haproxy_instance_ids" {
   value = [aws_instance.haproxy_a.id, aws_instance.haproxy_c.id]
 }
 
+output "haproxy_public_ips" {
+  value = [aws_instance.haproxy_a.public_ip, aws_instance.haproxy_c.public_ip]
+}
+
+output "haproxy_private_ips" {
+  value = [aws_instance.haproxy_a.private_ip, aws_instance.haproxy_c.private_ip]
+}
+
+output "selected_al2023_ami_id" {
+  value = data.aws_ami.al2023.id
+}
+
 output "nlb_dns_name" {
   value = aws_lb.nlb.dns_name
 }

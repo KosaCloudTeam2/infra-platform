@@ -1,5 +1,28 @@
+data "aws_ami" "al2023" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-x86_64"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 locals {
   name = var.name_prefix
+
+  haproxy_ami_id = var.haproxy_ami_id != "" ? var.haproxy_ami_id : data.aws_ami.al2023.id
+  relay_ami_id   = var.relay_ami_id != "" ? var.relay_ami_id : data.aws_ami.al2023.id
 
   haproxy_user_data = <<-EOT
     #!/bin/bash
@@ -150,7 +173,7 @@ resource "aws_security_group" "haproxy" {
 }
 
 resource "aws_instance" "haproxy_a" {
-  ami                         = var.haproxy_ami_id
+  ami                         = local.haproxy_ami_id
   instance_type               = var.haproxy_instance_type
   subnet_id                   = aws_subnet.public_a.id
   key_name                    = var.key_name
@@ -174,7 +197,7 @@ resource "aws_instance" "haproxy_a" {
 }
 
 resource "aws_instance" "haproxy_c" {
-  ami                         = var.haproxy_ami_id
+  ami                         = local.haproxy_ami_id
   instance_type               = var.haproxy_instance_type
   subnet_id                   = aws_subnet.public_c.id
   key_name                    = var.key_name
@@ -274,7 +297,7 @@ resource "aws_security_group" "relay" {
 
 resource "aws_instance" "relay" {
   count                       = var.create_wireguard_relay ? 1 : 0
-  ami                         = var.relay_ami_id
+  ami                         = local.relay_ami_id
   instance_type               = var.relay_instance_type
   subnet_id                   = aws_subnet.public_a.id
   key_name                    = var.key_name
