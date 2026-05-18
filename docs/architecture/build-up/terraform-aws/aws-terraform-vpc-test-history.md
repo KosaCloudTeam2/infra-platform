@@ -402,6 +402,13 @@ Plan: 0 to add, 0 to change, 18 to destroy.
 
 ## 8. 삭제 실행 가이드
 
+삭제 계획 생성 결과:
+
+```text
+Plan: 0 to add, 0 to change, 18 to destroy.
+Saved the plan to: tfplan-destroy
+```
+
 삭제 계획 저장:
 
 ```bash
@@ -416,10 +423,33 @@ terraform plan -destroy -out=tfplan-destroy
 terraform apply tfplan-destroy
 ```
 
-예상 결과:
+실행 결과:
 
 ```text
 Apply complete! Resources: 0 added, 0 changed, 18 destroyed.
+```
+
+삭제된 리소스:
+
+```text
+aws_route_table_association.public[0]
+aws_route_table_association.public[1]
+aws_route_table_association.private_app[0]
+aws_route_table_association.private_app[1]
+aws_route_table_association.private_db[0]
+aws_route_table_association.private_db[1]
+aws_route.public_internet
+aws_route_table.public
+aws_route_table.private_app
+aws_route_table.private_db
+aws_internet_gateway.main
+aws_subnet.public[0]
+aws_subnet.public[1]
+aws_subnet.private_app[0]
+aws_subnet.private_app[1]
+aws_subnet.private_db[0]
+aws_subnet.private_db[1]
+aws_vpc.main
 ```
 
 삭제 후 확인:
@@ -434,7 +464,26 @@ aws ec2 describe-vpcs \
   --vpc-ids vpc-051a385fb9fa65e72
 ```
 
-삭제된 VPC를 조회하면 `InvalidVpcID.NotFound` 또는 조회 실패가 정상.
+삭제 확인 결과:
+
+```text
+terraform state list
+```
+
+출력 없음. Terraform state에 관리 중인 `aws_*` 리소스 없음.
+
+```text
+An error occurred (InvalidVpcID.NotFound) when calling the DescribeVpcs operation:
+The vpc ID 'vpc-051a385fb9fa65e72' does not exist
+```
+
+정리:
+
+- Terraform으로 생성한 VPC 삭제 완료.
+- 관련 Subnet, Route Table, Internet Gateway, Association 삭제 완료.
+- Terraform state 비어 있음.
+- AWS CLI에서 VPC 조회 시 `InvalidVpcID.NotFound` 발생.
+- 기존 AWS 리소스는 Terraform state에 없었으므로 삭제 대상 아님.
 
 ## 9. 현재 테스트 결론
 
@@ -447,6 +496,9 @@ aws ec2 describe-vpcs \
 - 생성 리소스는 Terraform state에 정상 기록.
 - AWS Console 및 AWS CLI로 생성 상태 확인 완료.
 - destroy plan 결과 `18 to destroy` 확인.
+- `terraform apply tfplan-destroy`로 생성 리소스 18개 삭제 완료.
+- 삭제 후 `terraform state list` 출력 없음.
+- 삭제 후 VPC 조회 결과 `InvalidVpcID.NotFound` 확인.
 - 기존 AWS 리소스는 Terraform state에 없으므로 삭제 대상 아님.
 
 ## 10. 다음 단계
