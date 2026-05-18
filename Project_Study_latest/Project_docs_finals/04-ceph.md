@@ -1,9 +1,11 @@
 # 04. Ceph 분산 스토리지
 
-> **이 챕터에서 다루는 것**
-> 6노드 별도 클러스터로 운영하는 Ceph가 어떻게 동작하는지, 블록(RBD)·객체(RGW)·파일(CephFS)을 한 시스템으로 다 제공하는 비결, 그리고 K8s/Harbor에서 어떻게 활용하는지.
+> **이 챕터에서 다루는 것**<br> 6노드 별도 클러스터로 운영하는 Ceph가 어떻게 동작하는지,
+> 블록(RBD)·객체(RGW)·파일(CephFS)을 한 시스템으로 다 제공하는 비결, 그리고 K8s/Harbor에서 어떻게
+> 활용하는지.
 
 ## 목차
+
 1. [이론: 분산 스토리지](#1-이론-분산-스토리지)
 2. [Ceph 컴포넌트 (OSD/MON/MGR/MDS/RGW)](#2-ceph-컴포넌트-osdmonmgrmdsrgw)
 3. [CRUSH 알고리즘](#3-crush-알고리즘)
@@ -25,41 +27,43 @@
 ### 1.1 왜 분산 스토리지?
 
 단일 디스크/서버에 데이터를 두면:
+
 - 디스크 하나 죽으면 데이터 손실
 - 용량/IOPS 한계 (하드웨어 1대)
 - 액세스 한 서버에 집중 (병목)
 
 분산 스토리지는 여러 노드에 데이터를 **복제 또는 erasure code**로 흩어 저장:
+
 - 노드 N대 죽어도 살아남음
 - 노드 추가 = 용량/IOPS 같이 증가 (scale-out)
 - 읽기는 가까운 노드, 쓰기는 병렬
 
 ### 1.2 분산 스토리지의 3대 트레이드오프 (CAP)
 
-| 속성 | 설명 |
-|---|---|
-| **Consistency** | 어느 노드에서 읽어도 같은 값 |
-| **Availability** | 일부 노드 죽어도 응답 |
-| **Partition tolerance** | 네트워크 분할 견딤 |
+| 속성                    | 설명                         |
+| ----------------------- | ---------------------------- |
+| **Consistency**         | 어느 노드에서 읽어도 같은 값 |
+| **Availability**        | 일부 노드 죽어도 응답        |
+| **Partition tolerance** | 네트워크 분할 견딤           |
 
 CAP 정리: 셋 다 동시에 X. Ceph는 보통 **CP** (강한 일관성, 분할 견딤) 지향.
 
-> 💡 **왜 Ceph는 일관성을 골랐나?**
-> 블록 스토리지(RBD)는 같은 디스크에서 다른 값이 보이면 데이터 손상으로 직결. 일관성 절대 필수.
-> 단점: 네트워크 분할 시 minority partition은 쓰기 차단됨. 우리 환경(같은 데이터센터)에서는 거의 안 일어남.
+> 💡 **왜 Ceph는 일관성을 골랐나?**<br> 블록 스토리지(RBD)는 같은 디스크에서 다른 값이 보이면 데이터
+> 손상으로 직결. 일관성 절대 필수.<br> 단점: 네트워크 분할 시 minority partition은 쓰기 차단됨. 우리
+> 환경(같은 데이터센터)에서는 거의 안 일어남.
 
 ### 1.3 다른 분산 스토리지와 비교
 
-| 시스템 | 블록 | 객체 | 파일 | 특징 |
-|---|---|---|---|---|
-| **Ceph** | ✅ RBD | ✅ RGW | ✅ CephFS | All-in-one, 운영 복잡 |
-| **Longhorn** | ✅ | ❌ | ❌ | K8s 네이티브, 단순 |
-| **MinIO** | ❌ | ✅ | ❌ | S3 호환만, 단순 |
-| **GlusterFS** | ❌ | ❌ | ✅ | 파일 위주, 성능 제약 |
-| **NFS** | ❌ | ❌ | ✅ | 단순, SPoF (NFS 서버) |
+| 시스템        | 블록   | 객체   | 파일      | 특징                  |
+| ------------- | ------ | ------ | --------- | --------------------- |
+| **Ceph**      | ✅ RBD | ✅ RGW | ✅ CephFS | All-in-one, 운영 복잡 |
+| **Longhorn**  | ✅     | ❌     | ❌        | K8s 네이티브, 단순    |
+| **MinIO**     | ❌     | ✅     | ❌        | S3 호환만, 단순       |
+| **GlusterFS** | ❌     | ❌     | ✅        | 파일 위주, 성능 제약  |
+| **NFS**       | ❌     | ❌     | ✅        | 단순, SPoF (NFS 서버) |
 
-> 💡 **왜 Ceph?**
-> 블록(K8s PV) + 객체(Harbor S3) 두 마리 토끼. 둘을 따로 시스템 만들면 운영 시스템 2개.
+> 💡 **왜 Ceph?**<br> 블록(K8s PV) + 객체(Harbor S3) 두 마리 토끼. 둘을 따로 시스템 만들면 운영
+> 시스템 2개.
 
 ---
 
@@ -98,18 +102,20 @@ CAP 정리: 셋 다 동시에 X. Ceph는 보통 **CP** (강한 일관성, 분할
 **1 OSD = 1 디스크** (보통). 우리는 노드당 1TB HDD × 1 = 6 OSD.
 
 OSD 책임:
+
 - 자기 디스크에 객체 read/write
 - 다른 OSD와 통신해서 복제 (replication)
 - peer OSD가 살아있는지 heartbeat
 - 자기 메모리/CPU/디스크 상태를 MON에 보고
 
-> 💡 **왜 1디스크 = 1 OSD?**
-> 한 OSD에 여러 디스크 묶으면 한 디스크 죽었을 때 OSD 전체가 죽음 (대량 데이터 재복제 필요). 1:1이 fault domain 최소화.
-> SSD를 WAL/DB 분리 용도로 추가하면 그 SSD는 별도 OSD 아니고 BlueStore의 부속.
+> 💡 **왜 1디스크 = 1 OSD?**<br> 한 OSD에 여러 디스크 묶으면 한 디스크 죽었을 때 OSD 전체가 죽음
+> (대량 데이터 재복제 필요). 1:1이 fault domain 최소화.<br> SSD를 WAL/DB 분리 용도로 추가하면 그
+> SSD는 별도 OSD 아니고 BlueStore의 부속.
 
 ### 2.2 MON (Monitor)
 
 클러스터의 **상태 맵**을 보관:
+
 - OSD map (어떤 OSD가 살아있나)
 - PG map (PG가 어디에 있나)
 - CRUSH map (위치 계산 룰)
@@ -117,12 +123,13 @@ OSD 책임:
 
 **Paxos** 알고리즘으로 quorum 유지. 홀수 (3 or 5)가 표준.
 
-> 💡 **왜 우리는 MON 수?**
-> 일반적으로 3 MON이 표준. 6노드면 5 MON도 가능하나 3이 운영 단순. 우리는 3 MON.
+> 💡 **왜 우리는 MON 수?**<br> 일반적으로 3 MON이 표준. 6노드면 5 MON도 가능하나 3이 운영 단순.
+> 우리는 3 MON.
 
 ### 2.3 MGR (Manager)
 
 MON이 다 못 하는 일:
+
 - Prometheus 메트릭 export
 - Ceph Dashboard (Web UI)
 - Telemetry, balancer, autoscaler 등 모듈
@@ -191,8 +198,8 @@ rule replicated_rule:
 
 `chooseleaf type host` = 복제본을 서로 다른 host에 둠. 우리 환경에 적합.
 
-> 💡 **만약 rack/row 정보를 CRUSH에 넣으면?**
-> "한 랙 통째로 죽어도 데이터 보존" 같은 보장 가능. 대규모 데이터센터에서 활용.
+> 💡 **만약 rack/row 정보를 CRUSH에 넣으면?** "한 랙 통째로 죽어도 데이터 보존" 같은 보장 가능.
+> 대규모 데이터센터에서 활용.
 
 ---
 
@@ -201,9 +208,11 @@ rule replicated_rule:
 ### 4.1 FileStore (옛 백엔드) vs BlueStore
 
 **FileStore (~ Luminous)**: 디스크에 XFS/ext4 파일시스템을 만들고, 객체를 파일로 저장.
+
 - 단점: 이중 쓰기 (FS 메타데이터 + 객체 데이터), 단편화, 성능 ↓
 
 **BlueStore (Luminous+, 우리 사용)**: 디스크에 **직접** 쓰기 (raw block).
+
 - 자체 메타데이터 관리 (RocksDB)
 - 이중 쓰기 X → 성능/일관성 ↑
 - 압축/체크섬 내장
@@ -217,7 +226,8 @@ BlueStore OSD:
   └── DB (RocksDB metadata)  (객체 위치 색인, 소량 SSD 권장)
 ```
 
-우리는 WAL/DB를 데이터 HDD에 함께 둠 (SSD 없음). 단점: 메타데이터 IO가 데이터 IO와 같은 디스크 → 약간 느림.
+우리는 WAL/DB를 데이터 HDD에 함께 둠 (SSD 없음). 단점: 메타데이터 IO가 데이터 IO와 같은 디스크 →
+약간 느림.
 
 > 💡 **향후 개선**: 노드당 SSD 1개 추가해 WAL/DB만 SSD로. HDD 데이터 IOPS 2~3배 향상 효과.
 
@@ -244,11 +254,13 @@ OSD primary 받음
 ### 5.1 Pool
 
 논리적 데이터 묶음. 각 pool마다:
+
 - 복제 방식 (replica N개 또는 EC k+m)
 - CRUSH rule
 - quota (옵션)
 
 우리 pool 예:
+
 ```
 k8s-rbd     (3-replica, RBD용)   ← K8s PVC
 .rgw.*      (3-replica, RGW 메타)
@@ -265,20 +277,21 @@ default.rgw.buckets.data (3-replica) ← Harbor 이미지 데이터
 1억 객체 ─── hash ───► 1024 PG ─── CRUSH ───► OSD들
 ```
 
-PG 수 = OSD 수 × ~100 / replica. 우리(6 OSD, 3-replica): 6×100/3 = **200개 정도**가 적정.
+PG 수 = OSD 수 × ~100 / replica. 우리(6 OSD, 3-replica): 6×100/3 = **200개 정도**가 적정.<br>
 Pool마다 PG 수 따로 설정. autoscaler에 맡기는 게 보통.
 
 ### 5.3 Replica vs EC
 
-| 방식 | 공간 효율 | 성능 | 노드 요구 |
-|---|---|---|---|
-| **3-replica** | 33% (1/3 사용) | 쓰기 빠름 | 최소 3 |
-| **EC 4+2** | 67% (4/6 사용) | 쓰기 느림 (분할/패리티) | 최소 6 |
-| **EC 8+3** | 73% | 더 느림 | 최소 11 |
+| 방식          | 공간 효율      | 성능                    | 노드 요구 |
+| ------------- | -------------- | ----------------------- | --------- |
+| **3-replica** | 33% (1/3 사용) | 쓰기 빠름               | 최소 3    |
+| **EC 4+2**    | 67% (4/6 사용) | 쓰기 느림 (분할/패리티) | 최소 6    |
+| **EC 8+3**    | 73%            | 더 느림                 | 최소 11   |
 
 우리는 6노드 → EC 4+2 가능하지만 운영 단순함 위해 **3-replica 채택**.
 
 > 💡 **왜 우리는 EC 안 쓰나?**
+>
 > 1. **노드 수 빠듯**: EC 4+2면 노드 1대 실수로 빠지면 PG가 incomplete
 > 2. **CPU 비용**: EC는 매 쓰기마다 패리티 계산
 > 3. **학습 단순**: 3-replica는 디버깅 직관적
@@ -303,21 +316,23 @@ Pool마다 PG 수 따로 설정. autoscaler에 맡기는 게 보통.
 
 ## 6. RBD vs RGW vs CephFS
 
-| API | 의미 | K8s에서 | 우리 사용 |
-|---|---|---|---|
-| **RBD (RADOS Block Device)** | 가상 블록 디바이스 (`/dev/rbd0` 같은) | PV (RWO) | ✅ K8s PV |
-| **RGW (S3/Swift)** | HTTP API 객체 스토리지 | PV X, 앱에서 SDK로 | ✅ Harbor 이미지 |
-| **CephFS** | POSIX 파일시스템 (`/mnt/cephfs`) | PV (RWX 가능) | ❌ 미사용 |
+| API                          | 의미                                  | K8s에서            | 우리 사용        |
+| ---------------------------- | ------------------------------------- | ------------------ | ---------------- |
+| **RBD (RADOS Block Device)** | 가상 블록 디바이스 (`/dev/rbd0` 같은) | PV (RWO)           | ✅ K8s PV        |
+| **RGW (S3/Swift)**           | HTTP API 객체 스토리지                | PV X, 앱에서 SDK로 | ✅ Harbor 이미지 |
+| **CephFS**                   | POSIX 파일시스템 (`/mnt/cephfs`)      | PV (RWX 가능)      | ❌ 미사용        |
 
 ### 6.1 왜 RBD를 PV로?
 
 K8s Pod이 디스크를 마운트하는 가장 자연스러운 방식.
+
 - DB Pod이 `/var/lib/mysql`을 mount
 - ceph-csi-rbd가 PVC 요청 받으면 RBD 이미지 생성 + 해당 노드에 `/dev/rbd0`으로 attach + Pod에 mount
 
 ### 6.2 왜 RGW를 Harbor에?
 
 Harbor는 이미지 blob을 어딘가 저장해야 함. 옵션:
+
 - 로컬 PVC (RBD): 단일 노드 의존, 마이그레이션 시 PV move
 - S3 호환: 어디서든 접근 가능, scaling 쉬움
 
@@ -326,6 +341,7 @@ RGW는 사내 S3. 외부 AWS에 비용 안 들이고 같은 인터페이스.
 ### 6.3 왜 CephFS 안 쓰나?
 
 CephFS는 RWX(여러 노드 동시 mount) 가능. 그런데:
+
 - MDS 추가 운영 부담
 - 우리 워크로드(K8s) 대부분이 RWO로 충분
 - RWX 필요한 건 모니터링/Harbor 정도인데 sys1 단일 노드에 nodeSelector로 고정해서 우회
@@ -353,14 +369,14 @@ CephFS는 RWX(여러 노드 동시 mount) 가능. 그런데:
 
 ### 7.3 데몬 배치
 
-| 노드 | OSD | MON | MGR | RGW |
-|---|---|---|---|---|
-| ceph1 | osd.0 | ✅ | ✅ active | ✅ |
-| ceph2 | osd.1 | ✅ | ✅ standby | |
-| ceph3 | osd.2 | ✅ | | |
-| ceph4 | osd.3 | | | |
-| ceph5 | osd.4 | | | |
-| ceph6 | osd.5 | | | |
+| 노드  | OSD   | MON | MGR        | RGW |
+| ----- | ----- | --- | ---------- | --- |
+| ceph1 | osd.0 | ✅  | ✅ active  | ✅  |
+| ceph2 | osd.1 | ✅  | ✅ standby |     |
+| ceph3 | osd.2 | ✅  |            |     |
+| ceph4 | osd.3 |     |            |     |
+| ceph5 | osd.4 |     |            |     |
+| ceph6 | osd.5 |     |            |     |
 
 > ⚠️ **RGW SPoF**: ceph1만 RGW. 운영 권장은 2~3대 + LB.
 
@@ -397,10 +413,10 @@ csiConfig:
       - 10.10.10.13:6789
 
 provisioner:
-  nodeSelector: {}    # 어디든 OK
+  nodeSelector: {} # 어디든 OK
   replicaCount: 2
 nodeplugin:
-  nodeSelector: {}    # 모든 노드 (DaemonSet)
+  nodeSelector: {} # 모든 노드 (DaemonSet)
 ```
 
 ### 8.2 Secret (Ceph 사용자 key)
@@ -434,7 +450,7 @@ parameters:
   csi.storage.k8s.io/provisioner-secret-namespace: ceph-csi-rbd
   csi.storage.k8s.io/node-stage-secret-name: ceph-csi-rbd-secret
   csi.storage.k8s.io/node-stage-secret-namespace: ceph-csi-rbd
-reclaimPolicy: Delete    # PVC 삭제 시 RBD 이미지도 삭제
+reclaimPolicy: Delete # PVC 삭제 시 RBD 이미지도 삭제
 allowVolumeExpansion: true
 ```
 
@@ -446,7 +462,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: my-data
 spec:
-  accessModes: [ReadWriteOnce]    # RBD는 RWO만
+  accessModes: [ReadWriteOnce] # RBD는 RWO만
   storageClassName: team2-rbd-block
   resources:
     requests:
@@ -603,6 +619,7 @@ smartctl -a /dev/sdX
 ```
 
 원인별 대응:
+
 - 디스크 문제: 디스크 교체 + `ceph orch daemon redeploy osd.N`
 - 네트워크 문제: 노드 → MON 통신 확인
 - OOM: 노드 메모리 확보
@@ -626,6 +643,7 @@ ceph health detail
 ```
 
 NTP 동기화 확인:
+
 ```bash
 chronyc tracking
 chronyc sources
@@ -642,6 +660,7 @@ ceph pg <pgid> query  # 상세
 ```
 
 원인:
+
 - OSD 부족: 새 OSD 추가
 - min_size 미달: 데이터 안전성 위반, 손상 위험
 - backfill 진행 중: 기다리면 됨
@@ -667,6 +686,7 @@ ceph df
 ```
 
 대응:
+
 - OSD 추가
 - 미사용 RBD 이미지 정리
 - 임시 ratio 상향: `ceph osd set-full-ratio 0.97` (위험)
@@ -695,4 +715,5 @@ ceph orch daemon restart rgw.harbor.ceph1.xxx
 
 → **[05. Kubernetes 클러스터](05-kubernetes.md)**
 
-kubeadm으로 HA 컨트롤플레인 만드는 법, Calico/MetalLB/HAProxy Ingress 선택 이유, workload-type 라벨로 sys 분리, ceph-csi 연동.
+kubeadm으로 HA 컨트롤플레인 만드는 법, Calico/MetalLB/HAProxy Ingress 선택 이유, workload-type
+라벨로 sys 분리, ceph-csi 연동.

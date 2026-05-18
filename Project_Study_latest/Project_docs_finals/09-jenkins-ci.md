@@ -1,9 +1,11 @@
 # 09. Jenkins CI
 
-> **이 챕터에서 다루는 것**
-> "왜 GitHub Actions 시대에 Jenkins?"에 솔직히 답하고, Kubernetes plugin으로 빌드 Agent를 동적 Pod으로 띄우는 메커니즘, JCasC (코드로 Jenkins 설정), Kaniko로 rootless 이미지 빌드, credential 체계.
+> **이 챕터에서 다루는 것**<br> "왜 GitHub Actions 시대에 Jenkins?"에 솔직히 답하고, Kubernetes
+> plugin으로 빌드 Agent를 동적 Pod으로 띄우는 메커니즘, JCasC (코드로 Jenkins 설정), Kaniko로
+> rootless 이미지 빌드, credential 체계.
 
 ## 목차
+
 1. [Jenkins, 사라지지 않은 이유](#1-jenkins-사라지지-않은-이유)
 2. [왜 우리는 Jenkins?](#2-왜-우리는-jenkins)
 3. [Jenkins on Kubernetes 아키텍처](#3-jenkins-on-kubernetes-아키텍처)
@@ -21,25 +23,25 @@
 
 ### 1.1 새 CI 도구들의 등장
 
-| 도구 | 특징 |
-|---|---|
-| **GitHub Actions** | git/repo와 통합, YAML, 무료 | 
-| **GitLab CI** | GitLab repo면 강력 |
-| **Tekton** | K8s 네이티브, 클라우드 친화 |
-| **Drone CI** | 단순, 컨테이너 기반 |
-| **Argo Workflows** | K8s 네이티브 워크플로우 |
-| **CircleCI / TravisCI** | SaaS, 빠른 셋업 |
+| 도구                    | 특징                        |
+| ----------------------- | --------------------------- |
+| **GitHub Actions**      | git/repo와 통합, YAML, 무료 |
+| **GitLab CI**           | GitLab repo면 강력          |
+| **Tekton**              | K8s 네이티브, 클라우드 친화 |
+| **Drone CI**            | 단순, 컨테이너 기반         |
+| **Argo Workflows**      | K8s 네이티브 워크플로우     |
+| **CircleCI / TravisCI** | SaaS, 빠른 셋업             |
 
 ### 1.2 그런데 왜 Jenkins?
 
-| 이유 | 설명 |
-|---|---|
-| **거대한 plugin 생태계** | 2000+ 플러그인, 거의 모든 외부 시스템 연동 |
-| **자기 호스팅** | 데이터 외부 노출 X (보안/규제 환경) |
-| **표준 (역사)** | 한국 SI/금융권 등 보수적 환경에 광범위 |
-| **legacy 호환** | 옛 Freestyle job, shell script 등 그대로 활용 |
-| **groovy DSL** | 강력한 표현력 |
-| **무료 OSS** | 라이선스 비용 X |
+| 이유                     | 설명                                          |
+| ------------------------ | --------------------------------------------- |
+| **거대한 plugin 생태계** | 2000+ 플러그인, 거의 모든 외부 시스템 연동    |
+| **자기 호스팅**          | 데이터 외부 노출 X (보안/규제 환경)           |
+| **표준 (역사)**          | 한국 SI/금융권 등 보수적 환경에 광범위        |
+| **legacy 호환**          | 옛 Freestyle job, shell script 등 그대로 활용 |
+| **groovy DSL**           | 강력한 표현력                                 |
+| **무료 OSS**             | 라이선스 비용 X                               |
 
 ### 1.3 단점도 솔직히
 
@@ -54,20 +56,22 @@
 
 ### 2.1 시나리오 적합성
 
-| 요소 | Jenkins 적합성 |
-|---|---|
-| **온프레 학습용** | ✅ self-hosted 가능 |
-| **K8s 친화** | ✅ Kubernetes plugin 강력 |
-| **한국 채용시장 수요** | ✅ 여전히 큼 |
-| **GitHub Actions 대비** | △ GHA가 더 modern이지만 의존 |
+| 요소                    | Jenkins 적합성                         |
+| ----------------------- | -------------------------------------- |
+| **온프레 학습용**       | ✅ self-hosted 가능                    |
+| **K8s 친화**            | ✅ Kubernetes plugin 강력              |
+| **한국 채용시장 수요**  | ✅ 여전히 큼                           |
+| **GitHub Actions 대비** | △ GHA가 더 modern이지만 의존           |
 | **Argo Workflows 대비** | △ Argo가 K8s native지만 옛 도구 호환 ↓ |
 
 ### 2.2 결정의 솔직한 이유
 
-> 💡 **솔직히**
-> "현업에선 잘 안 쓴다"는 말도 듣지만, 한국 SI/금융권에 여전히 Jenkins. **그리고 학습 가치**: Pipeline DSL, Kubernetes plugin, credential 체계 등이 한 번 배워두면 다른 CI 도구로 확장이 쉽다.
+> 💡 **솔직히** "현업에선 잘 안 쓴다"는 말도 듣지만, 한국 SI/금융권에 여전히 Jenkins. **그리고 학습
+> 가치**: Pipeline DSL, Kubernetes plugin, credential 체계 등이 한 번 배워두면 다른 CI 도구로 확장이
+> 쉽다.
 >
-> 또 이 프로젝트는 **온프레 자율성**이 중요. GitHub Actions는 GitHub 인프라 의존이라 외부망 다운 시 빌드 중단. Jenkins는 internal-only로 굴릴 수 있다.
+> 또 이 프로젝트는 **온프레 자율성**이 중요. GitHub Actions는 GitHub 인프라 의존이라 외부망 다운 시
+> 빌드 중단. Jenkins는 internal-only로 굴릴 수 있다.
 
 ---
 
@@ -99,16 +103,17 @@
 
 ### 3.1 Controller vs Agent
 
-| 컴포넌트 | 역할 | 수명 |
-|---|---|---|
-| **Controller** (마스터) | Job 정의, UI, build 트리거, 결과 저장 | 영구 |
-| **Agent** (executor) | 실제 빌드 실행 (compile, image build, push) | Job 단위 (임시) |
+| 컴포넌트                | 역할                                        | 수명            |
+| ----------------------- | ------------------------------------------- | --------------- |
+| **Controller** (마스터) | Job 정의, UI, build 트리거, 결과 저장       | 영구            |
+| **Agent** (executor)    | 실제 빌드 실행 (compile, image build, push) | Job 단위 (임시) |
 
 전통적으로 Agent는 별도 VM/머신. K8s 시대엔 **Pod**.
 
 ### 3.2 영구 데이터
 
 Jenkins Controller의 `/var/jenkins_home`:
+
 - Job 정의 (XML)
 - 빌드 history
 - 설치된 plugin
@@ -193,12 +198,12 @@ pipeline {
 
 ### 5.1 이미지 빌드의 옵션
 
-| 도구 | root 필요? | K8s에서 안전? |
-|---|---|---|
-| **Docker (DinD)** | ✅ (privileged) | ❌ 컨테이너 탈출 위험 |
-| **BuildKit** | △ | △ |
-| **Buildah** | ❌ (rootless 가능) | ✅ |
-| **Kaniko** | ❌ | ✅ |
+| 도구              | root 필요?         | K8s에서 안전?         |
+| ----------------- | ------------------ | --------------------- |
+| **Docker (DinD)** | ✅ (privileged)    | ❌ 컨테이너 탈출 위험 |
+| **BuildKit**      | △                  | △                     |
+| **Buildah**       | ❌ (rootless 가능) | ✅                    |
+| **Kaniko**        | ❌                 | ✅                    |
 
 ### 5.2 Kaniko 동작
 
@@ -216,6 +221,7 @@ pipeline {
 ### 5.3 Harbor 인증
 
 Kaniko가 push할 때 docker config 필요:
+
 ```json
 {
   "auths": {
@@ -227,6 +233,7 @@ Kaniko가 push할 때 docker config 필요:
 ```
 
 K8s Secret으로 주입:
+
 ```bash
 kubectl create secret -n jenkins docker-registry harbor-creds-dockerconfigjson \
   --docker-server=harbor.kosa.team2 \
@@ -240,8 +247,8 @@ Pod template에서 `/kaniko/.docker/config.json`으로 mount.
 
 Kaniko가 Harbor cert를 신뢰 안 하면 push 실패. 옵션:
 
-a) **`--skip-tls-verify`**: 간단, 운영에는 비추
-b) **CA mount + `--registry-certificate=harbor.kosa.team2=/path/ca.crt`**: 권장
+a) **`--skip-tls-verify`**: 간단, 운영에는 비추<br> b) **CA mount +
+`--registry-certificate=harbor.kosa.team2=/path/ca.crt`**: 권장
 
 우리는 임시로 (a). 향후 (b)로 전환.
 
@@ -252,6 +259,7 @@ b) **CA mount + `--registry-certificate=harbor.kosa.team2=/path/ca.crt`**: 권�
 ### 6.1 문제
 
 Jenkins 설정 (job, credential, plugin, security)을 UI로 클릭클릭해서 만들면:
+
 - 재현 불가 (DR 시 처음부터)
 - 변경 history X
 - 환경 간 일관성 X
@@ -290,24 +298,25 @@ Helm chart의 `controller.JCasC.configScripts`로 주입 가능.
 
 ### 7.1 Credential 종류
 
-| Kind | 용도 |
-|---|---|
-| **Username with password** | DB 접속, registry 로그인 |
-| **SSH Username with private key** | git push, SSH 배포 |
-| **Secret text** | API 토큰 |
-| **Secret file** | kubeconfig 등 파일 |
-| **Certificate** | mTLS |
+| Kind                              | 용도                     |
+| --------------------------------- | ------------------------ |
+| **Username with password**        | DB 접속, registry 로그인 |
+| **SSH Username with private key** | git push, SSH 배포       |
+| **Secret text**                   | API 토큰                 |
+| **Secret file**                   | kubeconfig 등 파일       |
+| **Certificate**                   | mTLS                     |
 
 ### 7.2 우리 등록 credential
 
-| ID | Kind | 용도 |
-|---|---|---|
-| `harbor-creds` | Username/Password | Harbor 로그인 (admin/kosa1004) |
-| `kosa-gitops-ssh` | SSH Private Key | kosa-gitops repo push |
+| ID                | Kind              | 용도                           |
+| ----------------- | ----------------- | ------------------------------ |
+| `harbor-creds`    | Username/Password | Harbor 로그인 (admin/kosa1004) |
+| `kosa-gitops-ssh` | SSH Private Key   | kosa-gitops repo push          |
 
 ### 7.3 Pipeline에서 사용
 
 **Username/Password** (`withCredentials`):
+
 ```groovy
 withCredentials([usernamePassword(
   credentialsId: 'harbor-creds',
@@ -319,6 +328,7 @@ withCredentials([usernamePassword(
 ```
 
 **SSH key**:
+
 ```groovy
 withCredentials([sshUserPrivateKey(
   credentialsId: 'kosa-gitops-ssh',
@@ -331,7 +341,8 @@ withCredentials([sshUserPrivateKey(
 }
 ```
 
-> ⚠️ **`sshagent` 함정**: `sshagent` step은 별도 plugin 필요. 없으면 `not found` 에러. 우리는 `withCredentials([sshUserPrivateKey(...)])` 사용.
+> ⚠️ **`sshagent` 함정**: `sshagent` step은 별도 plugin 필요. 없으면 `not found` 에러. 우리는
+> `withCredentials([sshUserPrivateKey(...)])` 사용.
 
 ---
 
@@ -377,7 +388,7 @@ spec:
             annotations:
               kubernetes.io/ingress.class: haproxy
               cert-manager.io/cluster-issuer: kosa-ca-issuer
-        
+
         persistence:
           enabled: true
           storageClass: team2-rbd-block
@@ -419,6 +430,7 @@ https://jenkins.kosa.team2 → admin / kosa1004
 ### 8.4 Credential 등록
 
 UI → Manage Jenkins → Credentials → System → Global:
+
 - `harbor-creds` (Username/Password)
 - `kosa-gitops-ssh` (SSH Private Key)
 
@@ -431,6 +443,7 @@ Manage Jenkins → Security → Git Host Key Verification Strategy → **Accept 
 ### 8.6 첫 Pipeline 만들기
 
 New Item → Pipeline → 이름 `kosa-tickets-ci` → Pipeline script:
+
 - (다음 챕터 [10-cicd-pipeline.md](10-cicd-pipeline.md) 에 전문 있음)
 
 Save → Build Now → console output 확인.
@@ -442,10 +455,12 @@ Save → Build Now → console output 확인.
 ### 9.1 Login Failed (반복)
 
 원인 후보:
+
 - chart 5.x+에서 `adminUser` deprecated → `controller.admin.username/password`로 변경
 - 이미 install된 인스턴스라 secret이 옛 값 보유
 
 해결:
+
 ```bash
 # PVC 완전 초기화 (데이터 손실 주의)
 kubectl delete pvc -n jenkins --all
@@ -471,6 +486,7 @@ kubectl logs -n jenkins jenkins-0 --tail=200
 ```
 
 흔한 원인:
+
 - service account `jenkins`의 RBAC 부족
 - Kubernetes plugin 설정 (jenkinsUrl 오타)
 - nodeSelector 매칭 노드 없음
@@ -482,6 +498,7 @@ kubectl logs -n jenkins jenkins-0 --tail=200
 ### 9.5 GitHub Host Key Verification Failed
 
 → Security 설정 "Accept first connection" 또는 pipeline에서:
+
 ```bash
 mkdir -p ~/.ssh
 ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
@@ -494,6 +511,7 @@ ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
 ### 9.7 Build "Waiting for executor"
 
 원인:
+
 - `controller.numExecutors`가 너무 작음
 - K8s에 Pod 만들 자원 없음
 - K8s plugin이 응답 안 함
@@ -507,6 +525,7 @@ storageClass 오타 또는 ceph-csi 문제. [04-ceph.md](04-ceph.md) §12 참고
 ### 9.9 Jenkins 너무 느림
 
 원인 후보:
+
 - JVM heap 작음 (`-Xmx` 환경변수)
 - plugin 너무 많음 (사용 안 하는 거 제거)
 - PVC IO 느림 (Ceph slow ops)
@@ -517,4 +536,5 @@ storageClass 오타 또는 ceph-csi 문제. [04-ceph.md](04-ceph.md) §12 참고
 
 → **[10. CI/CD 파이프라인](10-cicd-pipeline.md)**
 
-kosa-tickets 데모 앱의 end-to-end 파이프라인 (GitHub → Jenkins → Kaniko → Harbor → GitOps → ArgoCD → K8s), Jenkinsfile 라인별 해설, Source repo와 GitOps repo 분리 이유.
+kosa-tickets 데모 앱의 end-to-end 파이프라인 (GitHub → Jenkins → Kaniko → Harbor → GitOps → ArgoCD →
+K8s), Jenkinsfile 라인별 해설, Source repo와 GitOps repo 분리 이유.

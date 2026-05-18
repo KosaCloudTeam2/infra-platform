@@ -1,9 +1,11 @@
 # 11. 관측성 (Prometheus / Grafana / Alertmanager)
 
-> **이 챕터에서 다루는 것**
-> 메트릭/로그/트레이스의 차이, Prometheus의 pull 모델, kube-prometheus-stack이 한 번에 설치해주는 것, kubeadm 기본값이 메트릭 포트를 127.0.0.1에만 binding하는 함정, 추천 대시보드와 알림 룰.
+> **이 챕터에서 다루는 것**<br> 메트릭/로그/트레이스의 차이, Prometheus의 pull 모델,
+> kube-prometheus-stack이 한 번에 설치해주는 것, kubeadm 기본값이 메트릭 포트를 127.0.0.1에만
+> binding하는 함정, 추천 대시보드와 알림 룰.
 
 ## 목차
+
 1. [이론: 관측 3축](#1-이론-관측-3축)
 2. [Prometheus: pull 기반 메트릭](#2-prometheus-pull-기반-메트릭)
 3. [kube-prometheus-stack](#3-kube-prometheus-stack)
@@ -19,11 +21,11 @@
 
 ## 1. 이론: 관측 3축
 
-| 축 | 무엇 | 도구 예 |
-|---|---|---|
-| **Metrics** | 시계열 숫자 (CPU%, 요청 수) | Prometheus, Datadog |
-| **Logs** | 시각 순 텍스트 (어플리케이션 로그) | Loki, ELK, Splunk |
-| **Traces** | 분산 호출 흐름 (A → B → C) | Jaeger, Tempo, Zipkin |
+| 축          | 무엇                               | 도구 예               |
+| ----------- | ---------------------------------- | --------------------- |
+| **Metrics** | 시계열 숫자 (CPU%, 요청 수)        | Prometheus, Datadog   |
+| **Logs**    | 시각 순 텍스트 (어플리케이션 로그) | Loki, ELK, Splunk     |
+| **Traces**  | 분산 호출 흐름 (A → B → C)         | Jaeger, Tempo, Zipkin |
 
 우리는 **메트릭** 중심. 로그는 `kubectl logs`/journalctl로 수동, traces는 미사용.
 
@@ -45,12 +47,12 @@
 ```
 [Push 모델] (StatsD, Datadog agent 등)
   App → metric 전송 → 수집 서버
-  
+
   단점: App이 수집 서버 주소 알아야, App 수만큼 트래픽 ↑
 
 [Pull 모델] (Prometheus)
   수집 서버 → App의 /metrics 엔드포인트 GET
-  
+
   장점: App은 /metrics만 노출, 수집 서버가 누구를 scrape할지 결정
 ```
 
@@ -69,13 +71,13 @@
 
 App이 /metrics를 직접 노출 못 하는 경우 (예: MySQL, Linux 노드) → exporter 사용.
 
-| Exporter | 무엇을 노출 |
-|---|---|
-| **node-exporter** | OS 메트릭 (CPU, memory, disk, network) |
-| **kube-state-metrics** | K8s 객체 상태 (Deployment, Pod, ...) |
-| **mysql-exporter** | MySQL 쿼리/연결 통계 |
-| **blackbox-exporter** | HTTP/TCP probe (외부 가용성) |
-| **ceph-exporter (내장)** | Ceph 클러스터 상태 |
+| Exporter                 | 무엇을 노출                            |
+| ------------------------ | -------------------------------------- |
+| **node-exporter**        | OS 메트릭 (CPU, memory, disk, network) |
+| **kube-state-metrics**   | K8s 객체 상태 (Deployment, Pod, ...)   |
+| **mysql-exporter**       | MySQL 쿼리/연결 통계                   |
+| **blackbox-exporter**    | HTTP/TCP probe (외부 가용성)           |
+| **ceph-exporter (내장)** | Ceph 클러스터 상태                     |
 
 ---
 
@@ -85,16 +87,16 @@ App이 /metrics를 직접 노출 못 하는 경우 (예: MySQL, Linux 노드) �
 
 `prometheus-community/kube-prometheus-stack` Helm chart:
 
-| 컴포넌트 | 역할 |
-|---|---|
-| **Prometheus Operator** | CRD (ServiceMonitor, PodMonitor, PrometheusRule 등)로 K8s 식 설정 |
-| **Prometheus** | 메트릭 DB |
-| **Alertmanager** | 알림 그룹/라우팅/silence |
-| **Grafana** | 대시보드 |
-| **node-exporter** (DaemonSet) | 모든 노드의 OS 메트릭 |
-| **kube-state-metrics** | K8s 객체 상태 |
-| **Prometheus default rules** | K8s 표준 알림 룰 (디스크 풀, OOM 등) |
-| **Grafana default dashboards** | K8s 표준 대시보드 |
+| 컴포넌트                       | 역할                                                              |
+| ------------------------------ | ----------------------------------------------------------------- |
+| **Prometheus Operator**        | CRD (ServiceMonitor, PodMonitor, PrometheusRule 등)로 K8s 식 설정 |
+| **Prometheus**                 | 메트릭 DB                                                         |
+| **Alertmanager**               | 알림 그룹/라우팅/silence                                          |
+| **Grafana**                    | 대시보드                                                          |
+| **node-exporter** (DaemonSet)  | 모든 노드의 OS 메트릭                                             |
+| **kube-state-metrics**         | K8s 객체 상태                                                     |
+| **Prometheus default rules**   | K8s 표준 알림 룰 (디스크 풀, OOM 등)                              |
+| **Grafana default dashboards** | K8s 표준 대시보드                                                 |
 
 ### 3.2 ServiceMonitor / PodMonitor
 
@@ -107,12 +109,12 @@ metadata:
   name: my-app
   namespace: kosa-tickets
   labels:
-    release: kube-prom    # ← Prometheus Operator의 selector 매칭
+    release: kube-prom # ← Prometheus Operator의 selector 매칭
 spec:
   selector:
     matchLabels: { app: my-app }
   endpoints:
-    - port: metrics       # ← Service의 named port
+    - port: metrics # ← Service의 named port
       path: /metrics
       interval: 30s
 ```
@@ -129,21 +131,22 @@ prometheus:
   prometheusSpec:
     nodeSelector:
       workload-type: system
-    retention: 7d           # ← TSDB 보존
+    retention: 7d # ← TSDB 보존
     storageSpec:
       volumeClaimTemplate:
         spec:
           storageClassName: team2-rbd-block
           resources: { requests: { storage: 50Gi } }
-    serviceMonitorSelectorNilUsesHelmValues: false
-                              # ← 다른 차트의 ServiceMonitor도 scan
+    serviceMonitorSelectorNilUsesHelmValues:
+      false
+      # ← 다른 차트의 ServiceMonitor도 scan
     ruleSelectorNilUsesHelmValues: false
 
 grafana:
   nodeSelector:
     workload-type: system
-  deploymentStrategy: 
-    type: Recreate         # ← RWO PVC라 RollingUpdate 불가
+  deploymentStrategy:
+    type: Recreate # ← RWO PVC라 RollingUpdate 불가
   persistence:
     enabled: true
     storageClassName: team2-rbd-block
@@ -171,7 +174,8 @@ alertmanager:
           resources: { requests: { storage: 5Gi } }
 ```
 
-> ⚠️ **Grafana deploymentStrategy: Recreate**: 기본 RollingUpdate는 새 Pod이 뜨면서 동시에 PVC mount → RWO 충돌. Recreate는 old 죽인 후 new 띄움.
+> ⚠️ **Grafana deploymentStrategy: Recreate**: 기본 RollingUpdate는 새 Pod이 뜨면서 동시에 PVC mount
+> → RWO 충돌. Recreate는 old 죽인 후 new 띄움.
 
 ---
 
@@ -179,35 +183,39 @@ alertmanager:
 
 ### 4.1 문제
 
-kubeadm 기본값으로 K8s 시스템 컴포넌트는 메트릭 포트를 **127.0.0.1**에만 binding. 외부 Prometheus가 scrape 불가.
+kubeadm 기본값으로 K8s 시스템 컴포넌트는 메트릭 포트를 **127.0.0.1**에만 binding. 외부 Prometheus가
+scrape 불가.
 
-| 컴포넌트 | 포트 | 기본 binding |
-|---|---|---|
-| kube-controller-manager | 10257 | 127.0.0.1 |
-| kube-scheduler | 10259 | 127.0.0.1 |
-| etcd | 2381 | 127.0.0.1 |
-| kube-proxy | 10249 | 127.0.0.1 |
+| 컴포넌트                | 포트  | 기본 binding |
+| ----------------------- | ----- | ------------ |
+| kube-controller-manager | 10257 | 127.0.0.1    |
+| kube-scheduler          | 10259 | 127.0.0.1    |
+| etcd                    | 2381  | 127.0.0.1    |
+| kube-proxy              | 10249 | 127.0.0.1    |
 
 ### 4.2 해결: 0.0.0.0 binding
 
 각 CP 노드에서:
 
 **`/etc/kubernetes/manifests/kube-controller-manager.yaml`**:
+
 ```yaml
 spec:
   containers:
     - command:
         - kube-controller-manager
-        - --bind-address=0.0.0.0    # ← 추가/수정
+        - --bind-address=0.0.0.0 # ← 추가/수정
         # ... (기존 옵션들)
 ```
 
 **`/etc/kubernetes/manifests/kube-scheduler.yaml`**:
+
 ```yaml
 - --bind-address=0.0.0.0
 ```
 
 **`/etc/kubernetes/manifests/etcd.yaml`**:
+
 ```yaml
 - --listen-metrics-urls=http://0.0.0.0:2381
 ```
@@ -215,6 +223,7 @@ spec:
 이건 static manifest → kubelet이 자동 감지 → 컨테이너 재시작.
 
 **`kube-proxy` ConfigMap**:
+
 ```bash
 kubectl -n kube-system edit configmap kube-proxy
 # metricsBindAddress: "0.0.0.0:10249"
@@ -241,6 +250,7 @@ kubectl get --raw \
 ### 5.1 기본 대시보드 (kube-prom-stack 포함)
 
 자동 import 되는 dashboard:
+
 - **Kubernetes / Compute Resources / Cluster** — 클러스터 전체 자원
 - **Kubernetes / Compute Resources / Namespace (Pods)** — namespace별
 - **Kubernetes / Compute Resources / Node (Pods)** — 노드별
@@ -251,19 +261,20 @@ kubectl get --raw \
 
 ### 5.2 추가 권장 (커뮤니티)
 
-| 대시보드 | ID | 용도 |
-|---|---|---|
-| **Calico Felix** | 12175 | Calico 상태 |
-| **HAProxy Ingress** | (chart 자체 제공) | Ingress 트래픽 |
-| **Ceph Cluster** | 2842 | Ceph 클러스터 전체 |
-| **Ceph Pools** | 5342 | Pool별 IOPS |
-| **Jenkins** | 9964 | Build 통계 |
+| 대시보드            | ID                | 용도               |
+| ------------------- | ----------------- | ------------------ |
+| **Calico Felix**    | 12175             | Calico 상태        |
+| **HAProxy Ingress** | (chart 자체 제공) | Ingress 트래픽     |
+| **Ceph Cluster**    | 2842              | Ceph 클러스터 전체 |
+| **Ceph Pools**      | 5342              | Pool별 IOPS        |
+| **Jenkins**         | 9964              | Build 통계         |
 
 import: Grafana UI → Dashboards → Import → ID 입력.
 
 ### 5.3 커스텀 대시보드 (앱)
 
 ticket-app이 자체 메트릭 노출 (예: FastAPI의 prometheus_fastapi_instrumentator):
+
 - 요청 수, 응답 시간, 에러율
 - ServiceMonitor 정의 → Prometheus scrape → Grafana 패널
 
@@ -292,7 +303,7 @@ spec:
           annotations:
             summary: "ticket-app pod down"
             description: "{{ $labels.pod }} has been down for 2 minutes"
-        
+
         - alert: TicketAppHighErrorRate
           expr: |
             sum(rate(http_requests_total{job="ticket-app",status=~"5.."}[5m]))
@@ -307,25 +318,25 @@ spec:
 alertmanager:
   config:
     route:
-      receiver: 'slack-default'
-      group_by: ['alertname', 'cluster']
+      receiver: "slack-default"
+      group_by: ["alertname", "cluster"]
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 4h
       routes:
         - matchers:
             - severity = critical
-          receiver: 'slack-critical'
+          receiver: "slack-critical"
           repeat_interval: 1h
     receivers:
-      - name: 'slack-default'
+      - name: "slack-default"
         slack_configs:
-          - api_url: '<webhook-url>'
-            channel: '#alerts'
-      - name: 'slack-critical'
+          - api_url: "<webhook-url>"
+            channel: "#alerts"
+      - name: "slack-critical"
         slack_configs:
-          - api_url: '<webhook-url>'
-            channel: '#alerts-critical'
+          - api_url: "<webhook-url>"
+            channel: "#alerts-critical"
             send_resolved: true
 ```
 
@@ -334,6 +345,7 @@ alertmanager:
 ### 6.3 Silence
 
 운영 중 정기 작업으로 알림 폭주 방지:
+
 ```
 Alertmanager UI → New Silence → matcher + 기간 설정
 ```
@@ -386,12 +398,12 @@ spec:
 - name: bind controller-manager metrics on 0.0.0.0
   lineinfile:
     path: /etc/kubernetes/manifests/kube-controller-manager.yaml
-    regexp: '--bind-address='
-    line: '    - --bind-address=0.0.0.0'
+    regexp: "--bind-address="
+    line: "    - --bind-address=0.0.0.0"
 # (scheduler, etcd 동일)
 - name: kube-proxy bind
   replace:
-    path: ...   # 또는 kubectl edit
+    path: ... # 또는 kubectl edit
 ```
 
 ### 7.3 첫 접속
@@ -442,6 +454,7 @@ Prometheus UI → Status → Targets
 ```
 
 down 이유:
+
 - 포트 안 열림 (kubeadm 함정 §4)
 - Service selector 미스매치
 - TLS/auth 필요한데 설정 X
@@ -457,6 +470,7 @@ kubectl logs -n monitoring -l app.kubernetes.io/name=prometheus-operator --tail=
 ```
 
 원인:
+
 - `release: kube-prom` 라벨 누락 (Operator의 selector)
 - 다른 namespace에 있는데 `serviceMonitorNamespaceSelector` 제한
 
@@ -511,4 +525,5 @@ Prometheus 자체가 메모리 많이 먹음. RAM/CPU request 조정.
 
 → **[12. 운영 & 백업](12-operations.md)**
 
-일상 운영 체크리스트, etcd/Ceph 백업, 노드 교체/확장, K8s 업그레이드, 인증서 갱신 캘린더, 통합 트러블슈팅 인덱스.
+일상 운영 체크리스트, etcd/Ceph 백업, 노드 교체/확장, K8s 업그레이드, 인증서 갱신 캘린더, 통합
+트러블슈팅 인덱스.

@@ -1,9 +1,11 @@
 # 08. Harbor 컨테이너 레지스트리
 
-> **이 챕터에서 다루는 것**
-> 사설 컨테이너 레지스트리가 왜 필요한지, Harbor의 내부 컴포넌트, Ceph RGW S3를 백엔드로 선택한 이유, helm values의 미묘한 옵션들 (disableredirect 등 함정), GHCR에서 Harbor로 이미지 마이그레이션 패턴.
+> **이 챕터에서 다루는 것**<br> 사설 컨테이너 레지스트리가 왜 필요한지, Harbor의 내부 컴포넌트, Ceph
+> RGW S3를 백엔드로 선택한 이유, helm values의 미묘한 옵션들 (disableredirect 등 함정), GHCR에서
+> Harbor로 이미지 마이그레이션 패턴.
 
 ## 목차
+
 1. [컨테이너 레지스트리란](#1-컨테이너-레지스트리란)
 2. [왜 사설 레지스트리?](#2-왜-사설-레지스트리)
 3. [Harbor vs 다른 옵션](#3-harbor-vs-다른-옵션)
@@ -31,6 +33,7 @@
 표준 API: OCI Distribution Spec (옛 Docker Registry HTTP API V2).
 
 이미지는 **manifest + 여러 layer(blob)** 로 구성:
+
 ```
 manifest (JSON)
   ├── config blob (이미지 메타)
@@ -47,11 +50,11 @@ manifest (JSON)
 
 ### 2.1 Public 레지스트리만 쓰면 안 되나?
 
-| 옵션 | 문제 |
-|---|---|
+| 옵션           | 문제                                          |
+| -------------- | --------------------------------------------- |
 | **Docker Hub** | rate limit (100 pull / 6h), 무료 private 제한 |
-| **GHCR** | GitHub 의존, 외부 네트워크 의존 |
-| **Quay.io** | 비슷 |
+| **GHCR**       | GitHub 의존, 외부 네트워크 의존               |
+| **Quay.io**    | 비슷                                          |
 
 ### 2.2 사설 레지스트리의 이점
 
@@ -69,13 +72,13 @@ manifest (JSON)
 
 ## 3. Harbor vs 다른 옵션
 
-| 옵션 | 특징 | 우리에게 |
-|---|---|---|
-| **Docker Registry (v2)** | 단순, 기본만 | △ RBAC/UI/스캔 없음 |
-| **Sonatype Nexus** | 컨테이너 + Maven + npm 등 다목적 | △ Java 무겁고 컨테이너만 쓰기엔 과함 |
-| **JFrog Artifactory** | 강력하지만 유료 (OSS도 있으나 제한) | ❌ 비용 |
-| **GitHub Packages** | 무료, GitHub 통합 | △ 외부 의존 |
-| **Harbor** | OSS, K8s 친화, RBAC/스캔/replication | ✅ 우리 선택 |
+| 옵션                     | 특징                                 | 우리에게                             |
+| ------------------------ | ------------------------------------ | ------------------------------------ |
+| **Docker Registry (v2)** | 단순, 기본만                         | △ RBAC/UI/스캔 없음                  |
+| **Sonatype Nexus**       | 컨테이너 + Maven + npm 등 다목적     | △ Java 무겁고 컨테이너만 쓰기엔 과함 |
+| **JFrog Artifactory**    | 강력하지만 유료 (OSS도 있으나 제한)  | ❌ 비용                              |
+| **GitHub Packages**      | 무료, GitHub 통합                    | △ 외부 의존                          |
+| **Harbor**               | OSS, K8s 친화, RBAC/스캔/replication | ✅ 우리 선택                         |
 
 ### Harbor 특징
 
@@ -126,15 +129,15 @@ manifest (JSON)
 
 ### 4.1 각 컴포넌트의 책임
 
-| 컴포넌트 | 역할 |
-|---|---|
-| **harbor-core** | API, RBAC, project 관리 |
-| **harbor-portal** | Web UI (정적 자산) |
-| **harbor-registry** | Docker Distribution 표준 (실제 push/pull 처리) |
-| **harbor-database** | Postgres, 메타데이터 |
-| **harbor-redis** | 캐시, job queue |
-| **harbor-jobservice** | Replication, scan job 실행 |
-| **harbor-trivy** | 취약점 스캔 (옵션) |
+| 컴포넌트              | 역할                                           |
+| --------------------- | ---------------------------------------------- |
+| **harbor-core**       | API, RBAC, project 관리                        |
+| **harbor-portal**     | Web UI (정적 자산)                             |
+| **harbor-registry**   | Docker Distribution 표준 (실제 push/pull 처리) |
+| **harbor-database**   | Postgres, 메타데이터                           |
+| **harbor-redis**      | 캐시, job queue                                |
+| **harbor-jobservice** | Replication, scan job 실행                     |
+| **harbor-trivy**      | 취약점 스캔 (옵션)                             |
 
 ---
 
@@ -142,17 +145,18 @@ manifest (JSON)
 
 ### 5.1 옵션
 
-| 백엔드 | 장점 | 단점 |
-|---|---|---|
-| **로컬 디스크 / PVC (RBD)** | 단순 | 단일 노드 묶임, 마이그레이션 시 PV move |
-| **NFS** | 여러 노드 공유 가능 | NFS 서버 SPoF |
-| **S3 호환** | 어디서나 접근, scale-out 쉬움 | S3 서버 필요 |
+| 백엔드                      | 장점                          | 단점                                    |
+| --------------------------- | ----------------------------- | --------------------------------------- |
+| **로컬 디스크 / PVC (RBD)** | 단순                          | 단일 노드 묶임, 마이그레이션 시 PV move |
+| **NFS**                     | 여러 노드 공유 가능           | NFS 서버 SPoF                           |
+| **S3 호환**                 | 어디서나 접근, scale-out 쉬움 | S3 서버 필요                            |
 
 ### 5.2 우리 선택: Ceph RGW S3
 
 이미 Ceph 6노드 클러스터 운영 중. RGW를 띄우면 사내 S3 완성.
 
 장점:
+
 - Harbor registry pod이 어느 노드에 있어도 S3 endpoint로 접근
 - Ceph 자체가 분산 저장이라 가용성/scaling 자동
 - 외부 AWS 비용 X
@@ -186,7 +190,8 @@ kubectl create secret generic harbor-s3-secret -n harbor \
   --from-literal=secretkey=<secret>
 ```
 
-> ⚠️ **키 이름 4개?** Harbor chart의 일부 컴포넌트는 `REGISTRY_STORAGE_S3_*` 환경 변수, 다른 컴포넌트는 `accesskey/secretkey`를 기대. 양쪽 다 넣는 게 안전.
+> ⚠️ **키 이름 4개?** Harbor chart의 일부 컴포넌트는 `REGISTRY_STORAGE_S3_*` 환경 변수, 다른
+> 컴포넌트는 `accesskey/secretkey`를 기대. 양쪽 다 넣는 게 안전.
 
 ---
 
@@ -215,7 +220,7 @@ externalURL: https://harbor.kosa.team2     # ← UI/CLI가 보여줄 URL
 # ─────── 영구 저장 ───────
 persistence:
   enabled: true
-  
+
   # 메타데이터 (Postgres, Redis 등) — RBD PVC
   persistentVolumeClaim:
     registry:
@@ -233,7 +238,7 @@ persistence:
     trivy:
       storageClass: team2-rbd-block
       size: 10Gi
-  
+
   # ★ 이미지 blob 저장 — RGW S3
   imageChartStorage:
     type: s3
@@ -289,7 +294,8 @@ Harbor → Client (stream)
 ### 6.2 다른 함정 모음
 
 - **adminUser deprecated**: chart 5.x부터 `controller.admin.username/password` 사용
-- **ingressClassName** 옛 HAProxy Ingress controller가 무시 → `kubernetes.io/ingress.class` 어노테이션 필수
+- **ingressClassName** 옛 HAProxy Ingress controller가 무시 → `kubernetes.io/ingress.class`
+  어노테이션 필수
 - **bucket 자동 생성 X**: 위 §5.3 수동 생성
 
 ---
@@ -352,6 +358,7 @@ open https://harbor.kosa.team2
 ### 7.4 첫 push 테스트
 
 bastion에서:
+
 ```bash
 docker login harbor.kosa.team2 -u admin -p kosa1004
 docker pull nginx:latest
@@ -398,12 +405,13 @@ kubectl create secret -n kosa-tickets docker-registry harbor-pull-secret \
 ```
 
 deployment.yaml:
+
 ```yaml
 spec:
   template:
     spec:
       imagePullSecrets:
-        - name: harbor-pull-secret     # ← pod spec 레벨, containers 안 X
+        - name: harbor-pull-secret # ← pod spec 레벨, containers 안 X
       containers: [...]
 ```
 
@@ -418,6 +426,7 @@ spec:
 ### 9.1 프로젝트 / 사용자
 
 Web UI → Projects:
+
 - Public/Private 설정
 - 멤버 추가 (admin/dev/guest 역할)
 - 취약점 스캔 정책
@@ -425,6 +434,7 @@ Web UI → Projects:
 ### 9.2 Replication (다른 Harbor 또는 외부와 동기화)
 
 Web UI → Administration → Replications:
+
 - AWS ECR ↔ Harbor (양방향)
 - 백업 Harbor와 동기화
 
@@ -476,6 +486,7 @@ kubectl delete pod -n harbor -l component=registry
 K8s API VIP (172.16.23.5) 다운 → registry pod이 stale state.
 
 회복 후:
+
 ```bash
 kubectl delete pod -n harbor -l component=registry
 ```
@@ -494,19 +505,21 @@ kubectl describe ingress -n harbor harbor-ingress
 # Events
 ```
 
-Ingress class annotation, DNS, Edge HAProxy ACL 다 확인 ([02-physical-network.md](02-physical-network.md) §10.4).
+Ingress class annotation, DNS, Edge HAProxy ACL 다 확인
+([02-physical-network.md](02-physical-network.md) §10.4).
 
 ### 10.8 RGW endpoint 변경 시
 
 RGW endpoint(예: 다른 노드로 옮김) 변경 시:
+
 1. Helm values의 `regionendpoint` 수정 + 커밋
 2. ArgoCD sync
 3. registry pod 재시작 (위 10.4)
 
 ### 10.9 cert 자동 갱신 후에도 brower에 옛 cert
 
-브라우저 캐시. 강제 새로고침 또는 incognito.
-원본 Secret 확인:
+브라우저 캐시. 강제 새로고침 또는 incognito. 원본 Secret 확인:
+
 ```bash
 kubectl get secret harbor-ingress-cert -n harbor -o jsonpath='{.data.tls\.crt}' | \
   base64 -d | openssl x509 -noout -enddate

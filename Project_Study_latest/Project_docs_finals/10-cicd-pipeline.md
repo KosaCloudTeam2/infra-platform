@@ -1,9 +1,11 @@
 # 10. CI/CD 파이프라인 (kosa-tickets)
 
-> **이 챕터에서 다루는 것**
-> 데모 앱 kosa-tickets의 end-to-end 배포 파이프라인. GitHub push → Jenkins → Kaniko build → Harbor push → GitOps repo image tag 갱신 → ArgoCD sync → K8s rollout. Jenkinsfile 한 줄 한 줄의 의도와 함정.
+> **이 챕터에서 다루는 것**<br> 데모 앱 kosa-tickets의 end-to-end 배포 파이프라인. GitHub push →
+> Jenkins → Kaniko build → Harbor push → GitOps repo image tag 갱신 → ArgoCD sync → K8s rollout.
+> Jenkinsfile 한 줄 한 줄의 의도와 함정.
 
 ## 목차
+
 1. [전체 흐름 한 눈에](#1-전체-흐름-한-눈에)
 2. [Source repo vs GitOps repo 분리](#2-source-repo-vs-gitops-repo-분리)
 3. [데모 앱: kosa-tickets](#3-데모-앱-kosa-tickets)
@@ -47,7 +49,8 @@ sequenceDiagram
     Note over K8s: 새 Pod 뜸, old Pod terminate
 ```
 
-📌 **핵심**: Jenkins는 클러스터에 `kubectl apply` 하지 않음. git에 commit만. ArgoCD가 클러스터 안에서 pull (GitOps).
+📌 **핵심**: Jenkins는 클러스터에 `kubectl apply` 하지 않음. git에 commit만. ArgoCD가 클러스터
+안에서 pull (GitOps).
 
 ---
 
@@ -63,12 +66,12 @@ kosa-gitops          ← K8s manifest
 
 ### 2.1 왜 분리?
 
-| 합치는 경우 | 분리하는 경우 (우리) |
-|---|---|
-| 동일 repo에 코드 + manifest | 각자 repo |
-| CI가 같은 repo의 manifest 수정 → infinite loop 위험 | 분리되어 안전 |
-| 코드 변경 = manifest 변경 동시 | git history가 깔끔 |
-| 개발자가 manifest도 봐야 | 권한/팀 분리 가능 |
+| 합치는 경우                                         | 분리하는 경우 (우리) |
+| --------------------------------------------------- | -------------------- |
+| 동일 repo에 코드 + manifest                         | 각자 repo            |
+| CI가 같은 repo의 manifest 수정 → infinite loop 위험 | 분리되어 안전        |
+| 코드 변경 = manifest 변경 동시                      | git history가 깔끔   |
+| 개발자가 manifest도 봐야                            | 권한/팀 분리 가능    |
 
 ### 2.2 일반 패턴
 
@@ -77,7 +80,8 @@ kosa-gitops          ← K8s manifest
 
 ### 2.3 Jenkins의 역할
 
-소스 repo에서 빌드 → manifest repo의 image tag만 sed로 수정 → commit/push. 다른 manifest 변경은 안 함.
+소스 repo에서 빌드 → manifest repo의 image tag만 sed로 수정 → commit/push. 다른 manifest 변경은 안
+함.
 
 ---
 
@@ -138,13 +142,13 @@ pipeline {
             - name: docker-config
               mountPath: /kaniko/.docker
                        # ← Kaniko가 push할 때 docker config 위치
-          
+
           # ─── 2) Git 컨테이너: clone/commit ───
           - name: git
             image: alpine/git:latest
             command: ["sleep"]
             args: ["infinity"]
-          
+
           volumes:
           - name: docker-config
             projected:
@@ -215,20 +219,20 @@ pipeline {
               mkdir -p ~/.ssh
               ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
                        # ← host key 등록 (없으면 verification fail)
-              
+
               export GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=no"
                        # ← git이 사용할 SSH 명령에 우리 키 지정
-              
+
               git config --global user.email "jenkins@kosa.team2"
               git config --global user.name "Jenkins CI"
-              
+
               git clone ${GITOPS} gitops
               cd gitops
-              
+
               sed -i "s|image: harbor.kosa.team2/library/kosa-tickets:.*|image: harbor.kosa.team2/library/kosa-tickets:${TAG}|" \\
                 apps/ticket-app/deployment.yaml
                        # ← 정규식: 'image: harbor.../kosa-tickets:' 뒤의 태그만 치환
-              
+
               git add -A
               git commit -m "CI: kosa-tickets ${TAG}" || echo "no changes"
                        # ← 변경 없으면 commit 실패해도 무시
@@ -254,14 +258,14 @@ pipeline {
 
 ### 4.1 함정/배운 점
 
-| 이슈 | 해결 |
-|---|---|
-| `kaniko:latest`는 shell 없음 | `kaniko:debug` 사용 |
-| 컨테이너 메인 프로세스 즉시 종료 | `sleep infinity` |
-| `sshagent` plugin 없음 | `withCredentials([sshUserPrivateKey(...)])` |
-| GitHub Host key verification failed | `ssh-keyscan` 또는 글로벌 설정 |
-| Kaniko x509 (자체 CA) | `--skip-tls-verify` 또는 CA mount |
-| `s3aws: NoSuchBucket` | Harbor bucket 수동 생성 ([08-harbor-registry.md](08-harbor-registry.md) §5.3) |
+| 이슈                                | 해결                                                                          |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| `kaniko:latest`는 shell 없음        | `kaniko:debug` 사용                                                           |
+| 컨테이너 메인 프로세스 즉시 종료    | `sleep infinity`                                                              |
+| `sshagent` plugin 없음              | `withCredentials([sshUserPrivateKey(...)])`                                   |
+| GitHub Host key verification failed | `ssh-keyscan` 또는 글로벌 설정                                                |
+| Kaniko x509 (자체 CA)               | `--skip-tls-verify` 또는 CA mount                                             |
+| `s3aws: NoSuchBucket`               | Harbor bucket 수동 생성 ([08-harbor-registry.md](08-harbor-registry.md) §5.3) |
 
 ---
 
@@ -284,29 +288,29 @@ spec:
       # ★ pod spec 레벨 (containers 안 X !)
       imagePullSecrets:
         - name: harbor-pull-secret
-      
+
       # production 워커에만
       nodeSelector:
         workload-type: production
-      
+
       containers:
         - name: ticket-app
-          image: harbor.kosa.team2/library/kosa-tickets:4   # ← Jenkins가 갱신
+          image: harbor.kosa.team2/library/kosa-tickets:4 # ← Jenkins가 갱신
           ports: [{ containerPort: 8000 }]
-          
+
           readinessProbe:
             httpGet: { path: /healthz, port: 8000 }
             initialDelaySeconds: 5
             periodSeconds: 10
-          
+
           livenessProbe:
             httpGet: { path: /healthz, port: 8000 }
             initialDelaySeconds: 30
             periodSeconds: 30
-          
+
           resources:
-            requests: { cpu: 50m,  memory: 128Mi }
-            limits:   { cpu: 500m, memory: 512Mi }
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
 ```
 
 ### 5.1 imagePullSecrets의 위치
@@ -314,11 +318,12 @@ spec:
 > ⚠️ **자주 틀림**: `containers[*]` 안에 두는 게 아니라 **pod spec** 레벨에 둬야 함.
 >
 > 잘못된 예 (작동 안 함):
+>
 > ```yaml
 > containers:
 >   - name: app
 >     image: harbor.../app:1
->     imagePullSecrets: [{ name: harbor-pull-secret }]   # ← X
+>     imagePullSecrets: [{ name: harbor-pull-secret }] # ← X
 > ```
 
 ### 5.2 harbor-pull-secret 생성
@@ -330,12 +335,13 @@ kubectl create secret -n kosa-tickets docker-registry harbor-pull-secret \
   --docker-password=kosa1004
 ```
 
-> 💡 **public project (library/) 인데도 필요한가?**
-> 우리 환경처럼 anonymous pull이 OK이면 굳이 없어도 됨. 그래도 두는 게 RBAC 정책 강화 대비 안전.
+> 💡 **public project (library/) 인데도 필요한가?**<br> 우리 환경처럼 anonymous pull이 OK이면 굳이
+> 없어도 됨. 그래도 두는 게 RBAC 정책 강화 대비 안전.
 
 ### 5.3 replicas: 2 + rolling update
 
 기본 strategy는 RollingUpdate (maxSurge 25%, maxUnavailable 25%).
+
 - 새 Pod 1개 뜸 → ready 되면 → old Pod 1개 terminate
 - 다음 새 Pod 뜸 → old terminate
 - 무중단 배포
@@ -378,6 +384,7 @@ Deployment Controller: 새 ReplicaSet 생성 + rolling update
 ### 6.1 ArgoCD 가속 (즉시 sync)
 
 3분 polling 대신 webhook으로 즉시:
+
 - GitHub repo → Settings → Webhooks → `https://argocd.kosa.team2/api/webhook` (POST)
 - ArgoCD가 push event 받으면 즉시 refresh
 
@@ -452,7 +459,8 @@ kubectl get pods -n jenkins
 ### 9.3 Kaniko build 실패: "error checking push permissions"
 
 - harbor-creds-dockerconfigjson Secret 확인
-- `kubectl get secret -n jenkins harbor-creds-dockerconfigjson -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d` 로 내용 검증
+- `kubectl get secret -n jenkins harbor-creds-dockerconfigjson -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d`
+  로 내용 검증
 - Pod template에서 mount path 정확 (/kaniko/.docker/config.json)
 
 ### 9.4 Kaniko push 실패: x509
@@ -462,6 +470,7 @@ kubectl get pods -n jenkins
 ### 9.5 sed 결과가 안 바뀜
 
 `deployment.yaml`의 image 라인이 정규식에 매칭 안 되는 형태일 수도. 직접 확인:
+
 ```bash
 grep "image: harbor" apps/ticket-app/deployment.yaml
 ```
@@ -500,4 +509,5 @@ grep "image: harbor" apps/ticket-app/deployment.yaml
 
 → **[11. 관측성 (Prometheus/Grafana)](11-observability.md)**
 
-K8s 클러스터 + 워크로드 메트릭 수집/시각화/알림. kube-prometheus-stack 구성, kubeadm 시스템 컴포넌트 메트릭 포트 트릭 (왜 127.0.0.1 binding을 0.0.0.0로?).
+K8s 클러스터 + 워크로드 메트릭 수집/시각화/알림. kube-prometheus-stack 구성, kubeadm 시스템 컴포넌트
+메트릭 포트 트릭 (왜 127.0.0.1 binding을 0.0.0.0로?).

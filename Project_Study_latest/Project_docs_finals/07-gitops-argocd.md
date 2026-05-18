@@ -1,9 +1,11 @@
 # 07. GitOps & ArgoCD
 
-> **이 챕터에서 다루는 것**
-> "git이 진실, 클러스터는 그것의 그림자"라는 GitOps 철학, ArgoCD 컴포넌트, App-of-Apps 패턴으로 수십 개 앱을 단일 root에서 관리하는 법, 그리고 cert-manager/Helm 등이 자동 채우는 필드를 ignoreDifferences로 처리하는 실전 노하우.
+> **이 챕터에서 다루는 것**<br> "git이 진실, 클러스터는 그것의 그림자"라는 GitOps 철학, ArgoCD
+> 컴포넌트, App-of-Apps 패턴으로 수십 개 앱을 단일 root에서 관리하는 법, 그리고 cert-manager/Helm
+> 등이 자동 채우는 필드를 ignoreDifferences로 처리하는 실전 노하우.
 
 ## 목차
+
 1. [이론: GitOps](#1-이론-gitops)
 2. [ArgoCD 컴포넌트](#2-argocd-컴포넌트)
 3. [App-of-Apps 패턴](#3-app-of-apps-패턴)
@@ -32,7 +34,7 @@
 ```
 Push 모델 (전통 CI/CD):
   CI 서버 ──(kubectl apply)──► 클러스터
-  
+
   문제:
   - CI가 클러스터 자격증명을 보관 (유출 위험)
   - git 상태 ≠ 클러스터 실제 상태 (drift 모름)
@@ -45,7 +47,7 @@ Pull 모델 (GitOps):
                               │
                               ▼
                           kubectl apply (자기 자신 클러스터에)
-  
+
   장점:
   - CI는 클러스터 권한 X
   - git이 single source of truth
@@ -96,6 +98,7 @@ Pull 모델 (GitOps):
 ```
 
 핵심:
+
 - **application-controller**: git ↔ cluster reconciliation (가장 중요)
 - **repo-server**: git에서 manifest 가져와 렌더링 (Helm template 등)
 - **server**: API/UI
@@ -117,12 +120,12 @@ spec:
     targetRevision: main
     path: apps/ticket-app
   destination:
-    server: https://kubernetes.default.svc    # 자기 자신 클러스터
+    server: https://kubernetes.default.svc # 자기 자신 클러스터
     namespace: kosa-tickets
   syncPolicy:
     automated:
-      prune: true       # git에서 삭제된 리소스를 cluster에서도 삭제
-      selfHeal: true    # 수동 cluster 변경을 git 상태로 자동 복구
+      prune: true # git에서 삭제된 리소스를 cluster에서도 삭제
+      selfHeal: true # 수동 cluster 변경을 git 상태로 자동 복구
     syncOptions:
       - CreateNamespace=true
 ```
@@ -150,7 +153,8 @@ spec:
                             └─watch─► apps/ticket-app/ (실제 manifest)
 ```
 
-새 앱 추가: `_applications/`에 yaml 한 개 commit → root-app이 감지 → 새 Application 생성 → 그것이 또 자기 path를 watch.
+새 앱 추가: `_applications/`에 yaml 한 개 commit → root-app이 감지 → 새 Application 생성 → 그것이 또
+자기 path를 watch.
 
 ### 3.3 root-app 정의
 
@@ -201,22 +205,22 @@ source:
 source:
   repoURL: git@github.com:kosacloudteam2/kosa-gitops.git
   targetRevision: main
-  path: apps/ticket-app    # YAML 파일들이 있는 디렉토리
+  path: apps/ticket-app # YAML 파일들이 있는 디렉토리
 ```
 
 장점: 완전 통제, custom 리소스.
 
 ### 4.3 우리 사용 패턴
 
-| 앱 | 방식 | 이유 |
-|---|---|---|
-| cert-manager | Helm | 공식 chart |
-| monitoring (kube-prom) | Helm | community standard |
-| redis (Sentinel) | Helm (bitnami) | 검증된 chart |
-| harbor | Helm (공식) | 복잡, chart 활용 |
-| jenkins | Helm (공식) | 동일 |
-| ticket-app | raw | 우리 앱 |
-| cert-manager-issuer | raw | CRD라 단순 |
+| 앱                     | 방식           | 이유               |
+| ---------------------- | -------------- | ------------------ |
+| cert-manager           | Helm           | 공식 chart         |
+| monitoring (kube-prom) | Helm           | community standard |
+| redis (Sentinel)       | Helm (bitnami) | 검증된 chart       |
+| harbor                 | Helm (공식)    | 복잡, chart 활용   |
+| jenkins                | Helm (공식)    | 동일               |
+| ticket-app             | raw            | 우리 앱            |
+| cert-manager-issuer    | raw            | CRD라 단순         |
 
 ---
 
@@ -224,19 +228,20 @@ source:
 
 ArgoCD UI에서 각 Application에 두 상태:
 
-| Sync Status | 의미 |
-|---|---|
-| **Synced** | git 상태 = cluster 상태 |
+| Sync Status   | 의미                       |
+| ------------- | -------------------------- |
+| **Synced**    | git 상태 = cluster 상태    |
 | **OutOfSync** | git ≠ cluster (drift 발생) |
 
-| Health Status | 의미 |
-|---|---|
-| **Healthy** | 워크로드 정상 (Pod Running, Service Endpoint 있음, ...) |
-| **Progressing** | 변경 중 (Deployment rolling update 중 등) |
-| **Degraded** | 비정상 (Pod CrashLoop 등) |
-| **Missing** | 리소스가 cluster에 없음 |
+| Health Status   | 의미                                                    |
+| --------------- | ------------------------------------------------------- |
+| **Healthy**     | 워크로드 정상 (Pod Running, Service Endpoint 있음, ...) |
+| **Progressing** | 변경 중 (Deployment rolling update 중 등)               |
+| **Degraded**    | 비정상 (Pod CrashLoop 등)                               |
+| **Missing**     | 리소스가 cluster에 없음                                 |
 
 조합 예:
+
 - `Synced + Healthy`: 가장 좋은 상태
 - `OutOfSync + Healthy`: 방금 git 변경, 곧 sync 됨 (selfHeal)
 - `Synced + Degraded`: git대로 적용했는데 워크로드가 망가짐 (이미지 문제 등)
@@ -261,7 +266,8 @@ ignoreDifferences:
     jsonPointers: [/spec/volumeClaimTemplates]
 ```
 
-> 💡 K8s 자체가 volumeClaimTemplates를 immutable로 정의. helm upgrade로 변경 불가 → ArgoCD가 sync 시도 → API가 거부 → 영원히 OutOfSync.
+> 💡 K8s 자체가 volumeClaimTemplates를 immutable로 정의. helm upgrade로 변경 불가 → ArgoCD가 sync
+> 시도 → API가 거부 → 영원히 OutOfSync.
 
 #### b) Secret.data (random password 등)
 
@@ -358,12 +364,12 @@ spec:
     metadata: { labels: { app: ticket-app } }
     spec:
       imagePullSecrets:
-        - name: harbor-pull-secret      # ← pod spec 레벨
+        - name: harbor-pull-secret # ← pod spec 레벨
       nodeSelector:
-        workload-type: production       # ← production 워커에만
+        workload-type: production # ← production 워커에만
       containers:
         - name: ticket-app
-          image: harbor.kosa.team2/library/kosa-tickets:4   # ← Jenkins가 sed
+          image: harbor.kosa.team2/library/kosa-tickets:4 # ← Jenkins가 sed
           ports: [{ containerPort: 8000 }]
           env:
             - name: DEBUG
@@ -410,7 +416,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: haproxy
     cert-manager.io/cluster-issuer: kosa-ca-issuer
-    ingress.kubernetes.io/ssl-passthrough: "true"    # ← ArgoCD 자체 TLS 종료
+    ingress.kubernetes.io/ssl-passthrough: "true" # ← ArgoCD 자체 TLS 종료
 spec:
   ingressClassName: haproxy
   tls:
@@ -429,6 +435,7 @@ spec:
 ### 8.4 git repo credential 등록
 
 bastion에서:
+
 ```bash
 # SSH key 생성 (배포 키)
 ssh-keygen -t ed25519 -f ~/.ssh/argocd-deploy
@@ -459,7 +466,7 @@ spec:
 EOF
 ```
 
-→ 이후 git에 _applications/foo.yaml commit/push만 하면 새 앱 추가.
+→ 이후 git에 \_applications/foo.yaml commit/push만 하면 새 앱 추가.
 
 ---
 
@@ -502,17 +509,20 @@ kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller -
 ### 10.1 OutOfSync인데 Healthy
 
 CLAUDE.md FAQ Q5 참고. 대부분 정상.
+
 - `argocd app diff <name>` 로 어떤 필드가 다른지 확인
 - 필요 시 ignoreDifferences 추가
 
 ### 10.2 Sync 실패: "rpc error: code = Unknown ..."
 
 repo-server 로그:
+
 ```bash
 kubectl logs -n argocd -l app.kubernetes.io/name=argocd-repo-server --tail=200
 ```
 
 흔한 원인:
+
 - git 접근 실패 (SSH key 만료, repo 권한)
 - Helm chart download 실패 (네트워크)
 - helm values 문법 오류
@@ -525,13 +535,15 @@ kubectl describe pod <name> -n <ns>
 ```
 
 원인:
+
 - 이미지 태그 오타
 - imagePullSecret 미설정 (pod spec containers 안 X)
 - containerd가 Harbor cert 신뢰 X (§6 06장)
 
 ### 10.4 helm chart 버전 불일치
 
-helm chart의 새 버전이 nodeSelector/labels 등의 default를 바꿔서 sync 실패할 수 있음. `targetRevision` 고정 + 변경 시 changelog 확인.
+helm chart의 새 버전이 nodeSelector/labels 등의 default를 바꿔서 sync 실패할 수 있음.
+`targetRevision` 고정 + 변경 시 changelog 확인.
 
 ### 10.5 webhook 호출 실패로 sync 실패
 
@@ -560,4 +572,5 @@ argocd app get root-app --hard-refresh
 
 → **[08. Harbor 레지스트리](08-harbor-registry.md)**
 
-사설 레지스트리가 왜 필요하고, Harbor의 내부 구조, Ceph RGW S3 백엔드를 쓰는 이유, helm values의 미묘한 옵션들 (disableredirect 등).
+사설 레지스트리가 왜 필요하고, Harbor의 내부 구조, Ceph RGW S3 백엔드를 쓰는 이유, helm values의
+미묘한 옵션들 (disableredirect 등).

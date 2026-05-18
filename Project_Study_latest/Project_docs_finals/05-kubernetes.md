@@ -1,10 +1,11 @@
 # 05. Kubernetes 클러스터
 
-> **이 챕터에서 다루는 것**
-> kubeadm으로 HA 컨트롤플레인 3대 + 워커 4대를 만든 과정. Calico/MetalLB/HAProxy Ingress를 왜 골랐고 어떻게 동작하는지.
-> 베어메탈 K8s 운영의 핵심인 "API VIP", "LoadBalancer Service" 같은 개념을 처음부터 풀어낸다.
+> **이 챕터에서 다루는 것**<br> kubeadm으로 HA 컨트롤플레인 3대 + 워커 4대를 만든 과정.
+> Calico/MetalLB/HAProxy Ingress를 왜 골랐고 어떻게 동작하는지.<br> 베어메탈 K8s 운영의 핵심인 "API
+> VIP", "LoadBalancer Service" 같은 개념을 처음부터 풀어낸다.
 
 ## 목차
+
 1. [이론: K8s 아키텍처](#1-이론-k8s-아키텍처)
 2. [왜 kubeadm? 왜 HA?](#2-왜-kubeadm-왜-ha)
 3. [Stacked etcd vs External etcd](#3-stacked-etcd-vs-external-etcd)
@@ -54,16 +55,16 @@
 
 ### 1.2 핵심 객체
 
-| 객체 | 의미 |
-|---|---|
-| **Pod** | 배포 단위. 1+ 컨테이너 묶음 (같은 IP/볼륨 공유). |
-| **Deployment** | Pod의 desired state 관리 (replicas, rolling update). |
-| **StatefulSet** | 안정적 ID/순서/스토리지가 필요한 워크로드 (DB 등). |
-| **Service** | Pod 집합에 안정적 가상 IP/DNS. ClusterIP / NodePort / LoadBalancer. |
-| **Ingress** | L7 HTTP 라우팅 (Host/Path → Service). Ingress Controller 필요. |
-| **ConfigMap / Secret** | 환경 변수/파일 주입. |
-| **PersistentVolume / PVC** | 영구 스토리지. StorageClass로 동적 프로비저닝. |
-| **Namespace** | 논리 격리 (RBAC, quota). |
+| 객체                       | 의미                                                                |
+| -------------------------- | ------------------------------------------------------------------- |
+| **Pod**                    | 배포 단위. 1+ 컨테이너 묶음 (같은 IP/볼륨 공유).                    |
+| **Deployment**             | Pod의 desired state 관리 (replicas, rolling update).                |
+| **StatefulSet**            | 안정적 ID/순서/스토리지가 필요한 워크로드 (DB 등).                  |
+| **Service**                | Pod 집합에 안정적 가상 IP/DNS. ClusterIP / NodePort / LoadBalancer. |
+| **Ingress**                | L7 HTTP 라우팅 (Host/Path → Service). Ingress Controller 필요.      |
+| **ConfigMap / Secret**     | 환경 변수/파일 주입.                                                |
+| **PersistentVolume / PVC** | 영구 스토리지. StorageClass로 동적 프로비저닝.                      |
+| **Namespace**              | 논리 격리 (RBAC, quota).                                            |
 
 ### 1.3 K8s API의 reconciliation 루프
 
@@ -97,20 +98,21 @@
 
 ### 2.1 K8s 설치 도구 비교
 
-| 도구 | 특징 | 우리에게 |
-|---|---|---|
-| **kubeadm** | 공식, 표준 부트스트랩, 수동성 ↑ | ✅ 학습 가치 ↑ |
-| **kops** | AWS/GCP 위주, 클라우드 인테그레이션 | ❌ 베어메탈 X |
-| **kubespray** | Ansible 기반, opinionated | △ 좋지만 kubeadm 학습 후 |
-| **Rancher / RKE2** | 통합 UI, 운영 친화 | △ 학습 목적과 다소 거리 |
-| **k3s / k0s** | 경량, edge용 | ❌ 풀 K8s 학습 X |
+| 도구               | 특징                                | 우리에게                 |
+| ------------------ | ----------------------------------- | ------------------------ |
+| **kubeadm**        | 공식, 표준 부트스트랩, 수동성 ↑     | ✅ 학습 가치 ↑           |
+| **kops**           | AWS/GCP 위주, 클라우드 인테그레이션 | ❌ 베어메탈 X            |
+| **kubespray**      | Ansible 기반, opinionated           | △ 좋지만 kubeadm 학습 후 |
+| **Rancher / RKE2** | 통합 UI, 운영 친화                  | △ 학습 목적과 다소 거리  |
+| **k3s / k0s**      | 경량, edge용                        | ❌ 풀 K8s 학습 X         |
 
-> 💡 **왜 kubeadm?**
-> 표준이라서. CKAd/CKA 시험도 kubeadm. 손으로 한 번 깔아보면 "K8s 컴포넌트가 뭐가 있고 어떻게 통신하는지" 체감.
+> 💡 **왜 kubeadm?** 표준이라서. CKAd/CKA 시험도 kubeadm. 손으로 한 번 깔아보면 "K8s 컴포넌트가 뭐가
+> 있고 어떻게 통신하는지" 체감.
 
 ### 2.2 HA(고가용성)란
 
 **단일 컨트롤플레인의 문제**:
+
 - 그 노드 죽으면 `kubectl` 명령 못 함
 - 새 Pod scheduling 안 됨
 - Webhook (cert-manager 등) 호출 실패
@@ -127,7 +129,8 @@
 - **3개**: 1개 다운 OK, 2개 동시 다운 시 멈춤
 - 5개: 2개 다운 OK, 비용 ↑
 
-> 💡 우리는 3 CP. 4번째 노드 추가 시 sys1처럼 **워커**로 더하지 CP로 더하지 않는다 (etcd는 홀수 유지).
+> 💡 우리는 3 CP. 4번째 노드 추가 시 sys1처럼 **워커**로 더하지 CP로 더하지 않는다 (etcd는 홀수
+> 유지).
 
 ---
 
@@ -161,7 +164,8 @@
 - 학습 단순
 - 우리 규모(소형 클러스터)에 충분
 
-> ⚠️ **함정**: stacked etcd는 그 CP 노드 죽으면 etcd 멤버 1개도 같이 죽음. 3 CP → 1개 죽음은 OK, 2개 동시는 위험.
+> ⚠️ **함정**: stacked etcd는 그 CP 노드 죽으면 etcd 멤버 1개도 같이 죽음. 3 CP → 1개 죽음은 OK, 2개
+> 동시는 위험.
 
 ---
 
@@ -170,6 +174,7 @@
 ### 4.1 CNI가 뭐?
 
 Pod 간 네트워크 플러그인 표준. 책임:
+
 - Pod에 IP 할당
 - Pod ↔ Pod 라우팅 (같은 노드 / 다른 노드)
 - NetworkPolicy 적용 (Pod-level 방화벽)
@@ -178,14 +183,15 @@ K8s 자체는 CNI를 안 제공. 플러그인 골라 설치.
 
 ### 4.2 주요 CNI 비교
 
-| CNI | 데이터플레인 | NetPolicy | 우리에게 |
-|---|---|---|---|
-| **Flannel** | VXLAN overlay | 미지원 | ❌ NetPolicy 없음 |
-| **Calico** | BGP / IPIP / VXLAN | 강력 | ✅ 표준, 안정 |
-| **Cilium** | eBPF | 강력 + L7 | △ 학습곡선, 새 기술 |
-| **Weave** | overlay | 지원 | ❌ 프로젝트 정체 |
+| CNI         | 데이터플레인       | NetPolicy | 우리에게            |
+| ----------- | ------------------ | --------- | ------------------- |
+| **Flannel** | VXLAN overlay      | 미지원    | ❌ NetPolicy 없음   |
+| **Calico**  | BGP / IPIP / VXLAN | 강력      | ✅ 표준, 안정       |
+| **Cilium**  | eBPF               | 강력 + L7 | △ 학습곡선, 새 기술 |
+| **Weave**   | overlay            | 지원      | ❌ 프로젝트 정체    |
 
 > 💡 **왜 Calico?**
+>
 > 1. NetworkPolicy 지원 (보안 정책)
 > 2. 베어메탈 표준
 > 3. BGP/IPIP/VXLAN 모드 선택 가능
@@ -197,7 +203,8 @@ K8s 자체는 CNI를 안 제공. 플러그인 골라 설치.
 - Pod CIDR: `192.168.128.0/17` (192.168.21.x 사내망 회피)
 - IP Pool: 노드별 /26 자동 할당
 
-> ⚠️ **함정**: Calico 기본 Pod CIDR(192.168.0.0/16)이 사내 관리망(192.168.21.x)과 겹치면 라우팅 지옥. kubeadm init 시 `--pod-network-cidr` 명시.
+> ⚠️ **함정**: Calico 기본 Pod CIDR(192.168.0.0/16)이 사내 관리망(192.168.21.x)과 겹치면 라우팅
+> 지옥. kubeadm init 시 `--pod-network-cidr` 명시.
 
 ### 4.4 IPIP vs BGP
 
@@ -219,14 +226,15 @@ BGP:   각 노드가 라우터처럼 Pod CIDR을 BGP로 advertise
 
 ### 5.1 문제 정의
 
-K8s Service 타입 `LoadBalancer`는 클라우드(AWS ELB, GCP LB)와 통합 가정. 베어메탈에서는 그냥 `<pending>` 상태.
+K8s Service 타입 `LoadBalancer`는 클라우드(AWS ELB, GCP LB)와 통합 가정. 베어메탈에서는 그냥
+`<pending>` 상태.
 
 ```yaml
 apiVersion: v1
 kind: Service
 metadata: { name: my-app }
 spec:
-  type: LoadBalancer    # ← 클라우드면 자동 외부 IP, 베어메탈은 ?
+  type: LoadBalancer # ← 클라우드면 자동 외부 IP, 베어메탈은 ?
   ports: [{ port: 80, targetPort: 8080 }]
   selector: { app: my-app }
 ```
@@ -236,6 +244,7 @@ spec:
 **MetalLB**: 베어메탈 K8s에서 LoadBalancer 타입을 지원하는 컨트롤러.
 
 두 가지 모드:
+
 - **L2 모드**: 한 노드가 외부 IP를 ARP로 알림 (VRRP 비슷)
 - **BGP 모드**: 모든 노드가 외부 IP를 BGP로 advertise (외부 BGP 라우터 필요)
 
@@ -258,10 +267,10 @@ spec:
   ipAddressPools: [default]
 ```
 
-> 💡 **왜 L2?**
-> 우리 환경에 BGP 라우터 없음. L2는 같은 broadcast 도메인이면 즉시 동작.
+> 💡 **왜 L2?** 우리 환경에 BGP 라우터 없음. L2는 같은 broadcast 도메인이면 즉시 동작.
 >
-> **트레이드오프**: L2는 한 노드만 active (failover는 가능). 진정한 부하분산은 BGP가 더 좋음. 우리 규모엔 L2 충분.
+> **트레이드오프**: L2는 한 노드만 active (failover는 가능). 진정한 부하분산은 BGP가 더 좋음. 우리
+> 규모엔 L2 충분.
 
 ### 5.4 동작 흐름
 
@@ -285,9 +294,8 @@ spec:
 
 `kubectl`, kubelet은 `https://<API-server>:6443`으로 접근. CP 3대인데 어디로 보내야?
 
-**옵션 A**: CP1 IP를 하드코딩 → CP1 죽으면 클러스터 마비
-**옵션 B**: DNS round-robin → 죽은 노드 응답까지 timeout
-**옵션 C (우리)**: VIP + 백엔드 LB → 살아있는 CP로만 라우팅
+**옵션 A**: CP1 IP를 하드코딩 → CP1 죽으면 클러스터 마비<br> **옵션 B**: DNS round-robin → 죽은 노드
+응답까지 <br> **옵션 C (우리)**: VIP + 백엔드 LB → 살아있는 CP로만 라우팅
 
 ### 6.2 우리 구성
 
@@ -351,8 +359,8 @@ backend k8s-cp
     server cp3 172.16.23.12:6443 check
 ```
 
-> 💡 **왜 mode tcp?**
-> 6443은 K8s API mTLS 종단. HAProxy가 L7으로 풀면 인증서가 깨짐. L4 (TCP)로 그대로 패스스루.
+> 💡 **왜 mode tcp?**<br> 6443은 K8s API mTLS 종단. HAProxy가 L7으로 풀면 인증서가 깨짐. L4 (TCP)로
+> 그대로 패스스루.
 
 ### 6.5 kubeadm init 시 control-plane endpoint
 
@@ -383,15 +391,15 @@ external → 172.16.23.50:443 → Ingress Controller
 
 ### 7.2 Controller 선택
 
-| Controller | 특징 | 우리에게 |
-|---|---|---|
-| **nginx-ingress** | 가장 보편, 기능 풍부 | △ 무난한 선택 |
-| **HAProxy Ingress (jcmoraisjr)** | HAProxy 일관성 | ✅ Edge LB와 같은 기술 |
-| **Traefik** | 동적 구성, K8s 친화 | △ 학습 가치 |
-| **Istio Gateway** | 서비스 메시 통합 | ❌ 우리 규모 과함 |
+| Controller                       | 특징                 | 우리에게               |
+| -------------------------------- | -------------------- | ---------------------- |
+| **nginx-ingress**                | 가장 보편, 기능 풍부 | △ 무난한 선택          |
+| **HAProxy Ingress (jcmoraisjr)** | HAProxy 일관성       | ✅ Edge LB와 같은 기술 |
+| **Traefik**                      | 동적 구성, K8s 친화  | △ 학습 가치            |
+| **Istio Gateway**                | 서비스 메시 통합     | ❌ 우리 규모 과함      |
 
-> 💡 **왜 HAProxy Ingress?**
-> Edge LB도 HAProxy. 통일하면 trouble-shoot 시 같은 도구 지식 활용. 또 HAProxy는 L4/L7 모두 강력.
+> 💡 **왜 HAProxy Ingress?**<br> Edge LB도 HAProxy. 통일하면 trouble-shoot 시 같은 도구 지식 활용.
+> 또 HAProxy는 L4/L7 모두 강력.
 
 ### 7.3 우리 설치 (Helm)
 
@@ -399,7 +407,7 @@ external → 172.16.23.50:443 → Ingress Controller
 controller:
   service:
     type: LoadBalancer
-    loadBalancerIP: 172.16.23.50   # ← MetalLB가 이 IP 할당
+    loadBalancerIP: 172.16.23.50 # ← MetalLB가 이 IP 할당
   ingressClassResource:
     name: haproxy
   ingressClass: haproxy
@@ -417,7 +425,7 @@ metadata:
   name: ticket-app
   namespace: kosa-tickets
   annotations:
-    kubernetes.io/ingress.class: haproxy    # ← 옛 HAProxy Ingress 호환 필수
+    kubernetes.io/ingress.class: haproxy # ← 옛 HAProxy Ingress 호환 필수
     cert-manager.io/cluster-issuer: kosa-ca-issuer
 spec:
   ingressClassName: haproxy
@@ -434,7 +442,8 @@ spec:
               service: { name: ticket-app, port: { number: 80 } }
 ```
 
-> ⚠️ **함정**: `jcmoraisjr/haproxy-ingress v0.16.1`은 `ingressClassName` 필드 무시. 반드시 `kubernetes.io/ingress.class: haproxy` 어노테이션도 함께 줘야 인식.
+> ⚠️ **함정**: `jcmoraisjr/haproxy-ingress v0.16.1`은 `ingressClassName` 필드 무시. 반드시
+> `kubernetes.io/ingress.class: haproxy` 어노테이션도 함께 줘야 인식.
 
 ---
 
@@ -456,6 +465,7 @@ kubectl label node k8s-w3 workload-type=production
 ```
 
 각 시스템 컴포넌트의 helm values:
+
 ```yaml
 nodeSelector:
   workload-type: system
@@ -476,6 +486,7 @@ nodeSelector:
 상세는 [04-ceph.md](04-ceph.md) §8 참고.
 
 요약:
+
 1. ceph-csi-rbd Helm 설치 (DaemonSet으로 모든 워커에)
 2. Secret로 Ceph 사용자 key 주입
 3. StorageClass `team2-rbd-block` 정의
@@ -628,6 +639,7 @@ ssh <node> "journalctl -u kubelet -n 200"
 ```
 
 흔한 원인:
+
 - containerd 다운: `systemctl restart containerd`
 - 디스크 풀: `/var/lib` 확인
 - CNI 깨짐: Calico Pod 상태
@@ -705,6 +717,7 @@ sudo ETCDCTL_API=3 etcdctl \
 ```
 
 자주 발생하는 WARN: db size 가 8GB 근접 (compaction 안 됨).
+
 ```bash
 etcdctl compact <revision>
 etcdctl defrag
@@ -716,4 +729,5 @@ etcdctl defrag
 
 → **[06. 보안 & TLS](06-security-tls.md)**
 
-자체 CA 만드는 법, cert-manager로 K8s에서 자동 발급, 이중 TLS의 진짜 동작 원리, containerd가 self-signed cert를 trust하게 만드는 법.
+자체 CA 만드는 법, cert-manager로 K8s에서 자동 발급, 이중 TLS의 진짜 동작 원리, containerd가
+self-signed cert를 trust하게 만드는 법.

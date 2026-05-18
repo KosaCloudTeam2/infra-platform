@@ -1,9 +1,11 @@
 # 06. 보안 & TLS
 
-> **이 챕터에서 다루는 것**
-> 자체 CA를 만들어서 운영하는 이유, X.509 인증서 구조, cert-manager로 K8s에서 cert를 자동 발급/갱신하는 메커니즘, 이중 TLS의 실제 트래픽 흐름, containerd가 self-signed cert를 신뢰하게 만드는 법.
+> **이 챕터에서 다루는 것**<br> 자체 CA를 만들어서 운영하는 이유, X.509 인증서 구조, cert-manager로
+> K8s에서 cert를 자동 발급/갱신하는 메커니즘, 이중 TLS의 실제 트래픽 흐름, containerd가 self-signed
+> cert를 신뢰하게 만드는 법.
 
 ## 목차
+
 1. [이론: TLS와 인증서](#1-이론-tls와-인증서)
 2. [왜 자체 CA? (Let's Encrypt 안 쓰는 이유)](#2-왜-자체-ca-lets-encrypt-안-쓰는-이유)
 3. [자체 CA 만들기](#3-자체-ca-만들기)
@@ -22,11 +24,13 @@
 ### 1.1 TLS가 푸는 문제
 
 평문(HTTP) 통신의 문제:
+
 - **도청**: 같은 네트워크에 있는 누구나 sniff
 - **변조**: 중간에서 패킷 수정
 - **사칭**: 가짜 서버에 접속해도 모름
 
 TLS는 세 가지 모두 해결:
+
 - 대칭키 암호 (AES 등) → 도청 방지
 - HMAC → 변조 감지
 - X.509 인증서 + PKI → 사칭 방지
@@ -67,7 +71,8 @@ Certificate:
   Signature: <Issuer가 자기 private key로 서명>
 ```
 
-📌 **핵심**: 클라이언트가 cert를 받으면 ① CA의 public key로 서명 검증 ② SAN에 hostname 매칭. 둘 다 OK여야 신뢰.
+📌 **핵심**: 클라이언트가 cert를 받으면 ① CA의 public key로 서명 검증 ② SAN에 hostname 매칭. 둘 다
+OK여야 신뢰.
 
 ### 1.4 CA 체인 (Chain of Trust)
 
@@ -92,31 +97,33 @@ Root CA (자기 자신이 서명, 가장 신뢰)
 ### 2.1 Let's Encrypt 제약
 
 LE는 **공인 도메인** 인증서 발급. ACME 챌린지로 도메인 소유 증명:
+
 - HTTP-01: `http://yourdomain.com/.well-known/...` 파일 응답
 - DNS-01: TXT 레코드 추가
 
 문제:
+
 1. 우리 도메인 `kosa.team2`는 **공인 등록 안 됨**. LE가 발급 거부.
 2. 사내망이라 LE 서버가 우리 호스트에 접근 불가 (HTTP-01 불가).
 3. DNS-01도 진짜 DNS provider API 필요 (pfSense는 LE에서 인정 안 됨).
 
 ### 2.2 옵션 비교
 
-| 옵션 | 우리에게 |
-|---|---|
-| **Let's Encrypt** | ❌ 공인 도메인 X |
-| **유료 CA (DigiCert 등)** | ❌ 비용 |
-| **HashiCorp Vault PKI** | △ 강력하나 Vault 운영 부담 |
-| **자체 CA** | ✅ 무료, 통제권, 학습 가치 |
+| 옵션                      | 우리에게                   |
+| ------------------------- | -------------------------- |
+| **Let's Encrypt**         | ❌ 공인 도메인 X           |
+| **유료 CA (DigiCert 등)** | ❌ 비용                    |
+| **HashiCorp Vault PKI**   | △ 강력하나 Vault 운영 부담 |
+| **자체 CA**               | ✅ 무료, 통제권, 학습 가치 |
 
 ### 2.3 자체 CA의 트레이드오프
 
-| 장점 | 단점 |
-|---|---|
-| 무료, 무제한 발급 | 클라이언트가 CA를 trust해야 (수동) |
-| 사내 도메인 자유 | 외부 노출 사이트엔 부적합 |
-| 단일 root로 통합 | CA private key 분실/유출 = 재앙 |
-| cert-manager 자동화 가능 | CA 만료 시 전부 교체 |
+| 장점                     | 단점                               |
+| ------------------------ | ---------------------------------- |
+| 무료, 무제한 발급        | 클라이언트가 CA를 trust해야 (수동) |
+| 사내 도메인 자유         | 외부 노출 사이트엔 부적합          |
+| 단일 root로 통합         | CA private key 분실/유출 = 재앙    |
+| cert-manager 자동화 가능 | CA 만료 시 전부 교체               |
 
 > 💡 우리 시나리오는 사내망 + 학습용이라 자체 CA가 압도적으로 적합.
 
@@ -186,7 +193,8 @@ ssh ubuntu@172.16.22.10 "sudo systemctl reload haproxy"
 ssh ubuntu@172.16.22.11 "sudo systemctl reload haproxy"
 ```
 
-> ⚠️ **wildcard 매칭 범위**: `*.kosa.team2`는 `harbor.kosa.team2`는 OK, `a.b.kosa.team2`는 X (1단계만). 2단계 wildcard는 별도 cert 필요.
+> ⚠️ **wildcard 매칭 범위**: `*.kosa.team2`는 `harbor.kosa.team2`는 OK, `a.b.kosa.team2`는 X
+> (1단계만). 2단계 wildcard는 별도 cert 필요.
 
 ### 3.3 클라이언트 trust 등록
 
@@ -216,6 +224,7 @@ sudo security add-trusted-cert -d -r trustRoot \
 K8s에서 매 서비스마다 cert를 손으로 발급/갱신하면? → 자동화 필요.
 
 cert-manager는 K8s 컨트롤러로:
+
 - `Certificate` 리소스를 watch
 - 정의된 Issuer로 cert 자동 발급
 - Secret에 저장 → Ingress/앱이 사용
@@ -223,10 +232,10 @@ cert-manager는 K8s 컨트롤러로:
 
 ### 4.2 Issuer vs ClusterIssuer
 
-| 종류 | 스코프 | 우리 사용 |
-|---|---|---|
-| **Issuer** | namespace 한정 | X |
-| **ClusterIssuer** | 클러스터 전역 | ✅ `kosa-ca-issuer` |
+| 종류              | 스코프         | 우리 사용           |
+| ----------------- | -------------- | ------------------- |
+| **Issuer**        | namespace 한정 | X                   |
+| **ClusterIssuer** | 클러스터 전역  | ✅ `kosa-ca-issuer` |
 
 ### 4.3 ClusterIssuer 설정
 
@@ -237,7 +246,7 @@ metadata:
   name: kosa-ca-issuer
 spec:
   ca:
-    secretName: kosa-ca-secret    # ← cert-manager namespace의 Secret
+    secretName: kosa-ca-secret # ← cert-manager namespace의 Secret
 ```
 
 `kosa-ca-secret`은 ca.crt + ca.key를 담은 Secret:
@@ -254,15 +263,16 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/cluster-issuer: kosa-ca-issuer   # ← 이게 핵심
+    cert-manager.io/cluster-issuer: kosa-ca-issuer # ← 이게 핵심
 spec:
   tls:
     - hosts: [harbor.kosa.team2]
-      secretName: harbor-ingress-cert   # ← cert-manager가 만들 Secret 이름
+      secretName: harbor-ingress-cert # ← cert-manager가 만들 Secret 이름
   rules: [...]
 ```
 
 cert-manager가:
+
 1. Ingress의 `tls.hosts` 보고 Certificate 리소스 자동 생성
 2. ClusterIssuer로 cert 발급
 3. `harbor-ingress-cert` Secret에 저장
@@ -271,6 +281,7 @@ cert-manager가:
 ### 4.5 갱신 정책
 
 cert-manager 기본:
+
 - 90일 cert면 60일 후 (만료 30일 전) 자동 갱신
 - 갱신 실패 시 backoff 재시도
 - Secret 자동 교체 → Ingress Controller가 새 cert로 reload
@@ -310,11 +321,11 @@ cert-manager 기본:
 
 ### 5.2 왜 두 번?
 
-| 이유 | 설명 |
-|---|---|
-| **신뢰 경계 분리** | DMZ(Edge)와 Internal(K8s)의 cert를 독립 회전 가능 |
-| **내부망 도청 방지** | 10G NIC tap이 있어도 평문 X |
-| **L7 검사 가능** | Edge에서 Host 헤더로 분기 + 추가 검사 |
+| 이유                 | 설명                                                             |
+| -------------------- | ---------------------------------------------------------------- |
+| **신뢰 경계 분리**   | DMZ(Edge)와 Internal(K8s)의 cert를 독립 회전 가능                |
+| **내부망 도청 방지** | 10G NIC tap이 있어도 평문 X                                      |
+| **L7 검사 가능**     | Edge에서 Host 헤더로 분기 + 추가 검사                            |
 | **백엔드 인증 검증** | Ingress가 Backend Service cert를 다시 검증 (cert-manager로 통일) |
 
 ### 5.3 두 cert 모두 같은 root CA여야 하는 이유
@@ -343,6 +354,7 @@ Ingress cert: CN=harbor.kosa.team2, Issuer=KOSA Team2 CA
 ### 6.1 문제
 
 `docker pull harbor.kosa.team2/library/foo:1` 또는 K8s가 Harbor에서 이미지 pull 시:
+
 ```
 x509: certificate signed by unknown authority
 ```
@@ -387,7 +399,8 @@ sudo update-ca-certificates
 sudo systemctl restart containerd
 ```
 
-> 💡 **왜 containerd는 별도 설정?** 시스템 trust만으로는 부족. containerd가 자체 cert resolution을 함. `/etc/containerd/certs.d/<host>/hosts.toml`이 권장 방식.
+> 💡 **왜 containerd는 별도 설정?** 시스템 trust만으로는 부족. containerd가 자체 cert resolution을
+> 함. `/etc/containerd/certs.d/<host>/hosts.toml`이 권장 방식.
 
 ### 6.4 모든 워커에 자동화 (Ansible)
 
@@ -451,6 +464,7 @@ ArgoCD로도 가능 (`~/kosa-gitops/apps/_applications/cert-manager.yaml`).
 자동. 만료 30일 전 갱신 시도. Secret 교체 → Ingress Controller가 자동 reload.
 
 수동 강제 갱신:
+
 ```bash
 kubectl delete certificate <name> -n <ns>
 # 재발급 됨
@@ -459,6 +473,7 @@ kubectl delete certificate <name> -n <ns>
 ### 8.2 Edge HAProxy wildcard (1년)
 
 수동:
+
 ```bash
 # bastion에서 새 wildcard 발급
 cd ~/pki
@@ -476,6 +491,7 @@ ssh ubuntu@172.16.22.11 "sudo systemctl reload haproxy"
 ### 8.3 CA 자체 (10년)
 
 거의 신경 X. 만료 1년 전쯤:
+
 1. 새 CA 발급
 2. 모든 노드 trust store에 추가 (기존 CA도 유지, 이중 신뢰)
 3. 모든 cert-manager Secret 교체
@@ -551,6 +567,7 @@ openssl x509 -in ~/pki/ca.crt -noout -enddate
 증상: 브라우저에서 "이 사이트의 보안 인증서가 만료" 경고.
 
 확인:
+
 ```bash
 echo | openssl s_client -connect ticket.kosa.team2:443 2>/dev/null | \
   openssl x509 -noout -dates
@@ -579,4 +596,5 @@ kubectl logs -n cert-manager <webhook-pod>
 
 → **[07. GitOps & ArgoCD](07-gitops-argocd.md)**
 
-GitOps 개념, ArgoCD 컴포넌트, App-of-Apps 패턴, Helm vs raw manifest 선택, ignoreDifferences 필수 케이스.
+GitOps 개념, ArgoCD 컴포넌트, App-of-Apps 패턴, Helm vs raw manifest 선택, ignoreDifferences 필수
+케이스.

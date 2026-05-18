@@ -1,9 +1,11 @@
 # 12. 운영 & 백업
 
-> **이 챕터에서 다루는 것**
-> 시스템을 만든 다음에 어떻게 살아남게 하는가. 일/주/월 단위 운영 루틴, 백업 전략, 노드 교체/확장 절차, K8s 업그레이드, 인증서 갱신 캘린더, 그리고 앞 11챕터의 트러블슈팅을 통합한 인덱스.
+> **이 챕터에서 다루는 것**<br> 시스템을 만든 다음에 어떻게 살아남게 하는가. 일/주/월 단위 운영
+> 루틴, 백업 전략, 노드 교체/확장 절차, K8s 업그레이드, 인증서 갱신 캘린더, 그리고 앞 11챕터의
+> 트러블슈팅을 통합한 인덱스.
 
 ## 목차
+
 1. [운영 마인드셋](#1-운영-마인드셋)
 2. [일/주/월 체크리스트](#2-일주월-체크리스트)
 3. [백업 전략](#3-백업-전략)
@@ -20,12 +22,12 @@
 
 ### 1.1 SRE 4대 신호 (Google SRE book)
 
-| 신호 | 무엇 | 우리 측정 |
-|---|---|---|
-| **Latency** | 응답 시간 | Prometheus (haproxy_*_duration) |
-| **Traffic** | 요청 양 | Prometheus (haproxy_*_rate) |
-| **Errors** | 실패율 | Prometheus (status=5xx) |
-| **Saturation** | 자원 사용률 | node-exporter (CPU/mem/disk) |
+| 신호           | 무엇        | 우리 측정                          |
+| -------------- | ----------- | ---------------------------------- |
+| **Latency**    | 응답 시간   | Prometheus (haproxy\_\*\_duration) |
+| **Traffic**    | 요청 양     | Prometheus (haproxy\_\*\_rate)     |
+| **Errors**     | 실패율      | Prometheus (status=5xx)            |
+| **Saturation** | 자원 사용률 | node-exporter (CPU/mem/disk)       |
 
 ### 1.2 운영의 3원칙
 
@@ -92,18 +94,18 @@ kubectl get applications -n argocd
 
 ### 3.1 무엇을 백업하나
 
-| 대상 | 백업 도구 | 보존 |
-|---|---|---|
-| etcd snapshot | etcdctl snapshot save | 일 1회, 7일 |
-| Ceph (인프라 자체) | 클러스터 자체 redundancy | (snapshot은 별도) |
-| Ceph RBD PV | rbd snapshot 또는 Velero | 주 1회, 4주 |
-| Harbor 메타데이터 (Postgres) | Postgres dump | 일 1회, 7일 |
-| Harbor 이미지 blob | Ceph RGW redundancy | (snapshot 별도) |
-| ArgoCD app spec | git repo 자체가 백업 | 영구 (git history) |
-| Jenkins config | JCasC + plugin list git | 영구 |
-| pfSense config | XML export | 주 1회 |
-| 자체 CA key | bastion 외 별도 (USB, 금고) | 영구 |
-| Proxmox VM | vzdump | 일 1회, 7일 |
+| 대상                         | 백업 도구                   | 보존               |
+| ---------------------------- | --------------------------- | ------------------ |
+| etcd snapshot                | etcdctl snapshot save       | 일 1회, 7일        |
+| Ceph (인프라 자체)           | 클러스터 자체 redundancy    | (snapshot은 별도)  |
+| Ceph RBD PV                  | rbd snapshot 또는 Velero    | 주 1회, 4주        |
+| Harbor 메타데이터 (Postgres) | Postgres dump               | 일 1회, 7일        |
+| Harbor 이미지 blob           | Ceph RGW redundancy         | (snapshot 별도)    |
+| ArgoCD app spec              | git repo 자체가 백업        | 영구 (git history) |
+| Jenkins config               | JCasC + plugin list git     | 영구               |
+| pfSense config               | XML export                  | 주 1회             |
+| 자체 CA key                  | bastion 외 별도 (USB, 금고) | 영구               |
+| Proxmox VM                   | vzdump                      | 일 1회, 7일        |
 
 ### 3.2 etcd snapshot (가장 중요)
 
@@ -145,6 +147,7 @@ K8s 리소스 + PV 통합 백업. 미설정 상태. 향후 추가 권장.
 ### 3.5 자체 CA key 백업
 
 가장 중요. 분실 시 모든 cert 무효화 + 재발급:
+
 - bastion `~/pki/ca.key`
 - 별도 USB
 - 팀 리더 PC (암호화 컨테이너)
@@ -194,6 +197,7 @@ K8s 리소스 + PV 통합 백업. 미설정 상태. 향후 추가 권장.
 ### 4.4 K8s CP 교체
 
 위험. 백업 + 천천히:
+
 1. 새 CP 노드 준비 (예: k8s-cp4)
 2. 기존 CP에서 새 join token 생성 (`--upload-certs` 옵션)
 3. 새 CP join
@@ -239,6 +243,7 @@ K8s 리소스 + PV 통합 백업. 미설정 상태. 향후 추가 권장.
 ### 5.2 절차 (예: 1.30 → 1.31)
 
 **1단계: 첫 CP**
+
 ```bash
 # apt repo 업데이트
 sudo apt-mark unhold kubeadm kubelet kubectl
@@ -258,12 +263,14 @@ sudo systemctl restart kubelet
 ```
 
 **2단계: 나머지 CP**
+
 ```bash
 sudo kubeadm upgrade node    # apply 대신 node
 # kubelet 동일
 ```
 
 **3단계: 워커들 (한 번에 한 대씩)**
+
 ```bash
 kubectl drain k8s-w1 --ignore-daemonsets --delete-emptydir-data
 ssh k8s-w1
@@ -280,21 +287,23 @@ kubectl uncordon k8s-w1
 
 ## 6. 인증서 갱신 캘린더
 
-| 대상 | 만료 | 갱신 |
-|---|---|---|
-| 자체 CA (`~/pki/ca.crt`) | 10년 | 거의 X (만료 1년 전 알람) |
-| Wildcard cert (`wildcard.pem`) | 1년 | 수동, 11개월차 |
-| cert-manager 발급 cert (per-service) | 90일 | 자동 (60일 후) |
-| K8s 시스템 cert (apiserver 등) | 1년 | `kubeadm certs renew` (자동/수동) |
-| etcd cert | 1년 | 위와 동일 |
-| Harbor admin password | (정책 없음) | 권장 분기 1회 |
-| Jenkins admin password | (정책 없음) | 권장 분기 1회 |
+| 대상                                 | 만료        | 갱신                              |
+| ------------------------------------ | ----------- | --------------------------------- |
+| 자체 CA (`~/pki/ca.crt`)             | 10년        | 거의 X (만료 1년 전 알람)         |
+| Wildcard cert (`wildcard.pem`)       | 1년         | 수동, 11개월차                    |
+| cert-manager 발급 cert (per-service) | 90일        | 자동 (60일 후)                    |
+| K8s 시스템 cert (apiserver 등)       | 1년         | `kubeadm certs renew` (자동/수동) |
+| etcd cert                            | 1년         | 위와 동일                         |
+| Harbor admin password                | (정책 없음) | 권장 분기 1회                     |
+| Jenkins admin password               | (정책 없음) | 권장 분기 1회                     |
 
 ### 6.1 K8s 시스템 cert 자동 갱신
 
-kubeadm v1.15+는 `kubeadm upgrade`마다 cert 자동 갱신. 그래서 1년에 한 번 patch upgrade가 자연스러운 갱신 기회.
+kubeadm v1.15+는 `kubeadm upgrade`마다 cert 자동 갱신. 그래서 1년에 한 번 patch upgrade가 자연스러운
+갱신 기회.
 
 수동:
+
 ```bash
 # 만료일 확인
 sudo kubeadm certs check-expiration
@@ -317,16 +326,16 @@ sudo systemctl restart kubelet
 
 현재 시스템의 SPoF (Single Point of Failure) 정리.
 
-| SPoF | 영향 | 완화 옵션 |
-|---|---|---|
-| **RGW (ceph1 1대)** | Harbor push/pull 불가 (이미 running Pod는 영향 X) | RGW 2개 이상 + LB |
-| **k8s-sys1 노드** | ArgoCD/Harbor/Jenkins/모니터링 정지 | sys2 추가 + HA 컴포넌트 replica |
-| **bastion (kosa3에 위치)** | kubectl 접근 채널 1개 | 다른 노트북에 kubeconfig 보유 |
-| **MetalLB active 노드** | Ingress LB 1개 노드 의존 | L2 페일오버는 자동 (수 초) |
-| **pfSense MASTER 노드의 Proxmox** | failover 가능하지만 부팅 의존 | OOB 경로 + autostart |
-| **자체 CA private key** | 분실 시 재앙 | 다중 백업 |
-| **GitHub (외부)** | git push/pull 불가 → CI 정지 | 사내 GitLab 또는 git mirroring |
-| **NAT Gateway (AWS, 향후)** | private subnet outbound 정지 | AZ별 NAT (비용 ↑) |
+| SPoF                              | 영향                                              | 완화 옵션                       |
+| --------------------------------- | ------------------------------------------------- | ------------------------------- |
+| **RGW (ceph1 1대)**               | Harbor push/pull 불가 (이미 running Pod는 영향 X) | RGW 2개 이상 + LB               |
+| **k8s-sys1 노드**                 | ArgoCD/Harbor/Jenkins/모니터링 정지               | sys2 추가 + HA 컴포넌트 replica |
+| **bastion (kosa3에 위치)**        | kubectl 접근 채널 1개                             | 다른 노트북에 kubeconfig 보유   |
+| **MetalLB active 노드**           | Ingress LB 1개 노드 의존                          | L2 페일오버는 자동 (수 초)      |
+| **pfSense MASTER 노드의 Proxmox** | failover 가능하지만 부팅 의존                     | OOB 경로 + autostart            |
+| **자체 CA private key**           | 분실 시 재앙                                      | 다중 백업                       |
+| **GitHub (외부)**                 | git push/pull 불가 → CI 정지                      | 사내 GitLab 또는 git mirroring  |
+| **NAT Gateway (AWS, 향후)**       | private subnet outbound 정지                      | AZ별 NAT (비용 ↑)               |
 
 ---
 
@@ -335,6 +344,7 @@ sudo systemctl restart kubelet
 각 챕터의 트러블슈팅을 카테고리별로 cross-reference.
 
 ### 8.1 네트워크
+
 - VLAN tag 안 먹음 → [02 §10.1](02-physical-network.md#101-vlan-tag-안-먹음)
 - CARP split-brain → [02 §10.2](02-physical-network.md#102-carp-split-brain)
 - XMLRPC 동기화 실패 → [02 §10.3](02-physical-network.md#103-xmlrpc-동기화-실패)
@@ -344,6 +354,7 @@ sudo systemctl restart kubelet
 - 10G 느림 → [02 §10.7](02-physical-network.md#107-ceph-10g에서-느린-처리량)
 
 ### 8.2 가상화 (Proxmox)
+
 - VM 메모리 100%+ → [03 §10.1](03-proxmox.md#101-vm-메모리가-100-빨강)
 - 클러스터 quorum 깨짐 → [03 §10.2](03-proxmox.md#102-클러스터-quorum-깨짐)
 - 마이그레이션 실패 → [03 §10.3](03-proxmox.md#103-cpu-type-host로-마이그레이션-실패)
@@ -353,6 +364,7 @@ sudo systemctl restart kubelet
 - vmbr VLAN tag → [03 §10.7](03-proxmox.md#107-vmbr이-vlan-tag-적용-안-함)
 
 ### 8.3 Ceph
+
 - OSD down → [04 §12.1](04-ceph.md#121-health_warn-osd-down)
 - slow ops → [04 §12.2](04-ceph.md#122-health_warn-slow-ops)
 - mons clock skew → [04 §12.3](04-ceph.md#123-health_warn-mons-clock-skew)
@@ -363,6 +375,7 @@ sudo systemctl restart kubelet
 - RGW connection refused → [04 §12.8](04-ceph.md#128-rgw-connection-refused)
 
 ### 8.4 Kubernetes
+
 - 노드 NotReady → [05 §12.1](05-kubernetes.md#121-노드-notready)
 - kubectl timeout → [05 §12.2](05-kubernetes.md#122-kubectl-통신-안-됨-timeout)
 - PVC Multi-Attach → [05 §12.3](05-kubernetes.md#123-pvc-pending--multi-attach)
@@ -373,7 +386,9 @@ sudo systemctl restart kubelet
 - etcd 위험 신호 → [05 §12.8](05-kubernetes.md#128-etcd-위험-신호)
 
 ### 8.5 보안 / TLS
-- x509 unknown authority → [06 §9.1](06-security-tls.md#91-x509-certificate-signed-by-unknown-authority)
+
+- x509 unknown authority →
+  [06 §9.1](06-security-tls.md#91-x509-certificate-signed-by-unknown-authority)
 - SAN mismatch → [06 §9.2](06-security-tls.md#92-x509-certificate-is-valid-for-x-not-y-san-mismatch)
 - cert-manager 발급 안 함 → [06 §9.3](06-security-tls.md#93-cert-manager가-cert-발급-안-함)
 - Ingress cert 못 찾음 → [06 §9.4](06-security-tls.md#94-ingress가-cert-못-찾음)
@@ -382,6 +397,7 @@ sudo systemctl restart kubelet
 - webhook 에러 → [06 §9.7](06-security-tls.md#97-cert-manager-admission-webhook-에러)
 
 ### 8.6 GitOps (ArgoCD)
+
 - OutOfSync but Healthy → [07 §10.1](07-gitops-argocd.md#101-outofsync인데-healthy) + CLAUDE FAQ Q5
 - Sync 실패 → [07 §10.2](07-gitops-argocd.md#102-sync-실패-rpc-error-code--unknown-)
 - ImagePullBackOff → [07 §10.3](07-gitops-argocd.md#103-imagepullbackoff)
@@ -390,8 +406,11 @@ sudo systemctl restart kubelet
 - root-app 동작 X → [07 §10.6](07-gitops-argocd.md#106-root-app이-다른-application-안-만듦)
 
 ### 8.7 Harbor
-- x509 (push) → [08 §10.1](08-harbor-registry.md#101-push-x509-certificate-signed-by-unknown-authority)
-- access denied → [08 §10.2](08-harbor-registry.md#102-push-denied-requested-access-to-the-resource-is-denied)
+
+- x509 (push) →
+  [08 §10.1](08-harbor-registry.md#101-push-x509-certificate-signed-by-unknown-authority)
+- access denied →
+  [08 §10.2](08-harbor-registry.md#102-push-denied-requested-access-to-the-resource-is-denied)
 - NoSuchBucket → [08 §10.3](08-harbor-registry.md#103-push-s3aws-nosuchbucket)
 - connection refused → [08 §10.4](08-harbor-registry.md#104-push-s3aws-connection-refused)
 - 503 stuck → [08 §10.5](08-harbor-registry.md#105-push-503--11h-stuck)
@@ -400,6 +419,7 @@ sudo systemctl restart kubelet
 - 디스크 폭증 → [08 §10.10](08-harbor-registry.md#1010-디스크-사용량-폭증)
 
 ### 8.8 Jenkins / CI/CD
+
 - Login Failed → [09 §9.1](09-jenkins-ci.md#91-login-failed-반복)
 - plugin 호환성 → [09 §9.2](09-jenkins-ci.md#92-plugin-호환성-깨짐-2492x)
 - Agent Pod 안 뜸 → [09 §9.3](09-jenkins-ci.md#93-build-agent-pod-안-뜸)
@@ -408,11 +428,13 @@ sudo systemctl restart kubelet
 - Kaniko x509 → [09 §9.6](09-jenkins-ci.md#96-kaniko-push-x509)
 - Pipeline 자체 안 시작 → [10 §9.1](10-cicd-pipeline.md#91-pipeline-자체가-시작-안-됨)
 - git clone fail → [10 §9.2](10-cicd-pipeline.md#92-git-clone-실패-permission-denied--host-key)
-- Kaniko build push fail → [10 §9.3](10-cicd-pipeline.md#93-kaniko-build-실패-error-checking-push-permissions)
+- Kaniko build push fail →
+  [10 §9.3](10-cicd-pipeline.md#93-kaniko-build-실패-error-checking-push-permissions)
 - sed 미반영 → [10 §9.5](10-cicd-pipeline.md#95-sed-결과가-안-바뀜)
 - git push rejected → [10 §9.6](10-cicd-pipeline.md#96-git-push-rejected)
 
 ### 8.9 관측 (Prometheus)
+
 - Target down → [11 §9.1](11-observability.md#91-target-down)
 - ServiceMonitor 인식 X → [11 §9.2](11-observability.md#92-servicemonitor-인식-안-됨)
 - Grafana 로그인 실패 → [11 §9.3](11-observability.md#93-grafana-로그인-실패)
@@ -425,6 +447,7 @@ sudo systemctl restart kubelet
 온프레 부분은 일단 안정화 완료. 다음 작업 후보:
 
 ### 9.1 운영 강화 (작은 단위 작업)
+
 - [ ] etcd snapshot CronJob 자동화 (Ceph RBD PVC 백업)
 - [ ] Velero 도입 (K8s 전체 백업)
 - [ ] Alertmanager → Slack 연동
@@ -434,6 +457,7 @@ sudo systemctl restart kubelet
 - [ ] 부하 테스트 환경 (k6 / JMeter VM)
 
 ### 9.2 AWS 하이브리드 (대형 작업)
+
 - [ ] Site-to-Site VPN (terraform)
 - [ ] DB Subnet tier
 - [ ] VPC Endpoints (S3 Gateway, ECR Interface)
@@ -445,6 +469,7 @@ sudo systemctl restart kubelet
 - [ ] Route 53 + ACM (실제 도메인 시)
 
 ### 9.3 차세대 (장기)
+
 - [ ] Service Mesh (Istio / Linkerd) — mTLS 통합
 - [ ] Loki + Tempo (로그/트레이스)
 - [ ] Ceph RGW HA (2~3 노드)
@@ -492,6 +517,7 @@ sudo kubeadm certs check-expiration
 
 이 문서 시리즈가 우리 팀의 1년 후, 3년 후의 자신과 다음 합류자에게 도움이 되길.
 
-기록은 시간이 지나면 무너진다. 변경이 있을 때마다 작은 메모라도 해당 챕터에 추가하는 습관이 가장 중요하다.
+기록은 시간이 지나면 무너진다. 변경이 있을 때마다 작은 메모라도 해당 챕터에 추가하는 습관이 가장
+중요하다.
 
 **문서가 살아 있어야 시스템도 살아 있다.**

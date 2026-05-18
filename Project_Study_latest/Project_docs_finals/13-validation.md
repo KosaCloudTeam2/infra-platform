@@ -1,30 +1,28 @@
 # 13. 전체 검증 (Validation Runbook)
 
-> **이 챕터에서 다루는 것**
-> 인프라가 설계대로 동작하는지 한 번에 훑는 체크리스트 + 명령어.
-> 사용법: 위에서 아래로 순차 실행, 각 섹션 끝에 있는 "결과 기록" 표에 체크 후 commit.
-> 매 분기 1회 + 큰 변경 후 매번 수행 권장.
+> **이 챕터에서 다루는 것**<br> 인프라가 설계대로 동작하는지 한 번에 훑는 체크리스트 + 명령어.<br>
+> 사용법: 위에서 아래로 순차 실행, 각 섹션 끝에 있는 "결과 기록" 표에 체크 후 commit.<br> 매 분기
+> 1회 + 큰 변경 후 매번 수행 권장.
 
 ---
 
 ## 📌 명령 실행 위치 표기 규칙
 
-각 코드 블록 첫 줄 주석에 **`# 📍 <어디서>`** 명시.
-헷갈리지 않게 호스트 약어 통일:
+각 코드 블록 첫 줄 주석에 **`# 📍 <어디서>`** 명시.<br> 헷갈리지 않게 호스트 약어 통일:
 
-| 약어 | 실제 호스트 | IP | 접근 방법 |
-|---|---|---|---|
-| **bastion** | bastion VM | 172.16.24.10 | (시작점) — SSH 또는 직접 로그인 |
-| **cp1, cp2, cp3** | K8s Control Plane | 172.16.23.10/11/12 | `ssh ubuntu@<IP>` (bastion에서) |
-| **w1, w2, w3** | K8s Worker (production) | 172.16.23.20/21/22 | `ssh ubuntu@<IP>` |
-| **sys1** | K8s Worker (system) | 172.16.23.23 | `ssh ubuntu@<IP>` |
-| **lb-1, lb-2** | K8s API LB | 172.16.23.6/7 | `ssh ubuntu@<IP>` |
-| **edge-1, edge-2** | Edge HAProxy | 172.16.22.10/11 | `ssh ubuntu@<IP>` |
-| **ceph1~6** | Ceph 노드 | 10.10.10.11~16 | `ssh root@<IP>` (cephadm 환경) |
-| **kosa1~4** | Proxmox 호스트 | 192.168.21.2~5 | `ssh root@<IP>` |
-| **pfSense Primary/Secondary** | pfSense VM | (콘솔 or Web UI) | Proxmox Console 또는 https://172.16.21.1 |
-| **K8s Pod 안** | (Pod 내부) | — | `kubectl exec -it ...` (bastion에서) |
-| **노트북** | 팀원 노트북 | 192.168.21.x | (검증자 본인 PC) |
+| 약어                          | 실제 호스트             | IP                 | 접근 방법                                |
+| ----------------------------- | ----------------------- | ------------------ | ---------------------------------------- |
+| **bastion**                   | bastion VM              | 172.16.24.10       | (시작점) — SSH 또는 직접 로그인          |
+| **cp1, cp2, cp3**             | K8s Control Plane       | 172.16.23.10/11/12 | `ssh ubuntu@<IP>` (bastion에서)          |
+| **w1, w2, w3**                | K8s Worker (production) | 172.16.23.20/21/22 | `ssh ubuntu@<IP>`                        |
+| **sys1**                      | K8s Worker (system)     | 172.16.23.23       | `ssh ubuntu@<IP>`                        |
+| **lb-1, lb-2**                | K8s API LB              | 172.16.23.6/7      | `ssh ubuntu@<IP>`                        |
+| **edge-1, edge-2**            | Edge HAProxy            | 172.16.22.10/11    | `ssh ubuntu@<IP>`                        |
+| **ceph1~6**                   | Ceph 노드               | 10.10.10.11~16     | `ssh root@<IP>` (cephadm 환경)           |
+| **kosa1~4**                   | Proxmox 호스트          | 192.168.21.2~5     | `ssh root@<IP>`                          |
+| **pfSense Primary/Secondary** | pfSense VM              | (콘솔 or Web UI)   | Proxmox Console 또는 https://172.16.21.1 |
+| **K8s Pod 안**                | (Pod 내부)              | —                  | `kubectl exec -it ...` (bastion에서)     |
+| **노트북**                    | 팀원 노트북             | 192.168.21.x       | (검증자 본인 PC)                         |
 
 ### 코드 블록 prefix 예시
 
@@ -58,6 +56,7 @@ ping 192.168.21.109
 ---
 
 ## 목차
+
 0. [시작 전: kubectl 안 되면 먼저 복구](#0-시작-전-kubectl-안-되면-먼저-복구)
 1. [사전 준비 — bastion 환경](#1-사전-준비--bastion-환경)
 2. [10G 대역폭 측정 (iperf3)](#2-10g-대역폭-측정-iperf3)
@@ -117,13 +116,13 @@ done
 
 ### 0.2 해석 매트릭스
 
-| (a) VIP | (c) CP direct | 진단 | 조치 |
-|---|---|---|---|
-| 두 노드 다 없음 | - | keepalived 둘 다 죽음 | 양쪽 `systemctl start keepalived` |
-| 양쪽 다 있음 | - | split-brain | 한쪽 keepalived stop 후 재시작 |
-| 한 쪽만 있음 (정상) | 모두 fail | CP 다 죽음 | 0.3 절차 |
-| 한 쪽만 있음 (정상) | 1~2개 fail | 일부 CP 죽음 | 죽은 CP 0.3 |
-| 한 쪽만 있음 (정상) | 모두 OK | HAProxy 백엔드 설정 깨짐 | `sudo systemctl restart haproxy` |
+| (a) VIP             | (c) CP direct | 진단                     | 조치                              |
+| ------------------- | ------------- | ------------------------ | --------------------------------- |
+| 두 노드 다 없음     | -             | keepalived 둘 다 죽음    | 양쪽 `systemctl start keepalived` |
+| 양쪽 다 있음        | -             | split-brain              | 한쪽 keepalived stop 후 재시작    |
+| 한 쪽만 있음 (정상) | 모두 fail     | CP 다 죽음               | 0.3 절차                          |
+| 한 쪽만 있음 (정상) | 1~2개 fail    | 일부 CP 죽음             | 죽은 CP 0.3                       |
+| 한 쪽만 있음 (정상) | 모두 OK       | HAProxy 백엔드 설정 깨짐 | `sudo systemctl restart haproxy`  |
 
 ### 0.3 CP 노드 복구
 
@@ -227,6 +226,7 @@ kubectl cluster-info
 #### 1.2.1 SSH `Permission denied (publickey)` 트러블슈팅
 
 증상:
+
 ```
 172.16.23.10: ubuntu@172.16.23.10: Permission denied (publickey).
 ...
@@ -234,6 +234,7 @@ kubectl cluster-info
 ```
 
 ##### 진단 — bastion에서 4가지 먼저
+
 ```bash
 # 📍 bastion에서
 ls -la ~/.ssh/                    # (a) 키 파일 존재?
@@ -243,6 +244,7 @@ cat ~/.ssh/config 2>/dev/null     # (d) config에 키 지정?
 ```
 
 ##### 시나리오 A — 키는 있는데 이름이 default가 아님
+
 `id_ed25519`, `id_rsa` 외 이름(`kosa-key`, `ansible-key` 등)이면 명시 필요.
 
 ```bash
@@ -262,6 +264,7 @@ chmod 600 ~/.ssh/config
 ```
 
 ##### 시나리오 B — 키 있는데 ssh-agent에 미로드
+
 ```bash
 # 📍 bastion에서
 eval $(ssh-agent)
@@ -270,9 +273,11 @@ ssh-add -l                       # 확인
 ```
 
 ##### 시나리오 C — bastion `~/.ssh`가 진짜 비어있음
+
 (bastion 재생성/cloud-init 재실행 등으로 키 유실)
 
 새 키 생성 + 12+ 노드에 배포:
+
 ```bash
 # 📍 bastion에서
 
@@ -300,6 +305,7 @@ qm reboot <vmid>
 ```
 
 ##### 시나리오 D — `Host key verification failed`
+
 known_hosts에 옛 키가 남아있음 (VM 재생성 후 자주).
 
 ```bash
@@ -315,6 +321,7 @@ ssh -o StrictHostKeyChecking=accept-new ubuntu@10.10.10.15
 ```
 
 ##### Ceph 노드는 `ubuntu` 계정이 아닐 수 있음
+
 cephadm으로 부트스트랩한 경우 `root` 계정.
 
 ```bash
@@ -325,6 +332,7 @@ ssh -i /etc/ceph/ceph.pub root@10.10.10.11
 ```
 
 `ubuntu` 사용 원하면 사용자 추가 + sudo 권한:
+
 ```bash
 # 📍 ceph1 (root로 로그인 후) 에서
 adduser ubuntu
@@ -337,6 +345,7 @@ chmod 600 /home/ubuntu/.ssh/authorized_keys
 ```
 
 ##### 검증 (모두 성공 시)
+
 ```bash
 # 📍 bastion에서
 for h in 172.16.23.{10..12,20..23,6,7} 172.16.22.{10,11} 172.16.24.10; do
@@ -371,17 +380,18 @@ cd $VAL_DIR
 
 ### 2.1 측정 매트릭스
 
-| 경로 | 기대 | 의미 |
-|---|---|---|
-| Ceph 노드 ↔ Ceph 노드 (10G) | ~9.4 Gbps | Ceph replication 헤드룸 |
-| Proxmox ↔ Ceph (10G) | ~9.4 Gbps | VM IO / Ceph 클라이언트 |
-| K8s 워커 (10G NIC) ↔ Ceph | ~9.4 Gbps | RBD IO |
-| K8s 워커 ↔ K8s 워커 (VLAN 30, 1G) | ~940 Mbps | Pod 간 트래픽 |
-| Pod ↔ Pod (Calico IPIP) | ~860 Mbps | overhead 약 8~10% |
+| 경로                              | 기대      | 의미                    |
+| --------------------------------- | --------- | ----------------------- |
+| Ceph 노드 ↔ Ceph 노드 (10G)       | ~9.4 Gbps | Ceph replication 헤드룸 |
+| Proxmox ↔ Ceph (10G)              | ~9.4 Gbps | VM IO / Ceph 클라이언트 |
+| K8s 워커 (10G NIC) ↔ Ceph         | ~9.4 Gbps | RBD IO                  |
+| K8s 워커 ↔ K8s 워커 (VLAN 30, 1G) | ~940 Mbps | Pod 간 트래픽           |
+| Pod ↔ Pod (Calico IPIP)           | ~860 Mbps | overhead 약 8~10%       |
 
 ### 2.2 노드 간 iperf3
 
 > ⚠️ iperf3가 양쪽에 설치되어 있어야. 안 깔려있으면:
+>
 > ```bash
 > # 📍 bastion에서 (Ceph 노드 6대 일괄)
 > for ip in 10.10.10.{11..16}; do
@@ -390,12 +400,14 @@ cd $VAL_DIR
 > ```
 
 서버 측 (한 호스트):
+
 ```bash
 # 📍 bastion에서 → ceph1을 서버로 띄움 (daemonize)
 ssh root@10.10.10.11 "iperf3 -s -D"
 ```
 
 클라이언트 측 (다른 호스트):
+
 ```bash
 # 📍 bastion에서 → ceph2를 client로
 ssh root@10.10.10.12 "iperf3 -c 10.10.10.11 -t 30 -P 4" \
@@ -457,13 +469,14 @@ kubectl exec -n kube-system $(kubectl get pod -n kube-system -l k8s-app=calico-n
 
 **Pod-Pod가 1G인 게 확인됐고 업그레이드 원하면 — 옵션:**
 
-> ⚠️ **제약**: 우리는 노드당 사용 가능한 10G NIC이 `enp1s0f0` 1개뿐. NIC 분리 불가, **Ceph와 K8s 트래픽 공유**가 불가피.
+> ⚠️ **제약**: 우리는 노드당 사용 가능한 10G NIC이 `enp1s0f0` 1개뿐. NIC 분리 불가, **Ceph와 K8s
+> 트래픽 공유**가 불가피.
 
-| 옵션 | 명령 | 효과 / 주의 |
-|---|---|---|
-| A. Calico만 10G | `kubectl set env ds/calico-node -n kube-system IP_AUTODETECTION_METHOD=can-reach=10.10.10.11` + rollout | Pod 트래픽 10G. Ceph와 NIC 공유 |
-| B. 노드 InternalIP 자체 10G | kubelet `--node-ip=10.10.10.x` 재구성 + 재join | 모든 K8s 트래픽 10G. 가장 깨끗하지만 운영 부담 |
-| D. 현 상태 유지 | (변경 X) | Pod-Pod 1G로 운영 |
+| 옵션                        | 명령                                                                                                    | 효과 / 주의                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| A. Calico만 10G             | `kubectl set env ds/calico-node -n kube-system IP_AUTODETECTION_METHOD=can-reach=10.10.10.11` + rollout | Pod 트래픽 10G. Ceph와 NIC 공유                |
+| B. 노드 InternalIP 자체 10G | kubelet `--node-ip=10.10.10.x` 재구성 + 재join                                                          | 모든 K8s 트래픽 10G. 가장 깨끗하지만 운영 부담 |
+| D. 현 상태 유지             | (변경 X)                                                                                                | Pod-Pod 1G로 운영                              |
 
 #### Ceph 양보 설정 (옵션 A/B 시 필수)
 
@@ -481,18 +494,19 @@ ceph config set osd osd_op_queue_cut_off high
 
 #### 현실 체크 — 정말 충돌 나나?
 
-| 트래픽 | 평균 | 비상시 (rebalance/recovery) |
-|---|---|---|
-| Ceph 정상 운영 | 50~200 MB/s | — |
-| Ceph 1 OSD 교체 | — | 일시 500MB~1GB/s, 수십 분 |
-| Ceph 큰 장애 recovery | — | 1~5 GB/s, 수시간 |
-| K8s Pod-Pod (앱) | < 100 MB/s | — |
-| Redis Sentinel sync | < 50 MB/s | — |
-| Prometheus federation | < 10 MB/s | — |
+| 트래픽                | 평균        | 비상시 (rebalance/recovery) |
+| --------------------- | ----------- | --------------------------- |
+| Ceph 정상 운영        | 50~200 MB/s | —                           |
+| Ceph 1 OSD 교체       | —           | 일시 500MB~1GB/s, 수십 분   |
+| Ceph 큰 장애 recovery | —           | 1~5 GB/s, 수시간            |
+| K8s Pod-Pod (앱)      | < 100 MB/s  | —                           |
+| Redis Sentinel sync   | < 50 MB/s   | —                           |
+| Prometheus federation | < 10 MB/s   | —                           |
 
 **평상시 합계 ≪ 10Gbps**. Ceph 비상 상황에만 잠시 영향. 운영시간 외 stage 권장.
 
-> 💡 **추천 진행**: 옵션 A 우선 적용 + Ceph 양보 설정. 한 분기 운영해보고 trouble 없으면 그대로. Pod-Pod 10G화 가치 충분 (Redis HA, PXC, Prometheus federation 등).
+> 💡 **추천 진행**: 옵션 A 우선 적용 + Ceph 양보 설정. 한 분기 운영해보고 trouble 없으면 그대로.
+> Pod-Pod 10G화 가치 충분 (Redis HA, PXC, Prometheus federation 등).
 
 ### 2.4 Pod ↔ Pod (Calico)
 
@@ -526,12 +540,12 @@ kubectl delete namespace netperf
 
 ### 3.1 측정 레벨
 
-| 레벨 | 도구 | 측정 대상 |
-|---|---|---|
-| RADOS (object) | `rados bench` | OSD raw 처리량 |
-| RBD (block) | `rbd bench` | RBD 이미지 IO |
-| K8s Pod 안 | `fio` | end-to-end (PV mount까지) |
-| RGW (S3) | `s3-benchmark` 또는 `hsbench` | S3 객체 IO |
+| 레벨           | 도구                          | 측정 대상                 |
+| -------------- | ----------------------------- | ------------------------- |
+| RADOS (object) | `rados bench`                 | OSD raw 처리량            |
+| RBD (block)    | `rbd bench`                   | RBD 이미지 IO             |
+| K8s Pod 안     | `fio`                         | end-to-end (PV mount까지) |
+| RGW (S3)       | `s3-benchmark` 또는 `hsbench` | S3 객체 IO                |
 
 ### 3.2 RADOS bench (4K random write)
 
@@ -565,6 +579,7 @@ ceph osd pool delete bench-pool bench-pool --yes-i-really-really-mean-it
 주요 출력: `Total time run`, `Total writes made`, `Average IOPS`, `Average Latency(s)`.
 
 **기대값 (HDD 6 OSD, BlueStore, 4K random)**:
+
 - Write: ~200~500 IOPS (HDD seek bound)
 - Sequential read: ~5,000~15,000 IOPS (cache hit)
 - Random read: ~500~1,500 IOPS
@@ -762,7 +777,8 @@ kubectl get deploy ticket-app -n kosa-tickets -o yaml | grep -iE "redis|REDIS"
 # 만약 안 쓴다면 → Redis는 설치만 되어있고 미활용 (정상)
 ```
 
-> ⚠️ ticket-app은 데모 in-memory라 Redis 미사용일 가능성 ↑. 실제 비즈니스 워크로드(예: 세션 저장, 대기열) 추가 시 활용.
+> ⚠️ ticket-app은 데모 in-memory라 Redis 미사용일 가능성 ↑. 실제 비즈니스 워크로드(예: 세션 저장,
+> 대기열) 추가 시 활용.
 
 ---
 
@@ -850,10 +866,12 @@ curl -s -o /dev/null -w "%{http_code}\n" https://jenkins.kosa.team2
 ### 6.2 빌드 트리거 (kosa-tickets-ci)
 
 📍 **브라우저 (노트북)**:
+
 1. https://jenkins.kosa.team2 → kosa-tickets-ci → Build Now
 2. Console output 확인 — 3 stage 모두 SUCCESS?
 
 CLI (jenkins-cli.jar):
+
 ```bash
 # 📍 bastion에서 (kubectl exec로 Jenkins Pod 내부 명령)
 kubectl exec -n jenkins jenkins-0 -- \
@@ -914,6 +932,7 @@ argocd app list -o json | jq -r '.[] | "\(.metadata.name)\t\(.status.sync.status
 ```
 
 OutOfSync 라면:
+
 ```bash
 argocd app diff <app-name>
 argocd app get <app-name> --hard-refresh
@@ -973,23 +992,27 @@ git commit -m "test: remove test-nginx" && git push
 ## 8. HA / Failover 시험
 
 ### ⚠️ 시험 전 주의
+
 실제 트래픽이 흐르고 있는 시간은 피할 것. 일부 트래픽 끊김 발생 가능.
 
 ### 8.1 pfSense CARP failover
 
 **준비**: continuous ping 시작
+
 ```bash
 # 📍 노트북 (외부 환경) 에서
 ping -i 0.5 192.168.21.109 | tee pfsense-ping.log
 ```
 
 **시험**: pfSense Primary 다운
+
 ```bash
 # 📍 pfSense Primary 콘솔 또는 SSH 후
 sudo reboot
 ```
 
 또는 CARP 강제 demote:
+
 ```bash
 # 📍 pfSense Primary 쉘 (Option 8)에서
 sysctl net.inet.carp.demotion=1
@@ -1177,43 +1200,43 @@ kubectl uncordon <해당-노드명>
 
 ### 9.1 10G 대역폭
 
-| 경로 | 측정 (Gbps) | 기대 | 합격 |
-|---|---|---|---|
-| ceph1 ↔ ceph2 |  | ~9.4 | ✅/❌ |
-| ceph2 ↔ ceph3 |  | ~9.4 | |
-| kosa1 ↔ ceph1 |  | ~9.4 | |
-| w1 (10G) ↔ ceph1 |  | ~9.4 | |
-| Pod ↔ Pod (Calico) |  | ~860Mbps | |
+| 경로               | 측정 (Gbps) | 기대     | 합격  |
+| ------------------ | ----------- | -------- | ----- |
+| ceph1 ↔ ceph2      |             | ~9.4     | ✅/❌ |
+| ceph2 ↔ ceph3      |             | ~9.4     |       |
+| kosa1 ↔ ceph1      |             | ~9.4     |       |
+| w1 (10G) ↔ ceph1   |             | ~9.4     |       |
+| Pod ↔ Pod (Calico) |             | ~860Mbps |       |
 
 ### 9.2 Ceph IOPS
 
-| 측정 | 4K randwrite IOPS | 4K randread IOPS | 1M seqwrite (MB/s) |
-|---|---|---|---|
-| RADOS bench |  |  |  |
-| RBD bench |  |  |  |
-| Pod fio |  |  |  |
+| 측정        | 4K randwrite IOPS | 4K randread IOPS | 1M seqwrite (MB/s) |
+| ----------- | ----------------- | ---------------- | ------------------ |
+| RADOS bench |                   |                  |                    |
+| RBD bench   |                   |                  |                    |
+| Pod fio     |                   |                  |                    |
 
 ### 9.3 서비스 동작
 
-| 서비스 | Pod Running | Ingress 응답 | 기능 테스트 | 합격 |
-|---|---|---|---|---|
-| Redis (Sentinel) |  | (N/A) | set/get + failover | |
-| Harbor |  |  | push/pull | |
-| Jenkins |  |  | Build #N SUCCESS | |
-| ArgoCD |  |  | selfHeal 동작 | |
-| Grafana |  |  | dashboard 로드 | |
+| 서비스           | Pod Running | Ingress 응답 | 기능 테스트        | 합격 |
+| ---------------- | ----------- | ------------ | ------------------ | ---- |
+| Redis (Sentinel) |             | (N/A)        | set/get + failover |      |
+| Harbor           |             |              | push/pull          |      |
+| Jenkins          |             |              | Build #N SUCCESS   |      |
+| ArgoCD           |             |              | selfHeal 동작      |      |
+| Grafana          |             |              | dashboard 로드     |      |
 
 ### 9.4 HA / Failover
 
-| 시험 | 다운타임 (s) | 자동 복구 | 비고 |
-|---|---|---|---|
-| pfSense CARP |  | ✅/❌ | |
-| K8s API VIP |  |  | |
-| Edge HAProxy |  |  | |
-| K8s CP 1대 다운 | (eviction X) |  | etcd quorum OK? |
-| K8s Worker 1대 다운 | ~5min |  | Pod 재배치? |
-| Ceph OSD 1개 down |  |  | recovery 시간 |
-| Harbor RGW down | (push 불가) | ❌ (SPoF) | RGW HA 로드맵 확정 |
+| 시험                | 다운타임 (s) | 자동 복구 | 비고               |
+| ------------------- | ------------ | --------- | ------------------ |
+| pfSense CARP        |              | ✅/❌     |                    |
+| K8s API VIP         |              |           |                    |
+| Edge HAProxy        |              |           |                    |
+| K8s CP 1대 다운     | (eviction X) |           | etcd quorum OK?    |
+| K8s Worker 1대 다운 | ~5min        |           | Pod 재배치?        |
+| Ceph OSD 1개 down   |              |           | recovery 시간      |
+| Harbor RGW down     | (push 불가)  | ❌ (SPoF) | RGW HA 로드맵 확정 |
 
 ---
 
@@ -1228,6 +1251,7 @@ kubectl uncordon <해당-노드명>
 - RGW SPoF → `ceph orch apply rgw harbor --placement="ceph1,ceph2"` + Service로 LB
 
 ### 정기 운영
+
 - **분기 1회**: 이 챕터 전체 수행
 - **큰 변경 후**: 영향 받는 섹션만
 - **CI 자동화**: Jenkins job으로 일부 (iperf, fio, kubectl get) 매일 — 추후
