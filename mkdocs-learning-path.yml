@@ -1,0 +1,58 @@
+site_name: KOSA Team2 Learning Path
+site_description: 단계별 학습 경로 (가이드 및 강의교안)
+docs_dir: Project_Study_latest/Learning_Path
+site_dir: site-learning-path
+use_directory_urls: true
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - 로드맵 (README): README.md
+  - 가이드 (Guides):
+      - Step 1. 기초 인프라: Guides/Step-01-Foundation.md
+      - Step 2. 스토리지 (Ceph): Guides/Step-02-Storage.md
+      - Step 3. 플랫폼 (K8s): Guides/Step-03-Platform.md
+      - Step 4. CI/CD: Guides/Step-04-CICD.md
+      - Step 5. 운영/클라우드: Guides/Step-05-OpsCloud.md
+  - 강의교안 (Lectures):
+      - Step 1. 기초 인프라: Lectures/Step-01-Foundation.md
+      - Step 2. 스토리지 (Ceph): Lectures/Step-02-Storage.md
+      - Step 3. 플랫폼 (K8s): Lectures/Step-03-Platform.md
+      - Step 4. CI/CD: Lectures/Step-04-CICD.md
+      - Step 5. 운영/클라우드: Lectures/Step-05-OpsCloud.md
