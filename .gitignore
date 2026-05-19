@@ -47,6 +47,7 @@ site-project-docs-finals/
 .audit_cache/
 __pycache__/
 .pytest_cache/
+.gemini/
 
 # Local installer artifacts
 *.msixbundle

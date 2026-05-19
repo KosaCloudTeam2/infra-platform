@@ -1,8 +1,0 @@
-[Interface]
-Address = {{ wg_address | default('10.200.0.1/24') }}
-ListenPort = {{ wg_listen_port | default('51820') }}
-PrivateKey = {{ relay_private_key }}
-
-[Peer]
-PublicKey = {{ onprem_public_key }}
-AllowedIPs = {{ onprem_allowed_ips_effective }}
