@@ -2,22 +2,11 @@
 
 > Status: Unverified
 
-`docs/architecture/build-up/cloud_network_iac/` 경로 문서에서 사용한 AWS 자원을 **누락 없이
-정리**하기 위한 절차임.
+AWS 자원을 **누락 없이 정리**하기 위한 공통 절차임.
 
 ---
 
-## 1. 적용 범위
-
-대상 문서:
-
-- `eks-cloud-bursting-without-karpenter.md`
-- `eks-cloud-bursting-with-karpenter.md`
-- `aws-nlb-ec2-vpn-onprem-prerequisites.md`
-- `aws-nlb-ec2-vpn-onprem-haproxyedge-cli.md`
-- `aws-nlb-ec2-vpn-onprem-haproxyedge-console.md`
-
-대상 자원(요약):
+## 1. 대상 자원(요약)
 
 - 네트워크: VPC, Subnet, IGW, Route Table, Security Group
 - 로드밸런싱: NLB, Target Group, Listener
@@ -34,11 +23,9 @@
 ### 2.1 Terraform으로 만든 경우 (권장)
 
 - 원칙: **Terraform state 기준으로 `terraform destroy`** 수행
-- 경로:
-  `docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform/`
+- 해당 리소스가 정의된 Terraform 디렉토리에서 작업을 수행함
 
 ```bash
-cd docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform
 terraform init
 terraform plan -destroy
 terraform destroy
