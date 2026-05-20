@@ -1,0 +1,56 @@
+# 14-aws-hybrid.md의 UI 구축값을 Terraform 변수로 옮긴 예시
+# 실제 도메인/공인 IP는 각자 환경에 맞게 입력함. 비밀값/terraform.tfstate는 커밋 금지.
+
+aws_region  = "ap-northeast-2"
+name_prefix = "kosa-hybrid"
+
+vpc_cidr = "10.20.0.0/16"
+
+public_subnets = {
+  a = {
+    cidr = "10.20.1.0/24"
+    az   = "ap-northeast-2a"
+  }
+  c = {
+    cidr = "10.20.2.0/24"
+    az   = "ap-northeast-2c"
+  }
+}
+
+private_subnets = {
+  a = {
+    cidr = "10.20.10.0/24"
+    az   = "ap-northeast-2a"
+  }
+  c = {
+    cidr = "10.20.20.0/24"
+    az   = "ap-northeast-2c"
+  }
+}
+
+# 현재 팀2 운영 기준: 온프레 전체 172.16 대역을 VPN으로 라우팅
+onprem_cidrs = ["172.16.0.0/12"]
+
+# pfSense WAN 사설 IP가 아니라 가비아/외부에서 보이는 온프레 인터넷 출구 공인 IP 또는 상위 NAT 공인 IP
+customer_gateway_public_ip = "x.x.x.x"
+customer_gateway_bgp_asn   = 65000
+create_vpn                 = true
+
+# 가비아에서 구매한 실제 도메인을 입력. 예: example.com
+# 고정 프로젝트 도메인값을 기본값으로 두지 않음.
+create_route53_zone         = true
+create_route53_alias_record = true
+domain_name                 = "your-gabia-domain.example"
+# 비우면 domain_name apex에 Alias 생성. 예: app.example.com을 쓰려면 app_fqdn에 입력.
+app_fqdn = ""
+
+# Public NLB 접근 허용 범위. 공개 서비스면 0.0.0.0/0, 검증용이면 본인 IP/32로 축소.
+nlb_ingress_cidrs = ["0.0.0.0/0"]
+
+# 비워두면 최신 Ubuntu 22.04 LTS amd64 AMI 자동 조회
+# SSM 접속 기준이므로 기본적으로 key pair는 필요 없음.
+ec2_ami_id        = ""
+ec2_instance_type = "t3.micro"
+ec2_key_name      = ""
+
+create_s3_gateway_endpoint = true
