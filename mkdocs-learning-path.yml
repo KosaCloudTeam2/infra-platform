@@ -43,7 +43,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - 로드맵 (README): README.md
+  - 로드맵: roadmap.md
   - 가이드 (Guides):
       - Step 1. 기초 인프라: Guides/Step-01-Foundation.md
       - Step 2. 스토리지 (Ceph): Guides/Step-02-Storage.md

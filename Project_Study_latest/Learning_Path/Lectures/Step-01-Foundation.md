@@ -12,7 +12,7 @@
      - 네트워크 HA: pfSense (CARP) / 게이트웨이 가용성 확보 및 SPoF 제거
 
 3. 네트워크 토폴로지 분석 (Big Picture)
-   - ![전체 시스템 토폴로지](../../Project_docs_finals/assets/01-big-picture.png)
+   - ![전체 시스템 토폴로지](../assets/01-big-picture.png)
    - 핵심 구성 요소 및 역할
      - Edge HAProxy: 외부 트래픽 수용 및 로드밸런싱 (VLAN 20)
      - pfSense HA: L3 라우팅, 방화벽 및 CARP VIP 기반 이중화 수행
