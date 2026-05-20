@@ -15,4 +15,8 @@
 | 파일                                                                     | Status     | 용도                                              |
 | :----------------------------------------------------------------------- | :--------- | :------------------------------------------------ |
 | [README.md](./README.md)                                                 | Unverified | cloud_network_iac 문서 인덱스                     |
+| [aws-hybrid-terraform-guide.md](./aws-hybrid-terraform-guide.md)         | Unverified | VPC/VPN/NLB/Route53 Terraform 실행 가이드         |
+| [aws-hybrid-value-map.md](./aws-hybrid-value-map.md)                     | Unverified | 콘솔 입력값과 Terraform 변수/출력값 매핑표        |
+| [aws-hybrid-terraform/README.md](./aws-hybrid-terraform/README.md)       | Unverified | AWS 하이브리드 Terraform 코드 실행 요약           |
+| [thanos-ceph-rgw-guide.md](./thanos-ceph-rgw-guide.md)                   | Unverified | Thanos와 Ceph RGW(S3) 연동 설치 가이드            |
 | [aws-resource-cleanup-checklist.md](./aws-resource-cleanup-checklist.md) | Unverified | cloud_network_iac 문서군 AWS 자원 정리 체크리스트 |

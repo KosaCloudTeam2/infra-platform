@@ -63,7 +63,13 @@ nav:
       - Change Log: change_log.md
   - Architecture Build-up:
       - Guide: architecture/build-up/README.md
-      - Cloud / Network / IaC: architecture/build-up/cloud_network_iac/README.md
+      - Cloud / Network / IaC:
+          - Index: architecture/build-up/cloud_network_iac/README.md
+          - AWS Hybrid Terraform Guide: architecture/build-up/cloud_network_iac/aws-hybrid-terraform-guide.md
+          - AWS Hybrid Value Map: architecture/build-up/cloud_network_iac/aws-hybrid-value-map.md
+          - AWS Hybrid Terraform README: architecture/build-up/cloud_network_iac/aws-hybrid-terraform/README.md
+          - Thanos Ceph RGW Guide: architecture/build-up/cloud_network_iac/thanos-ceph-rgw-guide.md
+          - AWS Cleanup Checklist: architecture/build-up/cloud_network_iac/aws-resource-cleanup-checklist.md
       - DB / Storage: architecture/build-up/db_storage/README.md
       - CI/CD / App Runtime: architecture/build-up/cicd_app_runtime/README.md
       - Observability / Integration: architecture/build-up/observability_integration/README.md
@@ -71,6 +77,9 @@ nav:
       - Rollback: runbooks/rollback.md
       - Monitoring: runbooks/monitoring.md
       - Incident Scenarios: runbooks/incident_scenarios.md
+  - Validation:
+      - Overview: validation/README.md
+      - Ceph Storage: validation/ceph-storage.md
   - Presentation:
       - Outline: presentation/outline.md
       - Slides: presentation/presentation.md
