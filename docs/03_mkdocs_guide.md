@@ -83,6 +83,18 @@ uv run mkdocs serve -f mkdocs-project-docs-finals.yml -a 127.0.0.1:8040 --livere
 http://127.0.0.1:8040
 ```
 
+### 3.5 Learning_Path (`Project_Study_latest/Learning_Path`)
+
+```powershell
+uv run mkdocs serve -f mkdocs-learning-path.yml -a 127.0.0.1:8050 --livereload
+```
+
+브라우저:
+
+```text
+http://127.0.0.1:8050
+```
+
 ## 4. 정적 사이트 빌드
 
 정적 사이트 빌드는 GitHub Pages 또는 별도 호스팅을 적용할 때만 수행함. 평소 문서 확인은 `serve`만
