@@ -1,0 +1,394 @@
+﻿[
+  {
+    "name": "amazon-cloudwatch",
+    "svg": "svg/amazon-cloudwatch.svg",
+    "png": "png/amazon-cloudwatch.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "amazon-ec2",
+    "svg": "svg/amazon-ec2.svg",
+    "png": "png/amazon-ec2.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "amazon-eks",
+    "svg": "svg/amazon-eks.svg",
+    "png": "png/amazon-eks.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "amazon-s3",
+    "svg": "svg/amazon-s3.svg",
+    "png": "png/amazon-s3.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "amazon-vpc",
+    "svg": "svg/amazon-vpc.svg",
+    "png": "png/amazon-vpc.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "ansible",
+    "svg": "svg/ansible.svg",
+    "png": "png/ansible.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "argo-cd",
+    "svg": "svg/argo-cd.svg",
+    "png": "png/argo-cd.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "aws",
+    "svg": "svg/aws.svg",
+    "png": "png/aws.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "aws-color",
+    "svg": "svg/aws-color.svg",
+    "png": "png/aws-color.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "aws-iam",
+    "svg": "svg/aws-iam.svg",
+    "png": "png/aws-iam.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "bind9",
+    "svg": "svg/bind9.svg",
+    "png": "png/bind9.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "calico",
+    "svg": "svg/calico.svg",
+    "png": "png/calico.png",
+    "source": "Tigera/Project Calico official website",
+    "url": "official website asset",
+    "status": "available"
+  },
+  {
+    "name": "ceph",
+    "svg": "svg/ceph.svg",
+    "png": "png/ceph.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "cert-manager",
+    "svg": "svg/cert-manager.svg",
+    "png": "png/cert-manager.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "containerd",
+    "svg": "svg/containerd.svg",
+    "png": "png/containerd.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "debian",
+    "svg": "svg/debian.svg",
+    "png": "png/debian.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "docker",
+    "svg": "svg/docker.svg",
+    "png": "png/docker.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "docker-hub",
+    "svg": "svg/docker-hub.svg",
+    "png": "png/docker-hub.png",
+    "source": "Docker icon fallback; no separate Docker Hub SVG found",
+    "url": "https://cdn.simpleicons.org/docker",
+    "status": "available"
+  },
+  {
+    "name": "elastic-load-balancing",
+    "svg": "svg/elastic-load-balancing.svg",
+    "png": "png/elastic-load-balancing.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "fastapi",
+    "svg": "svg/fastapi.svg",
+    "png": "png/fastapi.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "flask",
+    "svg": "svg/flask.svg",
+    "png": "png/flask.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "git",
+    "svg": "svg/git.svg",
+    "png": "png/git.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "github",
+    "svg": "svg/github.svg",
+    "png": "png/github.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "github-actions",
+    "svg": "svg/github-actions.svg",
+    "png": "png/github-actions.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "grafana",
+    "svg": "svg/grafana.svg",
+    "png": "png/grafana.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "haproxy",
+    "svg": "svg/haproxy.svg",
+    "png": "png/haproxy.png",
+    "source": "HAProxy official website",
+    "url": "official website asset",
+    "status": "available"
+  },
+  {
+    "name": "harbor",
+    "svg": "svg/harbor.svg",
+    "png": "png/harbor.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "helm",
+    "svg": "svg/helm.svg",
+    "png": "png/helm.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "jenkins",
+    "svg": "svg/jenkins.svg",
+    "png": "png/jenkins.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "k6",
+    "svg": "svg/k6.svg",
+    "png": "png/k6.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "kubernetes",
+    "svg": "svg/kubernetes.svg",
+    "png": "png/kubernetes.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "linux",
+    "svg": "svg/linux.svg",
+    "png": "png/linux.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "metallb",
+    "svg": "svg/metallb.svg",
+    "png": "png/metallb.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "mkdocs",
+    "svg": "svg/mkdocs.svg",
+    "png": "png/mkdocs.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "mysql",
+    "svg": "svg/mysql.svg",
+    "png": "png/mysql.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "nginx",
+    "svg": "svg/nginx.svg",
+    "png": "png/nginx.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "percona",
+    "svg": "svg/percona.svg",
+    "png": "png/percona.png",
+    "source": "Percona official website",
+    "url": "official website asset",
+    "status": "available"
+  },
+  {
+    "name": "pfsense",
+    "svg": "svg/pfsense.svg",
+    "png": "png/pfsense.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "prometheus",
+    "svg": "svg/prometheus.svg",
+    "png": "png/prometheus.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "proxmox",
+    "svg": "svg/proxmox.svg",
+    "png": "png/proxmox.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "proxmox-1",
+    "svg": "svg/proxmox-1.svg",
+    "png": "png/proxmox-1.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "proxysql",
+    "svg": null,
+    "png": "png/proxysql.png",
+    "source": "ProxySQL official website",
+    "url": "https://proxysql.com/proxysql-logo-big.png",
+    "status": "available"
+  },
+  {
+    "name": "python",
+    "svg": "svg/python.svg",
+    "png": "png/python.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "redis",
+    "svg": "svg/redis.svg",
+    "png": "png/redis.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "redis-logo-svgrepo-com",
+    "svg": "svg/redis-logo-svgrepo-com.svg",
+    "png": "png/redis-logo-svgrepo-com.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "route-53",
+    "svg": "svg/route-53.svg",
+    "png": "png/route-53.png",
+    "source": "AWS Architecture Icons official package",
+    "url": "https://aws.amazon.com/architecture/icons/",
+    "status": "available"
+  },
+  {
+    "name": "terraform",
+    "svg": "svg/terraform.svg",
+    "png": "png/terraform.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  },
+  {
+    "name": "thanos",
+    "svg": "svg/thanos.svg",
+    "png": "png/thanos.png",
+    "source": "CNCF artwork",
+    "url": "https://github.com/cncf/artwork",
+    "status": "available"
+  },
+  {
+    "name": "ubuntu",
+    "svg": "svg/ubuntu.svg",
+    "png": "png/ubuntu.png",
+    "source": "Simple Icons or public SVG asset",
+    "url": "",
+    "status": "available"
+  }
+]
