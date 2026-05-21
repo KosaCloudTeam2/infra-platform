@@ -27,6 +27,8 @@
 | CHANGE-20260521-02 | docs/runbook | rclone 설치 절차 추가                                       | bastion에서 Object 백업 명령을 실행하기 전 필요한 rclone 설치/확인 절차가 누락되어 Ubuntu/Debian, 공식 스크립트, Windows 설치 기준을 보강함        | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
 | CHANGE-20260521-03 | docs/runbook | Kubernetes CronJob 백업 예시를 bastion cron 기준으로 재구성 | 백업 자동화가 K8s 장애에 종속되지 않도록 Kubernetes CronJob YAML 예시를 제거하고, bastion VM cron 실행과 추후 backup-runner VM 전환 기준을 명시함  | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
 | CHANGE-20260521-04 | docs/runbook | 백업 경로 분리 설명을 표준 원칙 중심으로 정리               | 특정 장애 상황을 강조하기보다 백업 제어 경로와 서비스 런타임 경로 분리, 직접 경로 사용, 복구 구성 요소 최소화 원칙을 명시함                        | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260521-05 | docs/runbook | bastion cron 백업 알림과 테스트/운영 주기 추가              | Slack Webhook 알림을 기본 예시로 추가하고 mail 알림을 참고 선택지로 남겼으며, 테스트용 2분 주기와 운영용 월요일 03:00 주기 전환 기준을 명시함      | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260521-06 | docs/runbook | backup.env Secret 취급 기준 보강                            | Slack Webhook URL을 환경 파일로 주입할 때 필요한 파일 권한, 노출 금지, 전용 사용자, 운영 비밀 저장소 전환 기준을 명시함                            | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
 
 ---
 

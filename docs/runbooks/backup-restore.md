@@ -535,6 +535,15 @@ rclone lsf aws-s3:team2-harbor-registry-backup --config ./rclone.conf --recursiv
 
 ## 7. bastion VM cron 적용 예시
 
+현재 규모에서는 bastion VM의 OS cron으로 백업을 실행하는 구조가 가장 단순함.
+
+운영 기준:
+
+- 소규모/PoC: cron 사용 가능
+- 장기 운영: backup-runner VM + systemd timer 또는 백업 전용 스케줄러 검토
+- 현재 문서 기준: bastion VM cron
+- 추후 개선 기준: backup-runner VM 이전
+
 🔴 주의:
 
 - Kubernetes CronJob 사용 금지
@@ -558,6 +567,7 @@ cd /home/ubuntu/backup-test
 ```text
 /home/ubuntu/backup-test/
   rclone.conf
+  backup.env
   object-backup-copy-only.sh
   logs/
 ```
@@ -566,7 +576,29 @@ cd /home/ubuntu/backup-test
 
 ```bash
 chmod 600 /home/ubuntu/backup-test/rclone.conf
+chmod 600 /home/ubuntu/backup-test/backup.env
 ```
+
+`backup.env` 예시:
+
+```bash
+# Slack Incoming Webhook URL
+# 생성 시 선택한 Slack 채널에 고정됨. 채널 변경 시 새 Webhook URL 발급.
+SLACK_WEBHOOK_URL="https://hooks.slack.com/services/REPLACE/REPLACE/REPLACE"
+```
+
+> Slack Webhook URL은 Secret이므로 저장소에 커밋하지 않음. 알림을 쓰지 않으면 `backup.env` 파일을
+> 만들지 않아도 됨.
+
+`backup.env` 사용 기준:
+
+- 현재 bastion VM 수동/cron 실행에서는 허용
+- 파일 소유자: 백업 실행 사용자
+- 파일 권한: `600`
+- Git 저장소, 문서, 채팅, 스크린샷 노출 금지
+- `set -x` 사용 금지
+- 다중 사용자 서버에서는 전용 `backup` 사용자 분리 권장
+- 운영 고도화 시 OS Secret 관리, Vault, SSM Parameter Store 같은 외부 비밀 저장소 검토
 
 ## 7.2 백업 스크립트
 
@@ -578,10 +610,19 @@ set -euo pipefail
 
 WORKDIR="/home/ubuntu/backup-test"
 CONFIG="${WORKDIR}/rclone.conf"
+ENV_FILE="${WORKDIR}/backup.env"
 LOGDIR="${WORKDIR}/logs"
 LOGFILE="${LOGDIR}/object-backup-$(date +%Y%m%d).log"
 
 mkdir -p "${LOGDIR}"
+
+if [ -f "${ENV_FILE}" ]; then
+  set -a
+  . "${ENV_FILE}"
+  set +a
+fi
+
+STATUS=0
 
 {
   echo "[START] $(date -Is)"
@@ -601,7 +642,22 @@ mkdir -p "${LOGDIR}"
     --stats 30s
 
   echo "[END] $(date -Is)"
-} >> "${LOGFILE}" 2>&1
+} >> "${LOGFILE}" 2>&1 || STATUS=$?
+
+if [ "${STATUS}" -eq 0 ]; then
+  RESULT="SUCCESS"
+else
+  RESULT="FAILED"
+fi
+
+if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+  curl -fsS -X POST \
+    -H "Content-Type: application/json" \
+    --data "{\"text\":\"[${RESULT}] object backup on $(hostname) at $(date -Is). log=${LOGFILE}\"}" \
+    "${SLACK_WEBHOOK_URL}" >/dev/null || true
+fi
+
+exit "${STATUS}"
 ```
 
 > Thanos 미사용 시 `thanos-metrics` 복사 줄은 제거함.
@@ -632,17 +688,28 @@ tail -n 100 /home/ubuntu/backup-test/logs/object-backup-$(date +%Y%m%d).log
 
 ## 7.4 cron 등록
 
-매일 03:00 실행 예시:
+테스트 중에는 2분마다 실행함.
 
 ```bash
 crontab -e
 ```
 
-추가:
+테스트용:
 
 ```cron
-0 3 * * * /home/ubuntu/backup-test/object-backup-copy-only.sh
+*/2 * * * * /home/ubuntu/backup-test/object-backup-copy-only.sh
 ```
+
+검증 완료 후 운영용으로 변경함.
+
+운영용 예시:
+
+```cron
+0 3 * * 1 /home/ubuntu/backup-test/object-backup-copy-only.sh
+```
+
+> `0 3 * * 1`: 매주 월요일 03:00 실행. 일반적으로 사용자 접속이 적은 시간대를 선택함. 백업 주기는
+> RPO(Recovery Point Objective)에 맞춰 조정함.
 
 등록 확인:
 
@@ -662,9 +729,32 @@ tail -n 100 /home/ubuntu/backup-test/logs/object-backup-$(date +%Y%m%d).log
 - `aws sts get-caller-identity`가 cron 환경에서도 성공해야 함
 - AWS credential은 저장소가 아닌 bastion 사용자 홈 또는 안전한 비밀 저장소에 보관
 - `rclone.conf`의 Ceph RGW key 파일 권한 `600` 유지
+- `backup.env`의 Slack Webhook URL 파일 권한 `600` 유지
 - 장애 확인 기준: log 파일, AWS S3 object count, rclone exit code
 
-## 7.6 backup-runner VM 전환 기준
+## 7.6 알림 선택지
+
+기본 추천: Slack Incoming Webhook
+
+- 장점: SMTP/MTA 설정 불필요
+- 장점: `curl`만 있으면 전송 가능
+- 단점: Webhook URL을 Secret으로 관리 필요
+
+Mail 참고 선택지:
+
+```bash
+sudo apt install -y mailutils
+tail -n 80 /home/ubuntu/backup-test/logs/object-backup-$(date +%Y%m%d).log | \
+  mail -s "[backup] object backup result" admin@example.com
+```
+
+주의:
+
+- `mailutils`만 설치해도 외부 메일 발송이 항상 성공하지 않음
+- SMTP relay, SPF/DKIM, 방화벽, 스팸 정책 설정 필요 가능성
+- 현재 프로젝트에서는 Slack Webhook 방식이 더 단순함
+
+## 7.7 backup-runner VM 전환 기준
 
 추후 개선 시 bastion에서 backup-runner VM으로 이전함.
 
@@ -677,7 +767,7 @@ tail -n 100 /home/ubuntu/backup-test/logs/object-backup-$(date +%Y%m%d).log
 - cron schedule 이관 완료
 - bastion cron 비활성화 완료
 
-## 7.7 Deprecated: Kubernetes CronJob
+## 7.8 Deprecated: Kubernetes CronJob
 
 Kubernetes CronJob 방식은 신규 백업 경로로 사용하지 않음.
 
