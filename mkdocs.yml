@@ -76,6 +76,7 @@ nav:
   - Runbooks:
       - Rollback: runbooks/rollback.md
       - Monitoring: runbooks/monitoring.md
+      - Backup / Restore: runbooks/backup-restore.md
       - Incident Scenarios: runbooks/incident_scenarios.md
   - Validation:
       - Overview: validation/README.md

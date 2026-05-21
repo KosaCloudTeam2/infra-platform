@@ -341,16 +341,78 @@ kubectl --context <CONTEXT> -n monitoring create secret generic thanos-objstore 
 
 ## 7. EKS Prometheus 설치 + Thanos Sidecar
 
-EKS에 Prometheus가 없다면 `kube-prometheus-stack`부터 설치함.
+현재 EKS context 예시:
+
+```text
+arn:aws:eks:ap-northeast-2:357737841289:cluster/kosa-eks
+```
+
+EKS는 티켓팅 기간 확장용 클러스터이므로, 초기 검증은 **Prometheus + Thanos Sidecar 최소 구성**으로
+진행함.
+
+- EKS에 Grafana는 설치하지 않음: 통합 Grafana/Thanos Query는 온프레 `monitoring`에 둠
+- EKS에 Alertmanager는 설치하지 않음: 초기 목표는 지표 수집/장기 저장 검증
+- Prometheus local retention은 짧게 설정: 장기 저장은 Ceph RGW의 Thanos bucket이 담당
+- EKS StorageClass는 Ceph RBD가 아니라 EKS 기본 EBS StorageClass를 사용함
+
+### 7.1 EKS context 변수 지정
 
 ```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
+export EKS_CONTEXT="arn:aws:eks:ap-northeast-2:357737841289:cluster/kosa-eks"
+
+kubectl --context ${EKS_CONTEXT} get nodes
+kubectl --context ${EKS_CONTEXT} get ns
 ```
+
+### 7.2 RGW bridge 접근 확인
+
+EKS Pod에서 `172.16.23.60:7480` 접근이 되어야 Thanos Sidecar가 Ceph RGW에 block을 업로드할 수 있음.
+
+```bash
+kubectl --context ${EKS_CONTEXT} run netshoot-rgw --rm -it \
+  --image=nicolaka/netshoot \
+  --restart=Never -- bash
+```
+
+Pod 내부:
+
+```bash
+nc -vz 172.16.23.60 7480
+curl -I http://172.16.23.60:7480
+exit
+```
+
+### 7.3 Thanos Secret 생성
+
+6장에서 만든 `objstore.yml`을 EKS에도 생성함.
+
+```bash
+kubectl --context ${EKS_CONTEXT} create namespace monitoring --dry-run=client -o yaml | \
+  kubectl --context ${EKS_CONTEXT} apply -f -
+
+kubectl --context ${EKS_CONTEXT} -n monitoring create secret generic thanos-objstore \
+  --from-file=objstore.yml=./objstore.yml
+```
+
+이미 Secret이 있으면 교체:
+
+```bash
+kubectl --context ${EKS_CONTEXT} -n monitoring delete secret thanos-objstore
+kubectl --context ${EKS_CONTEXT} -n monitoring create secret generic thanos-objstore \
+  --from-file=objstore.yml=./objstore.yml
+```
+
+### 7.4 kube-prometheus-stack values 작성
 
 `values-eks-prometheus.yaml`:
 
 ```yaml
+grafana:
+  enabled: false
+
+alertmanager:
+  enabled: false
+
 prometheus:
   prometheusSpec:
     retention: 6h
@@ -362,13 +424,29 @@ prometheus:
         existingSecret:
           name: thanos-objstore
           key: objstore.yml
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
 ```
 
-설치:
+> EKS 기본 StorageClass가 동작하면 `storageClassName`을 생략해도 됨. 특정 gp3 StorageClass를 쓸 경우
+> `storageClassName: gp3`를 추가함.
+
+### 7.5 Helm으로 직접 설치(검증용)
+
+현재 EKS는 구성 진행 중이며 모니터링이 아직 없으므로, 최초 검증은 Helm 직접 설치로 진행해도 됨.
 
 ```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
 helm upgrade --install kube-prom prometheus-community/kube-prometheus-stack \
-  --kube-context <EKS_CONTEXT> \
+  --kube-context ${EKS_CONTEXT} \
   -n monitoring --create-namespace \
   -f values-eks-prometheus.yaml
 ```
@@ -376,12 +454,86 @@ helm upgrade --install kube-prom prometheus-community/kube-prometheus-stack \
 확인:
 
 ```bash
-kubectl --context <EKS_CONTEXT> -n monitoring get pods
-kubectl --context <EKS_CONTEXT> -n monitoring logs prometheus-kube-prom-kube-prometheus-prometheus-0 -c thanos-sidecar
+kubectl --context ${EKS_CONTEXT} -n monitoring get pods
+kubectl --context ${EKS_CONTEXT} -n monitoring get prometheus
+kubectl --context ${EKS_CONTEXT} -n monitoring get svc | grep -i thanos || true
 ```
 
-> 실제 Pod 이름은 Helm release 이름과 chart 버전에 따라 달라질 수 있음.
-> `kubectl -n monitoring get pods | grep prometheus`로 확인함.
+Prometheus Pod 이름 확인 후 sidecar 로그 확인:
+
+```bash
+PROM_POD=$(kubectl --context ${EKS_CONTEXT} -n monitoring get pod \
+  -l app.kubernetes.io/name=prometheus \
+  -o jsonpath='{.items[0].metadata.name}')
+
+kubectl --context ${EKS_CONTEXT} -n monitoring logs ${PROM_POD} -c thanos-sidecar --tail=100
+```
+
+### 7.6 ArgoCD 전환 시 참고
+
+검증이 끝난 뒤 GitOps로 관리하려면 `kosa-gitops/apps/_applications/monitoring-eks.yaml` 같은 별도
+Application으로 분리함.
+
+주의:
+
+- 온프레 root-app의 `destination.server: https://kubernetes.default.svc`를 그대로 쓰면 온프레
+  클러스터에 배포됨.
+- EKS를 중앙 ArgoCD에서 관리하려면 먼저 EKS cluster를 ArgoCD에 등록하고, Application destination을
+  EKS cluster name 또는 server URL로 지정해야 함.
+- 온프레 monitoring Application의 `team2-rbd-block`, `workload-type: system`, Grafana LoadBalancer
+  설정은 EKS에 그대로 재사용하지 않음.
+
+Application 예시:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-eks
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "85.0.2"
+    helm:
+      releaseName: kube-prom
+      valuesObject:
+        grafana:
+          enabled: false
+        alertmanager:
+          enabled: false
+        prometheus:
+          prometheusSpec:
+            retention: 6h
+            externalLabels:
+              cluster: eks
+              region: ap-northeast-2
+            thanos:
+              objectStorageConfig:
+                existingSecret:
+                  name: thanos-objstore
+                  key: objstore.yml
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 20Gi
+  destination:
+    # 실제 등록된 EKS cluster name 또는 server URL로 변경
+    name: kosa-eks
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
 
 ---
 
