@@ -99,7 +99,15 @@ Ceph RGW thanos-metrics
 
 ## 2.4 백업 경로는 서비스 경로와 분리
 
-백업 경로가 Kubernetes/MetalLB에 의존하면 K8s 장애 시 Ceph RGW가 정상이어도 백업이 실패할 수 있음.
+백업 제어 경로는 보호 대상 서비스의 런타임 경로와 분리함.
+
+표준 원칙:
+
+- 백업 작업은 애플리케이션 배포/서비스 노출 계층과 독립
+- 백업 대상 저장소에 가장 짧고 직접적인 경로 사용
+- 복구 시 필요한 구성 요소 수 최소화
+- 서비스 트래픽 경로와 백업 트래픽 경로 분리
+- 임시 bridge/ingress/load balancer 경유 최소화
 
 현재 기본 백업 경로:
 
@@ -123,7 +131,8 @@ Kubernetes / EKS / 관리망
 - 기본 RGW endpoint: `http://10.10.10.11:7480`
 - MetalLB RGW bridge: 신규 백업 경로로 사용하지 않음
 - MetalLB RGW bridge 사용 범위: 기존 문서 호환, 임시 연결 확인, 마이그레이션 전 경로
-- Kubernetes CronJob: 편의 자동화 후보, 주 백업 경로 아님
+- bastion VM cron: 현재 자동화 기본 방식
+- Kubernetes CronJob: deprecated, 신규 백업 경로로 사용하지 않음
 - 향후 개선: backup-runner VM 분리, 백업 전용 역할/키/스케줄 관리
 
 ---
@@ -410,7 +419,7 @@ notepad .\rclone.conf
 | :------------------------ | :-------- | :----------------------------------------------------------------------------------- |
 | 온프레 bastion VM         | 높음      | 현재 Ceph망 접근 가능, `10.10.10.11:7480` 직접 접근과 AWS S3 업로드를 함께 검증 가능 |
 | backup-runner VM          | 향후 권장 | 백업 전용 VM으로 역할 분리, 운영 자동화 개선 대상                                    |
-| 온프레 Kubernetes CronJob | 비권장    | 자동화는 편하지만 K8s/MetalLB 장애 시 백업 영향 가능                                 |
+| 온프레 Kubernetes CronJob | 비권장    | 백업 제어 경로가 서비스 런타임 계층에 종속됨                                         |
 | Windows Terminal          | 조건부    | Windows PC에서 Ceph망 직접 접근 가능해야 함                                          |
 | Ceph 노드                 | 조건부    | RGW 내부 endpoint 접근은 쉽지만 운영 노드에 백업 도구/키 배치 최소화 필요            |
 
@@ -524,123 +533,160 @@ rclone lsf aws-s3:team2-harbor-registry-backup --config ./rclone.conf --recursiv
 
 ---
 
-## 7. Kubernetes CronJob 적용 예시
+## 7. bastion VM cron 적용 예시
 
-GitOps 저장소에는 실제 Secret 값을 넣지 않음. 아래 YAML은 구조 예시이며, Secret은 수동 생성 또는
-ExternalSecret/SOPS/SealedSecret으로 관리함.
+🔴 주의:
 
-주의:
+- Kubernetes CronJob 사용 금지
+- 백업 제어 경로와 서비스 런타임 경로 분리
+- 현재 실행 위치: bastion VM
+- 향후 실행 위치: backup-runner VM
+- 기본 RGW endpoint: `http://10.10.10.11:7480`
+- Deprecated endpoint: `http://172.16.23.60:7480`
+- Secret 포함 파일 저장소 커밋 금지
+- 최초 실행 전 반드시 `--dry-run` 검증
 
-- 현재 기본 백업 실행 위치는 bastion VM임.
-- Kubernetes CronJob은 추후 자동화 후보임.
-- K8s/MetalLB 장애 시 백업까지 영향받을 수 있으므로 운영 주 경로로 사용하지 않음.
-- CronJob을 사용할 경우에도 `rclone.conf` endpoint는 `10.10.10.11:7480` 직접 접근을 우선함.
-- `172.16.23.60:7480`은 기존 구성 마이그레이션 전 임시 확인용으로만 사용함.
-
-## 7.1 Namespace
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: backup
-```
-
-## 7.2 rclone config Secret 생성
-
-수동 생성 예시:
+## 7.1 디렉터리 기준
 
 ```bash
-kubectl --context kubernetes-admin@kubernetes create namespace backup --dry-run=client -o yaml | \
-  kubectl --context kubernetes-admin@kubernetes apply -f -
-
-kubectl --context kubernetes-admin@kubernetes -n backup create secret generic rclone-config \
-  --from-file=rclone.conf=./rclone.conf
+mkdir -p /home/ubuntu/backup-test/logs
+cd /home/ubuntu/backup-test
 ```
 
-## 7.3 AWS credential Secret 또는 IRSA
+파일 배치:
 
-온프레 Kubernetes에서 실행하는 경우 AWS IAM Role을 직접 붙이기 어렵기 때문에, 초기 검증은 AWS Access
-Key Secret 방식으로 수행할 수 있음.
+```text
+/home/ubuntu/backup-test/
+  rclone.conf
+  object-backup-copy-only.sh
+  logs/
+```
+
+권한 설정:
 
 ```bash
-kubectl --context kubernetes-admin@kubernetes -n backup create secret generic aws-s3-backup-credentials \
-  --from-literal=AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID> \
-  --from-literal=AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
+chmod 600 /home/ubuntu/backup-test/rclone.conf
 ```
 
-> 운영 기준에서는 장기 Access Key보다 OIDC/IRSA/외부 비밀 관리 도입을 우선 검토함.
+## 7.2 백업 스크립트
 
-## 7.4 CronJob 예시
-
-`object-backup-cronjob.yaml`:
-
-```yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: object-backup-copy-only
-  namespace: backup
-spec:
-  schedule: "0 3 * * *"
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
-  jobTemplate:
-    spec:
-      backoffLimit: 1
-      template:
-        spec:
-          restartPolicy: Never
-          containers:
-            - name: rclone
-              image: rclone/rclone:latest
-              env:
-                - name: AWS_ACCESS_KEY_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: aws-s3-backup-credentials
-                      key: AWS_ACCESS_KEY_ID
-                - name: AWS_SECRET_ACCESS_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: aws-s3-backup-credentials
-                      key: AWS_SECRET_ACCESS_KEY
-              command:
-                - /bin/sh
-                - -ec
-                - |
-                  rclone copy ceph-rgw:harbor-registry aws-s3:team2-harbor-registry-backup --config /config/rclone.conf --checksum --stats 30s
-                  rclone copy ceph-rgw:thanos-metrics aws-s3:team2-thanos-metrics-backup --config /config/rclone.conf --checksum --stats 30s
-              volumeMounts:
-                - name: rclone-config
-                  mountPath: /config
-                  readOnly: true
-          volumes:
-            - name: rclone-config
-              secret:
-                secretName: rclone-config
-```
-
-적용:
+`object-backup-copy-only.sh`:
 
 ```bash
-kubectl --context kubernetes-admin@kubernetes apply -f object-backup-cronjob.yaml
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKDIR="/home/ubuntu/backup-test"
+CONFIG="${WORKDIR}/rclone.conf"
+LOGDIR="${WORKDIR}/logs"
+LOGFILE="${LOGDIR}/object-backup-$(date +%Y%m%d).log"
+
+mkdir -p "${LOGDIR}"
+
+{
+  echo "[START] $(date -Is)"
+
+  curl -fsI http://10.10.10.11:7480 >/dev/null
+  aws sts get-caller-identity >/dev/null
+  rclone version
+
+  rclone copy ceph-rgw:harbor-registry aws-s3:team2-harbor-registry-backup \
+    --config "${CONFIG}" \
+    --checksum \
+    --stats 30s
+
+  rclone copy ceph-rgw:thanos-metrics aws-s3:team2-thanos-metrics-backup \
+    --config "${CONFIG}" \
+    --checksum \
+    --stats 30s
+
+  echo "[END] $(date -Is)"
+} >> "${LOGFILE}" 2>&1
 ```
 
-수동 실행:
+> Thanos 미사용 시 `thanos-metrics` 복사 줄은 제거함.
+
+스크립트 권한 설정:
 
 ```bash
-kubectl --context kubernetes-admin@kubernetes -n backup create job \
-  --from=cronjob/object-backup-copy-only object-backup-manual-$(date +%Y%m%d%H%M%S)
+chmod 700 /home/ubuntu/backup-test/object-backup-copy-only.sh
+```
+
+## 7.3 수동 실행 검증
+
+Dry-run:
+
+```bash
+rclone copy ceph-rgw:harbor-registry aws-s3:team2-harbor-registry-backup \
+  --config /home/ubuntu/backup-test/rclone.conf \
+  --dry-run \
+  --progress
+```
+
+스크립트 실행:
+
+```bash
+/home/ubuntu/backup-test/object-backup-copy-only.sh
+tail -n 100 /home/ubuntu/backup-test/logs/object-backup-$(date +%Y%m%d).log
+```
+
+## 7.4 cron 등록
+
+매일 03:00 실행 예시:
+
+```bash
+crontab -e
+```
+
+추가:
+
+```cron
+0 3 * * * /home/ubuntu/backup-test/object-backup-copy-only.sh
+```
+
+등록 확인:
+
+```bash
+crontab -l
 ```
 
 로그 확인:
 
 ```bash
-kubectl --context kubernetes-admin@kubernetes -n backup get jobs,pods
-kubectl --context kubernetes-admin@kubernetes -n backup logs job/<JOB_NAME>
+tail -n 100 /home/ubuntu/backup-test/logs/object-backup-$(date +%Y%m%d).log
 ```
+
+## 7.5 cron 환경 주의
+
+- cron은 로그인 shell 환경을 자동 로드하지 않음
+- `aws sts get-caller-identity`가 cron 환경에서도 성공해야 함
+- AWS credential은 저장소가 아닌 bastion 사용자 홈 또는 안전한 비밀 저장소에 보관
+- `rclone.conf`의 Ceph RGW key 파일 권한 `600` 유지
+- 장애 확인 기준: log 파일, AWS S3 object count, rclone exit code
+
+## 7.6 backup-runner VM 전환 기준
+
+추후 개선 시 bastion에서 backup-runner VM으로 이전함.
+
+전환 조건:
+
+- Ceph망 `10.10.10.0/24` 접근 가능
+- AWS S3 outbound 가능
+- rclone 설치 완료
+- `rclone.conf` 이관 완료
+- cron schedule 이관 완료
+- bastion cron 비활성화 완료
+
+## 7.7 Deprecated: Kubernetes CronJob
+
+Kubernetes CronJob 방식은 신규 백업 경로로 사용하지 않음.
+
+사유:
+
+- 백업 제어 경로가 서비스 런타임 계층에 종속
+- MetalLB/RGW bridge 같은 서비스 노출 계층 경유 가능성
+- Secret을 K8s Secret으로 추가 관리해야 하는 부담
+- 백업 경로와 서비스 경로 분리 원칙 위반 가능성
 
 ---
 
@@ -752,11 +798,11 @@ aws s3 cp \
 > 오래된 객체는 Ceph에서 삭제한 뒤 AWS S3를 직접 조회하는 Tiered Storage 구조로 전환한다. 장기 보관
 > 데이터는 S3 Lifecycle을 통해 Glacier로 이동한다.
 
-백업 경로 설명:
+백업 경로 원칙:
 
-> 백업 경로는 서비스 경로와 분리한다. K8s/MetalLB에 의존하는 RGW bridge는 deprecated 경로로 두고
-> 신규 백업에는 사용하지 않는다. 현재는 Ceph망 접근이 가능한 bastion VM에서 RGW에 직접 접근한다.
-> 추후에는 백업 전용 backup-runner VM으로 역할을 분리한다.
+> 백업 제어 경로는 서비스 런타임 경로와 분리한다. K8s/MetalLB에 의존하는 RGW bridge는 deprecated
+> 경로로 두고 신규 백업에는 사용하지 않는다. 현재는 Ceph망 접근이 가능한 bastion VM에서 RGW에 직접
+> 접근한다. 추후에는 백업 전용 backup-runner VM으로 역할을 분리한다.
 
 DB 범위 설명:
 
