@@ -19,6 +19,20 @@
 
 ---
 
+## 2026-05-22
+
+| ID                 | 유형         | 요약                                       | 영향/이유                                                                                                                                                                                                      | 주요 파일                                               | 검증/상태                                                                                    |
+| :----------------- | :----------- | :----------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------------------------- |
+| CHANGE-20260522-07 | docs/runbook | 직접 Glacier 테스트 객체 삭제 절차 추가    | 직접 `--storage-class GLACIER`로 업로드한 진단용 객체를 Versioning bucket에서 object version과 delete marker까지 완전 삭제하는 절차를 추가함                                                                   | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260522-06 | docs/runbook | Slack 성공 알림 의미 명확화                | Slack의 `[SUCCESS]`가 업무적 백업 검증 완료가 아니라 스크립트 명령 성공과 S3 summarize 로그 기록을 의미하도록 메시지 문구와 해석 기준을 보강함                                                                 | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260522-05 | docs/runbook | 백업 스크립트 로그 검증 출력 보강          | cron 실행 후 로그만으로 copy 대상과 AWS S3 복사 결과를 확인할 수 있도록 `object-backup-copy-only.sh` 예시에 `[COPY]`, `[VERIFY]`, `aws s3 ls --summarize` 출력을 추가함                                        | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260522-04 | docs/runbook | Glacier 전환 추적 명령 보강                | S3 Lifecycle 자동 전환 여부를 prefix 단위 `list-object-versions`로 추적하고, 직접 Glacier 업로드 검증과 Lifecycle 비동기 전환 검증을 구분하도록 절차를 추가함                                                  | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260522-03 | docs/runbook | Lifecycle small object archive 기준 보정   | 백업본이 만료 전 archive로 전환되어야 하는 정책 의도를 명확히 하기 위해 S3 Lifecycle 예시를 `ObjectSizeGreaterThan: 0` 기준으로 변경하고, 128KB 기본 transition 제한과 multipart abort rule 분리 기준을 보강함 | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260522-02 | docs/runbook | 백업 실행 전 인증 확인 절차 추가           | bastion에서 수동/cron 백업 실행 전에 AWS CLI 인증, S3 bucket 접근, Ceph RGW rclone credential 로드 여부를 구분 확인하도록 preflight 명령을 추가함                                                              | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+| CHANGE-20260522-01 | docs/runbook | Harbor S3 백업 제외와 ECR replication 정리 | AWS cloud bursting 시 EKS image pull 지연을 줄이기 위한 Harbor -> ECR event-based replication을 기준 경로로 명시하고, Harbor registry blob S3 백업 제외와 ECR archive lifecycle/복구 절차를 추가함             | `docs/runbooks/backup-restore.md`, `docs/change_log.md` | `UV_CACHE_DIR=.uv-cache uv run mkdocs build 통과(기존 validation 시나리오 anchor 경고 있음)` |
+
+---
+
 ## 2026-05-21
 
 | ID                 | 유형         | 요약                                                        | 영향/이유                                                                                                                                                                                    | 주요 파일                                               | 검증/상태                                                                                    |

@@ -1,7 +1,8 @@
 ﻿# 백업/복구 Runbook
 
-> Status: Unverified 범위: 현재 우선순위는 **Ceph RGW Object 백업**임. DB/PVC/etcd/GitOps/Secret
-> 전체 백업은 현재 범위에서 제외하고, 한계만 명시함.
+> Status: Unverified 범위: 현재 우선순위는 **App/Object Ceph RGW -> AWS S3 백업**과 **Harbor -> ECR
+> image replication 운영 기준**임. DB/PVC/etcd/GitOps/Secret 전체 백업은 현재 범위에서 제외하고,
+> 한계만 명시함.
 
 ---
 
@@ -9,24 +10,27 @@
 
 ## 1.1 현재 우선 적용 범위
 
-| 구분            | 대상                      | 현재 저장소     | 백업 대상  | 전략                |
-| :-------------- | :------------------------ | :-------------- | :--------- | :------------------ |
-| Harbor Object   | Harbor registry blob      | Ceph RGW bucket | AWS S3     | 동일 key copy-only  |
-| App/Object      | 사용자 업로드/서비스 객체 | Ceph RGW bucket | AWS S3     | 동일 key copy-only  |
-| Glacier Archive | 오래된 백업본             | AWS S3          | S3 Glacier | S3 Lifecycle로 전환 |
+| 구분            | 대상                      | 현재 저장소     | 백업 대상   | 전략                |
+| :-------------- | :------------------------ | :-------------- | :---------- | :------------------ |
+| App/Object      | 사용자 업로드/서비스 객체 | Ceph RGW bucket | AWS S3      | 동일 key copy-only  |
+| Harbor Image    | Kubernetes 배포 이미지    | Harbor RGW      | AWS ECR     | event-based mirror  |
+| ECR Archive     | 오래된 container image    | AWS ECR         | ECR archive | ECR Lifecycle 적용  |
+| Glacier Archive | 오래된 백업본             | AWS S3          | S3 Glacier  | S3 Lifecycle로 전환 |
 
 ## 1.2 현재 제외 범위
 
-| 구분                | 제외 사유                                                                            | 한계                                                                         |
-| :------------------ | :----------------------------------------------------------------------------------- | :--------------------------------------------------------------------------- |
-| DB 백업             | 현재 PXC 3노드 + Ceph RBD(`team2-rbd-block`) 기반으로 노드/디스크 장애 대응을 우선함 | RBD replica는 논리 삭제/오염 복구용 백업은 아님. 추후 XtraBackup/binlog 필요 |
-| Thanos Metrics      | 현재 Thanos 미사용 전제                                                              | Thanos 도입 후 `thanos-metrics` bucket과 별도 RGW user/key 기준 추가 필요    |
-| etcd/Velero         | 이번 우선 목표가 Object 백업임                                                       | 클러스터 전체 재해복구는 별도 Runbook 필요                                   |
-| GitOps/Secret       | Git 저장소와 Secret 관리 정책은 별도 주제                                            | Secret 평문 백업 금지. SOPS/SealedSecret/ExternalSecret 검토 필요            |
-| pfSense/Proxmox/IaC | 인프라 설정 백업은 별도 운영 절차                                                    | config.xml, Terraform state 등 별도 보관 필요                                |
+| 구분                | 제외 사유                                                                              | 한계                                                                             |
+| :------------------ | :------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| Harbor RGW S3 백업  | cloud bursting 이미지 pull 속도 확보를 위해 Harbor -> ECR event-based replication 적용 | ECR은 이미지 복제본이며 Harbor project/user/robot/정책 metadata 전체 백업은 아님 |
+| DB 백업             | 현재 PXC 3노드 + Ceph RBD(`team2-rbd-block`) 기반으로 노드/디스크 장애 대응을 우선함   | RBD replica는 논리 삭제/오염 복구용 백업은 아님. 추후 XtraBackup/binlog 필요     |
+| Thanos Metrics      | 현재 Thanos 미사용 전제                                                                | Thanos 도입 후 `thanos-metrics` bucket과 별도 RGW user/key 기준 추가 필요        |
+| etcd/Velero         | 이번 우선 목표가 Object 백업임                                                         | 클러스터 전체 재해복구는 별도 Runbook 필요                                       |
+| GitOps/Secret       | Git 저장소와 Secret 관리 정책은 별도 주제                                              | Secret 평문 백업 금지. SOPS/SealedSecret/ExternalSecret 검토 필요                |
+| pfSense/Proxmox/IaC | 인프라 설정 백업은 별도 운영 절차                                                      | config.xml, Terraform state 등 별도 보관 필요                                    |
 
-> 발표 시 표현: 현재는 안전한 **copy-only 백업** 단계이며, 검증 후 오래된 객체를 Ceph에서 삭제하고
-> AWS S3를 직접 조회하는 **Tiered Storage** 구조로 확장한다.
+> 발표 시 표현: 사용자 업로드 객체는 **copy-only 백업**으로 S3에 보관하고, 배포 이미지는 cloud
+> bursting 시 EKS pull 지연을 줄이기 위해 Harbor에서 ECR로 event-based replication한다. Harbor
+> registry blob을 S3로 다시 백업하는 방식은 현재 기본 경로에서 제외한다.
 
 ---
 
@@ -34,21 +38,7 @@
 
 ## 2.1 Object key는 동일하게 유지
 
-AWS S3에서 직접 조회할 가능성이 있는 객체는 Ceph RGW와 AWS S3의 object key를 동일하게 유지함.
-
-예:
-
-```text
-Ceph RGW
-bucket: harbor-registry
-key: docker/registry/v2/blobs/sha256/...
-
-AWS S3
-bucket: team2-harbor-registry-backup
-key: docker/registry/v2/blobs/sha256/...
-```
-
-앱 객체도 동일 원칙을 적용함.
+AWS S3에서 직접 조회할 가능성이 있는 앱 객체는 Ceph RGW와 AWS S3의 object key를 동일하게 유지함.
 
 ```text
 Ceph RGW key: uploads/2026/05/image.png
@@ -81,7 +71,71 @@ Ceph 원본 삭제는 아래 조건을 만족한 뒤에만 고려함.
 5. Glacier 전환 객체는 실시간 조회 대상에서 제외
 6. rollback 절차 존재
 
-## 2.3 Thanos active bucket은 추후 적용
+## 2.3 Harbor image는 ECR replication 경로 사용
+
+Harbor registry blob은 S3 copy-only 백업 대상에서 제외함. 현재 Harbor에는 ECR 원격 registry와
+event-based replication policy가 구성되어 있음.
+
+확인된 Harbor 설정:
+
+| 항목               | 값                                                 |
+| :----------------- | :------------------------------------------------- |
+| Registry name      | `aws-ecr-seoul`                                    |
+| Registry type      | `aws-ecr`                                          |
+| Registry URL       | `https://api.ecr.ap-northeast-2.amazonaws.com`     |
+| Replication policy | `kosa-tickets-to-ecr`                              |
+| Source             | `Local` Harbor                                     |
+| Destination        | `aws-ecr-seoul`                                    |
+| Mode               | push-based                                         |
+| Trigger            | event-based                                        |
+| Filter             | `library/kosa-tickets`, tag `**`, resource `image` |
+| ECR repository     | `library/kosa-tickets`                             |
+
+구조:
+
+```text
+CI / developer
+  -> Harbor library/kosa-tickets:<tag>
+  -> Harbor event-based replication
+  -> ECR ap-northeast-2 library/kosa-tickets:<tag>
+  -> EKS cloud bursting node image pull
+```
+
+설계 이유:
+
+- EKS node가 온프레 Harbor에서 WAN/VPN 경유로 image pull하는 지연 제거
+- AWS 내부 ECR에서 같은 Region pull 수행
+- cloud bursting 시 Pod cold start 시간 감소
+- Harbor 장애 또는 온프레-WAN 지연이 EKS scale-out에 미치는 영향 완화
+- 이미지 배포 경로와 일반 객체 백업 경로 분리
+
+주의:
+
+- ECR replication은 image artifact 복제 경로
+- Harbor project, user, robot account, scanner 설정, replication policy 자체의 전체 백업은 아님
+- Harbor registry blob을 S3에 별도 copy하면 저장 비용과 운영 경로가 중복됨
+- ECR의 active image는 burst 시 즉시 pull 가능해야 하므로 무분별한 archive/expire 금지
+
+Harbor UI 확인 경로:
+
+- Harbor
+  - 관리
+    - 레지스트리
+      - `aws-ecr-seoul` 상태 확인
+    - 복제
+      - `kosa-tickets-to-ecr` 정책 확인
+      - 정책 상세 또는 실행 이력/작업 이력에서 최근 tag replication 성공 여부 확인
+
+Harbor API 확인:
+
+```bash
+curl -k -u '<HARBOR_ADMIN_USER>:<HARBOR_ADMIN_PASSWORD>' \
+  https://harbor.kosa.team2/api/v2.0/replication/policies
+```
+
+> API 응답의 `dest_registry.credential.access_secret`은 마스킹되어 표시되더라도 민감 정보로 취급함.
+
+## 2.4 Thanos active bucket은 추후 적용
 
 Thanos 도입 시 실제 조회하는 active bucket은 Ceph RGW에 둠.
 
@@ -99,7 +153,7 @@ Ceph RGW thanos-metrics
 
 현재 문서의 즉시 실행 대상에서는 제외함.
 
-## 2.4 백업 경로는 서비스 경로와 분리
+## 2.5 백업 경로는 서비스 경로와 분리
 
 백업 제어 경로는 보호 대상 서비스의 런타임 경로와 분리함.
 
@@ -145,14 +199,14 @@ Kubernetes / EKS / 관리망
 
 | 용도                     | Ceph RGW user | Ceph RGW bucket 예시 | AWS S3 bucket/prefix 예시                                        | 상태      |
 | :----------------------- | :------------ | :------------------- | :--------------------------------------------------------------- | :-------- |
-| Harbor registry          | `harbor`      | `harbor-registry`    | `team2-harbor-registry-backup`                                   | 즉시 백업 |
 | App/Object 일반          | `team2-admin` | `team2-bucket`       | `team2-app-objects-backup/team2-bucket/`                         | 즉시 백업 |
 | App/Object 이미지        | `team2-admin` | `team2-photo-bucket` | `team2-app-objects-backup/team2-photo-bucket/`                   | 즉시 백업 |
 | Thanos metrics           | `thanos`      | `thanos-metrics`     | `team2-thanos-metrics-backup`                                    | 추후 적용 |
 | Glacier lifecycle 테스트 | 해당 없음     | 해당 없음            | `team2-lifecycle-test` 또는 위 bucket의 `lifecycle-test/` prefix | 테스트    |
 
-> 현재 확인된 bucket owner 기준: `harbor`는 `harbor-registry`, `team2-admin`은 `team2-bucket`과
-> `team2-photo-bucket` 소유. Thanos bucket은 추후 Thanos 사용 시 추가함.
+> 현재 확인된 bucket owner 기준: `team2-admin`은 `team2-bucket`과 `team2-photo-bucket` 소유. Harbor
+> registry bucket(`harbor-registry`)은 ECR replication 경로를 사용하므로 S3 backup bucket 목록에서
+> 제외함. Thanos bucket은 추후 Thanos 사용 시 추가함.
 
 ## 3.1 실제 Ceph RGW bucket 확인
 
@@ -160,14 +214,12 @@ Ceph 노드에서 전체 bucket 확인:
 
 ```bash
 radosgw-admin bucket list
-radosgw-admin bucket list --uid=harbor
 radosgw-admin bucket list --uid=team2-admin
 ```
 
 bucket별 소유자와 객체 수 확인:
 
 ```bash
-radosgw-admin bucket stats --bucket harbor-registry
 radosgw-admin bucket stats --bucket team2-bucket
 radosgw-admin bucket stats --bucket team2-photo-bucket
 ```
@@ -180,6 +232,7 @@ bastion에서 rclone 기준 확인은 `backup.env`와 `rclone.conf` 작성 후 6
 - bastion S3 API 확인은 rclone credential 준비 후 수행
 - 특정 bucket만 `AccessDenied`면 해당 bucket 소유자/권한 확인
 - 앱 업로드 bucket이 추가로 발견되면 6.4/6.5/7.2 복사 대상에 추가
+- Harbor registry bucket은 S3 백업 대상이 아니라 ECR replication 상태로 검증
 
 ---
 
@@ -195,11 +248,6 @@ bucket 생성 예시:
 
 ```bash
 aws s3api create-bucket \
-  --bucket team2-harbor-registry-backup \
-  --region ${AWS_REGION} \
-  --create-bucket-configuration LocationConstraint=${AWS_REGION}
-
-aws s3api create-bucket \
   --bucket team2-app-objects-backup \
   --region ${AWS_REGION} \
   --create-bucket-configuration LocationConstraint=${AWS_REGION}
@@ -208,7 +256,7 @@ aws s3api create-bucket \
 Versioning 활성화:
 
 ```bash
-for b in team2-harbor-registry-backup team2-app-objects-backup; do
+for b in team2-app-objects-backup; do
   aws s3api put-bucket-versioning \
     --bucket "$b" \
     --versioning-configuration Status=Enabled
@@ -218,7 +266,7 @@ for b in team2-harbor-registry-backup team2-app-objects-backup; do
 Public Access Block 적용:
 
 ```bash
-for b in team2-harbor-registry-backup team2-app-objects-backup; do
+for b in team2-app-objects-backup; do
   aws s3api put-public-access-block \
     --bucket "$b" \
     --public-access-block-configuration \
@@ -261,7 +309,9 @@ archive 성격의 백업본에만 Glacier를 적용함.
     {
       "ID": "backup-tiering-prod",
       "Status": "Enabled",
-      "Filter": {},
+      "Filter": {
+        "ObjectSizeGreaterThan": 0
+      },
       "Transitions": [
         {
           "Days": 30,
@@ -275,7 +325,12 @@ archive 성격의 백업본에만 Glacier를 적용함.
           "Days": 180,
           "StorageClass": "DEEP_ARCHIVE"
         }
-      ],
+      ]
+    },
+    {
+      "ID": "abort-incomplete-multipart-prod",
+      "Status": "Enabled",
+      "Filter": {},
       "AbortIncompleteMultipartUpload": {
         "DaysAfterInitiation": 7
       }
@@ -295,6 +350,10 @@ aws s3api put-bucket-lifecycle-configuration \
 > `GLACIER`는 S3 Glacier Flexible Retrieval을 의미함. Deep Archive는 복구 시간이 길어 서비스 직접
 > 조회 대상에는 부적합함.
 
+> 백업 정책의 목적이 "만료 전 archive 전환"이면 `ObjectSizeGreaterThan: 0`을 명시함. 현재 S3 기본
+> 동작은 128KB 미만 객체를 Lifecycle transition 대상에서 제외할 수 있음. 단순히 size 조건을 제거하면
+> 작은 객체가 archive되지 않고 expiration만 적용될 수 있으므로 주의함.
+
 ## 5.2 Glacier 테스트용 짧은 Lifecycle
 
 Glacier 전환을 테스트하려면 운영 객체와 분리된 prefix에서 수행함.
@@ -310,7 +369,7 @@ Glacier 전환을 테스트하려면 운영 객체와 분리된 prefix에서 수
       "Filter": {
         "And": {
           "Prefix": "lifecycle-test/",
-          "ObjectSizeGreaterThan": 131072
+          "ObjectSizeGreaterThan": 0
         }
       },
       "Transitions": [
@@ -354,14 +413,14 @@ aws s3api put-bucket-lifecycle-configuration \
 Linux/macOS/WSL/Git Bash 기준:
 
 ```bash
-head -c 200000 /dev/urandom > lifecycle-test.bin
+head -c 1024 /dev/urandom > lifecycle-test.bin
 aws s3 cp lifecycle-test.bin s3://team2-app-objects-backup/lifecycle-test/lifecycle-test.bin
 ```
 
 Windows Terminal의 PowerShell 기준:
 
 ```powershell
-$bytes = New-Object byte[] 200000
+$bytes = New-Object byte[] 1024
 $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
 $rng.GetBytes($bytes)
 [System.IO.File]::WriteAllBytes("lifecycle-test.bin", $bytes)
@@ -371,7 +430,7 @@ aws s3 cp .\lifecycle-test.bin s3://team2-app-objects-backup/lifecycle-test/life
 ```
 
 `/dev/urandom`은 Linux 계열의 난수 장치 파일이므로 순수 PowerShell에서는 사용할 수 없음. 위
-PowerShell 예시는 같은 목적의 200KB 테스트 파일을 Windows에서 생성하는 방식임.
+PowerShell 예시는 같은 목적의 1KB 테스트 파일을 Windows에서 생성하는 방식임.
 
 확인:
 
@@ -381,10 +440,91 @@ aws s3api head-object \
   --key lifecycle-test/lifecycle-test.bin
 ```
 
+prefix 전체 추적:
+
+```bash
+aws s3api list-object-versions \
+  --bucket team2-app-objects-backup \
+  --prefix lifecycle-test/ \
+  --query 'Versions[].{Key:Key,StorageClass:StorageClass,LastModified:LastModified,Size:Size}' \
+  --output table
+```
+
+전환 완료 기준:
+
+- `StorageClass`: `STANDARD`이면 아직 전환 전
+- `StorageClass`: `GLACIER`이면 Glacier 전환 완료
+- 직접 `--storage-class GLACIER`로 업로드한 객체는 즉시 `GLACIER`
+- Lifecycle으로 업로드 후 전환되는 객체는 AWS 내부 비동기 처리 대기
+
+직접 Glacier 업로드 검증:
+
+```bash
+echo "direct glacier test" > direct-glacier-test.txt
+
+aws s3api put-object \
+  --bucket team2-app-objects-backup \
+  --key lifecycle-test/direct-glacier-test.txt \
+  --body direct-glacier-test.txt \
+  --storage-class GLACIER
+
+aws s3api head-object \
+  --bucket team2-app-objects-backup \
+  --key lifecycle-test/direct-glacier-test.txt \
+  --query '{StorageClass:StorageClass, LastModified:LastModified}'
+```
+
+> 직접 Glacier 업로드는 S3 Glacier 사용 가능 여부 확인용임. Lifecycle 자동 전환 검증은
+> `aws s3 cp ... s3://.../lifecycle-test/...`로 `STANDARD` 업로드 후 `list-object-versions`에서
+> `StorageClass=GLACIER`로 바뀌는지 추적함.
+
+직접 Glacier 테스트 객체 삭제:
+
+```bash
+# 1. 일반 삭제. Versioning bucket에서는 delete marker 생성.
+aws s3api delete-object \
+  --bucket team2-app-objects-backup \
+  --key lifecycle-test/direct-glacier-test.txt
+
+# 2. 남아 있는 object version/delete marker 확인.
+aws s3api list-object-versions \
+  --bucket team2-app-objects-backup \
+  --prefix lifecycle-test/direct-glacier-test.txt
+
+# 3. 실제 object version 완전 삭제.
+aws s3api delete-object \
+  --bucket team2-app-objects-backup \
+  --key lifecycle-test/direct-glacier-test.txt \
+  --version-id <OBJECT_VERSION_ID>
+
+# 4. delete marker 완전 삭제.
+aws s3api delete-object \
+  --bucket team2-app-objects-backup \
+  --key lifecycle-test/direct-glacier-test.txt \
+  --version-id <DELETE_MARKER_VERSION_ID>
+```
+
+삭제 완료 확인:
+
+```bash
+aws s3api list-object-versions \
+  --bucket team2-app-objects-backup \
+  --prefix lifecycle-test/direct-glacier-test.txt
+```
+
+완전 삭제 기준:
+
+- `Versions` 없음
+- `DeleteMarkers` 없음
+- 출력에 `Prefix`와 `RequestCharged`만 표시
+
 주의:
 
 - Lifecycle 전환은 즉시 보장되지 않음.
-- 128KB 미만 객체는 기본 정책상 전환되지 않을 수 있으므로 테스트 객체는 128KB 초과로 생성함.
+- `ObjectSizeGreaterThan: 0`은 0바이트 객체를 제외한 모든 객체를 transition 대상으로 지정함.
+- 0바이트 directory marker는 백업 데이터로 보지 않으며 archive 전환 대상에서 제외함.
+- 작은 객체 transition은 비용 절감 효과보다 요청 비용이 클 수 있으나, 현재 테스트는 정책 동작 확인
+  목적임.
 - Glacier Flexible Retrieval은 최소 저장 기간 과금이 있으므로 테스트 객체는 소량으로만 사용함.
 
 ## 5.3 테스트 후 운영 Lifecycle로 복귀
@@ -425,6 +565,173 @@ aws s3api get-bucket-lifecycle-configuration \
 - `delete-bucket-lifecycle`은 해당 bucket의 모든 Lifecycle rule을 삭제함.
 - 운영 bucket에 기존 rule이 있으면 삭제 전 `get-bucket-lifecycle-configuration`으로 백업함.
 - `lifecycle-test/` prefix 객체는 테스트 완료 후 삭제하거나 비용 확인 후 유지 여부 결정함.
+
+## 5.4 ECR image Lifecycle/Archive 정책
+
+Harbor image는 S3 Glacier가 아니라 ECR에서 직접 보관 정책을 적용함.
+
+정리:
+
+- ECR active image: EKS cloud bursting 시 즉시 pull 대상
+- ECR archive image: 장기 보관 대상, 즉시 pull 대상 아님
+- S3 Glacier: 객체 저장소용 archive 계층, ECR image pull 경로와 직접 연결되지 않음
+- Harbor -> S3 registry blob 백업: 현재 기본 경로에서 제외
+
+운영 원칙:
+
+- `latest`, 최근 배포 tag, rollback 후보 tag는 ECR Standard 유지
+- 오래되었고 pull되지 않는 image만 ECR archive 전환
+- archived image는 burst 시 즉시 pull 대상으로 보지 않음
+- archive 적용 전 lifecycle preview 필수
+- ECR repository별 lifecycle policy 적용 필요
+
+현재 확인된 ECR repository:
+
+```bash
+aws ecr describe-repositories --region ap-northeast-2
+
+aws ecr describe-images \
+  --repository-name library/kosa-tickets \
+  --region ap-northeast-2 \
+  --query 'imageDetails[].{tags:imageTags,digest:imageDigest,status:imageStatus,size:imageSizeInBytes,pushed:imagePushedAt,lastPull:imageLastRecordedPullTime}' \
+  --output table
+```
+
+기존 lifecycle policy 확인:
+
+```bash
+aws ecr get-lifecycle-policy \
+  --repository-name library/kosa-tickets \
+  --region ap-northeast-2
+```
+
+정책이 없으면 `LifecyclePolicyNotFoundException` 발생 가능.
+
+보수적 archive 정책 예시:
+
+`ecr-lifecycle-archive.json`:
+
+```json
+{
+  "rules": [
+    {
+      "rulePriority": 1,
+      "description": "Archive images not pulled in 90 days",
+      "selection": {
+        "tagStatus": "any",
+        "countType": "sinceImagePulled",
+        "countUnit": "days",
+        "countNumber": 90
+      },
+      "action": {
+        "type": "transition",
+        "targetStorageClass": "archive"
+      }
+    },
+    {
+      "rulePriority": 2,
+      "description": "Expire archived images after 365 days",
+      "selection": {
+        "tagStatus": "any",
+        "storageClass": "archive",
+        "countType": "sinceImageTransitioned",
+        "countUnit": "days",
+        "countNumber": 365
+      },
+      "action": {
+        "type": "expire"
+      }
+    }
+  ]
+}
+```
+
+주의:
+
+- `sinceImagePulled` 기준은 pull 이력이 없는 image 판단에 주의 필요
+- cloud bursting 대상 image가 archive되면 scale-out 시 즉시 pull 불가
+- archived image 삭제는 최소 보관 기간/과금 조건 확인 필요
+- 운영 적용 전 preview 결과 확인
+
+Lifecycle preview:
+
+```bash
+aws ecr start-lifecycle-policy-preview \
+  --repository-name library/kosa-tickets \
+  --lifecycle-policy-text file://ecr-lifecycle-archive.json \
+  --region ap-northeast-2
+
+aws ecr get-lifecycle-policy-preview \
+  --repository-name library/kosa-tickets \
+  --region ap-northeast-2 \
+  --output table
+```
+
+정책 적용:
+
+```bash
+aws ecr put-lifecycle-policy \
+  --repository-name library/kosa-tickets \
+  --lifecycle-policy-text file://ecr-lifecycle-archive.json \
+  --region ap-northeast-2
+```
+
+적용 후 확인:
+
+```bash
+aws ecr get-lifecycle-policy \
+  --repository-name library/kosa-tickets \
+  --region ap-northeast-2
+
+aws ecr describe-images \
+  --repository-name library/kosa-tickets \
+  --region ap-northeast-2 \
+  --query 'imageDetails[].{tags:imageTags,digest:imageDigest,status:imageStatus,size:imageSizeInBytes,pushed:imagePushedAt,lastPull:imageLastRecordedPullTime,transitioned:imageTransitionedAt}' \
+  --output table
+```
+
+UI 적용 경로:
+
+- AWS Console
+- Elastic Container Registry
+- Private repositories
+- `library/kosa-tickets`
+- Lifecycle policies
+- Create rule
+- Rule action: `Archive` 또는 `Expire`
+- Match criteria 확인
+- Save 전 preview 확인
+
+S3 Glacier에 image tar를 별도 보관하는 방식:
+
+- 가능은 함
+- ECR image를 `docker pull` 또는 `skopeo copy`로 내려받음
+- tar/OCI archive 생성
+- S3 bucket 업로드
+- S3 Lifecycle로 Glacier 전환
+- 단점: EKS가 직접 pull 불가, 복구 시 ECR로 다시 push 필요
+- 현재 cloud bursting 목적에는 비권장
+
+예시:
+
+```bash
+aws ecr get-login-password --region ap-northeast-2 | \
+  docker login --username AWS --password-stdin 357737841289.dkr.ecr.ap-northeast-2.amazonaws.com
+
+docker pull 357737841289.dkr.ecr.ap-northeast-2.amazonaws.com/library/kosa-tickets:<TAG>
+docker save 357737841289.dkr.ecr.ap-northeast-2.amazonaws.com/library/kosa-tickets:<TAG> \
+  -o kosa-tickets-<TAG>.tar
+
+aws s3 cp kosa-tickets-<TAG>.tar \
+  s3://team2-app-objects-backup/ecr-archive/library/kosa-tickets/<TAG>/kosa-tickets-<TAG>.tar
+```
+
+판단:
+
+- 빠른 cloud bursting pull: ECR Standard
+- 장기 image 보관: ECR archive
+- 감사용 오프라인 사본: S3 Glacier archive tar
+- 현재 기본 운영: Harbor -> ECR replication + ECR lifecycle/archive
 
 ---
 
@@ -508,7 +815,6 @@ chmod 600 /home/ubuntu/backup-test/backup.env
 Ceph RGW Access Key/Secret Key 확인:
 
 ```bash
-radosgw-admin user info --uid=harbor
 radosgw-admin user info --uid=team2-admin
 ```
 
@@ -521,7 +827,6 @@ radosgw-admin user info --uid=team2-admin
 bucket owner 확인:
 
 ```bash
-radosgw-admin bucket stats --bucket harbor-registry | grep -E '"owner"|"num_objects"|"size"'
 radosgw-admin bucket stats --bucket team2-bucket | grep -E '"owner"|"num_objects"|"size"'
 radosgw-admin bucket stats --bucket team2-photo-bucket | grep -E '"owner"|"num_objects"|"size"'
 ```
@@ -553,7 +858,6 @@ aws sts get-caller-identity
 - AWS Secret Access Key는 생성 후 다시 조회할 수 없음.
 - 인증이 없는 새 서버에서는 IAM Role, AWS profile, backup 전용 Access Key 중 하나를 별도로 구성.
 - Ceph RGW Secret Key는 `radosgw-admin user info`로 확인 가능하지만 평문 노출에 주의.
-- Harbor 전용 key는 `harbor-registry` 백업에만 사용.
 - App/Object bucket은 `team2-admin` key 기준으로 백업.
 - Thanos 도입 시 `thanos` user/key와 `thanos-metrics` bucket을 별도 추가.
 - 백업 전용 RGW user를 만들 경우 백업 대상 bucket read 권한을 명시적으로 검증.
@@ -563,10 +867,6 @@ aws sts get-caller-identity
 `backup.env` 예시:
 
 ```bash
-# Ceph RGW credential for rclone remote: cephharbor
-RCLONE_CONFIG_CEPHHARBOR_ACCESS_KEY_ID="REPLACE_HARBOR_RGW_ACCESS_KEY"
-RCLONE_CONFIG_CEPHHARBOR_SECRET_ACCESS_KEY="REPLACE_HARBOR_RGW_SECRET_KEY"
-
 # Ceph RGW credential for rclone remote: cephteam2
 RCLONE_CONFIG_CEPHTEAM2_ACCESS_KEY_ID="REPLACE_TEAM2_ADMIN_RGW_ACCESS_KEY"
 RCLONE_CONFIG_CEPHTEAM2_SECRET_ACCESS_KEY="REPLACE_TEAM2_ADMIN_RGW_SECRET_KEY"
@@ -581,9 +881,8 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/REPLACE/REPLACE/REPLACE"
 ```
 
 > Slack Webhook URL은 Secret이므로 저장소에 커밋하지 않음. 알림을 쓰지 않으면 `SLACK_WEBHOOK_URL`은
-> 비워둘 수 있음. `RCLONE_CONFIG_CEPHHARBOR_*` 환경변수는 `cephharbor` remote의 credential을 주입함.
-> `RCLONE_CONFIG_CEPHTEAM2_*` 환경변수는 `cephteam2` remote의 credential을 주입함. rclone 환경변수
-> 매핑 혼선을 줄이기 위해 Ceph remote 이름은 영문/숫자만 사용함.
+> 비워둘 수 있음. `RCLONE_CONFIG_CEPHTEAM2_*` 환경변수는 `cephteam2` remote의 credential을 주입함.
+> rclone 환경변수 매핑 혼선을 줄이기 위해 Ceph remote 이름은 영문/숫자만 사용함.
 
 Thanos 도입 시 추가 예시:
 
@@ -664,14 +963,6 @@ curl -I http://172.16.23.60:7480
 `rclone.conf` 예시:
 
 ```ini
-[cephharbor]
-type = s3
-provider = Ceph
-endpoint = http://10.10.10.11:7480
-region = default
-acl = private
-force_path_style = true
-
 [cephteam2]
 type = s3
 provider = Ceph
@@ -704,13 +995,37 @@ set -a
 set +a
 ```
 
+작업 전 인증 확인:
+
+```bash
+# AWS CLI 인증 확인
+aws sts get-caller-identity
+
+# AWS S3 backup bucket 접근 확인
+aws s3api head-bucket \
+  --bucket team2-app-objects-backup \
+  --region ap-northeast-2
+
+# Ceph RGW credential 환경변수 로드 확인
+[ -n "${RCLONE_CONFIG_CEPHTEAM2_ACCESS_KEY_ID:-}" ] && echo "cephteam2 access key loaded" || echo "missing cephteam2 access key"
+[ -n "${RCLONE_CONFIG_CEPHTEAM2_SECRET_ACCESS_KEY:-}" ] && echo "cephteam2 secret key loaded" || echo "missing cephteam2 secret key"
+
+# Ceph RGW remote 접근 확인
+rclone lsd cephteam2: --config ./rclone.conf
+```
+
+판단 기준:
+
+- `aws sts get-caller-identity` 실패: AWS CLI 인증/profile/환경변수 문제
+- `head-bucket` 실패: AWS S3 bucket 권한, bucket 이름, region 문제
+- `rclone lsd cephteam2:` 실패: Ceph RGW credential, bucket owner, RGW 권한 문제
+- `rclone lsf cephteam2:team2-photo-bucket ... AccessDenied`: AWS가 아니라 Ceph RGW source bucket
+  접근 실패
+- `backup.env`를 로드하지 않은 새 shell이면 `RCLONE_CONFIG_CEPHTEAM2_*` 환경변수 없음
+
 Ceph RGW remote 확인:
 
 ```bash
-rclone lsd cephharbor: --config ./rclone.conf
-rclone lsf cephharbor:harbor-registry --config ./rclone.conf --recursive | head
-rclone size cephharbor:harbor-registry --config ./rclone.conf
-
 rclone lsd cephteam2: --config ./rclone.conf
 rclone lsf cephteam2:team2-bucket --config ./rclone.conf --recursive | head
 rclone size cephteam2:team2-bucket --config ./rclone.conf
@@ -721,7 +1036,6 @@ rclone size cephteam2:team2-photo-bucket --config ./rclone.conf
 
 확인 기준:
 
-- `cephharbor` 실패: `RCLONE_CONFIG_CEPHHARBOR_*` 값, `[cephharbor]` section 이름 확인
 - `cephteam2` 실패: `RCLONE_CONFIG_CEPHTEAM2_*` 값, `[cephteam2]` section 이름 확인
 - `didn't find section in config file`: 명령의 remote 이름과 `rclone.conf` section 이름 불일치
 - debug request에 `Authorization` header 없음: rclone credential 환경변수 매핑 실패
@@ -751,10 +1065,6 @@ Transferred: 0 B / 0 B
 bucket별 확인 명령:
 
 ```bash
-# Harbor registry
-rclone lsf cephharbor:harbor-registry --config ./rclone.conf --recursive | head
-rclone size cephharbor:harbor-registry --config ./rclone.conf
-
 # App/Object 일반
 rclone lsf cephteam2:team2-bucket --config ./rclone.conf --recursive | head
 rclone size cephteam2:team2-bucket --config ./rclone.conf
@@ -785,7 +1095,6 @@ Failed to create file system for "cephteam2:team2-bucket": didn't find section i
 Ceph 노드 기준 확인:
 
 ```bash
-radosgw-admin bucket stats --bucket harbor-registry | grep -E '"num_objects"|"size"'
 radosgw-admin bucket stats --bucket team2-bucket | grep -E '"num_objects"|"size"'
 radosgw-admin bucket stats --bucket team2-photo-bucket | grep -E '"num_objects"|"size"'
 radosgw-admin bucket stats --bucket thanos-metrics | grep -E '"num_objects"|"size"'
@@ -830,15 +1139,6 @@ rclone lsf cephteam2:team2-photo-bucket --config ./rclone.conf --recursive | gre
 - destination에 없는 객체/변경될 객체 목록을 사전 확인함
 - 처음 실행할 때는 반드시 dry-run을 먼저 수행함
 
-Harbor registry bucket:
-
-```bash
-rclone copy cephharbor:harbor-registry aws-s3:team2-harbor-registry-backup \
-  --config ./rclone.conf \
-  --dry-run \
-  --progress
-```
-
 App/Object 일반 bucket:
 
 ```bash
@@ -870,11 +1170,6 @@ rclone copy cephteam2:team2-photo-bucket aws-s3:team2-app-objects-backup/team2-p
 - 따라서 초기 백업 검증 단계에서는 `sync`, `delete`, `purge`를 사용하지 않음
 
 ```bash
-rclone copy cephharbor:harbor-registry aws-s3:team2-harbor-registry-backup \
-  --config ./rclone.conf \
-  --progress \
-  --checksum
-
 rclone copy cephteam2:team2-bucket aws-s3:team2-app-objects-backup/team2-bucket \
   --config ./rclone.conf \
   --progress \
@@ -894,10 +1189,6 @@ rclone copy cephteam2:team2-photo-bucket aws-s3:team2-app-objects-backup/team2-p
 Ceph와 AWS S3에서 같은 key가 유지되는지 확인함.
 
 ```bash
-rclone lsf cephharbor:harbor-registry --config ./rclone.conf --recursive | head
-rclone lsf aws-s3:team2-harbor-registry-backup --config ./rclone.conf --recursive | head
-aws s3 ls s3://team2-harbor-registry-backup --recursive --summarize
-
 rclone lsf cephteam2:team2-bucket --config ./rclone.conf --recursive | head
 rclone lsf aws-s3:team2-app-objects-backup/team2-bucket --config ./rclone.conf --recursive | head
 aws s3 ls s3://team2-app-objects-backup/team2-bucket/ --recursive --summarize
@@ -911,7 +1202,6 @@ aws s3 ls s3://team2-app-objects-backup/team2-photo-bucket/ --recursive --summar
 
 - `Total Objects`: 복사된 object 수
 - `Total Size`: 복사된 전체 크기
-- Harbor 예시 dry-run 기준: 263 objects, 약 676 MiB
 - App/Object bucket이 원래 비어 있으면 테스트 객체 기준으로 `Total Objects` 증가 확인
 
 테스트 객체 삭제가 필요한 경우:
@@ -1079,7 +1369,7 @@ aws s3api put-bucket-lifecycle-configuration \
 
 확인 순서:
 
-1. `backup.env`의 `RCLONE_CONFIG_CEPHHARBOR_*`, `RCLONE_CONFIG_CEPHTEAM2_*` 값 확인
+1. `backup.env`의 `RCLONE_CONFIG_CEPHTEAM2_*` 값 확인
 2. `set -a; . ./backup.env; set +a` 후 같은 shell에서 rclone 재실행
 3. Ceph 노드에서 bucket owner 확인
 4. 사용하는 RGW user가 해당 bucket을 list/read 가능한지 확인
@@ -1087,9 +1377,6 @@ aws s3api put-bucket-lifecycle-configuration \
 Ceph 노드:
 
 ```bash
-radosgw-admin bucket stats --bucket harbor-registry
-radosgw-admin user info --uid=harbor
-
 radosgw-admin bucket stats --bucket team2-bucket
 radosgw-admin bucket stats --bucket team2-photo-bucket
 radosgw-admin user info --uid=team2-admin
@@ -1107,9 +1394,6 @@ set -a
 . ./backup.env
 set +a
 
-rclone lsd cephharbor: --config ./rclone.conf
-rclone lsf cephharbor:harbor-registry --config ./rclone.conf --recursive | head
-
 rclone lsd cephteam2: --config ./rclone.conf
 rclone lsf cephteam2:team2-bucket --config ./rclone.conf --recursive | head
 rclone lsf cephteam2:team2-photo-bucket --config ./rclone.conf --recursive | head
@@ -1121,11 +1405,9 @@ rclone lsf cephthanos:thanos-metrics --config ./rclone.conf --recursive | head
 
 판단:
 
-- `cephharbor` 전체 실패: `harbor` key 오류 또는 list 권한 부족
 - `cephteam2` 전체 실패: `team2-admin` key 오류 또는 list 권한 부족
 - `cephthanos` 전체 실패: `thanos` key 오류 또는 list 권한 부족
 - 특정 bucket만 실패: bucket owner/정책/권한 불일치
-- `harbor-registry` 실패: `harbor` user/key 확인
 - `team2-bucket`, `team2-photo-bucket` 실패: `team2-admin` user/key 확인
 - `thanos-metrics` 실패: `thanos` user/key 확인
 
@@ -1180,51 +1462,79 @@ STATUS=0
 {
   echo "[START] $(date -Is)"
 
+  echo "[CHECK] RGW endpoint"
   curl -fsI http://10.10.10.11:7480 >/dev/null
+
+  echo "[CHECK] AWS identity"
   aws sts get-caller-identity >/dev/null
+
+  echo "[CHECK] rclone version"
   rclone version
 
-  rclone copy cephharbor:harbor-registry aws-s3:team2-harbor-registry-backup \
-    --config "${CONFIG}" \
-    --checksum \
-    --stats 30s
-
+  echo "[COPY] cephteam2:team2-bucket -> aws-s3:team2-app-objects-backup/team2-bucket"
   rclone copy cephteam2:team2-bucket aws-s3:team2-app-objects-backup/team2-bucket \
     --config "${CONFIG}" \
     --checksum \
     --stats 30s
 
+  echo "[VERIFY] s3://team2-app-objects-backup/team2-bucket/"
+  aws s3 ls s3://team2-app-objects-backup/team2-bucket/ \
+    --recursive \
+    --summarize
+
+  echo "[COPY] cephteam2:team2-photo-bucket -> aws-s3:team2-app-objects-backup/team2-photo-bucket"
   rclone copy cephteam2:team2-photo-bucket aws-s3:team2-app-objects-backup/team2-photo-bucket \
     --config "${CONFIG}" \
     --checksum \
     --stats 30s
+
+  echo "[VERIFY] s3://team2-app-objects-backup/team2-photo-bucket/"
+  aws s3 ls s3://team2-app-objects-backup/team2-photo-bucket/ \
+    --recursive \
+    --summarize
 
   echo "[END] $(date -Is)"
 } >> "${LOGFILE}" 2>&1 || STATUS=$?
 
 if [ "${STATUS}" -eq 0 ]; then
   RESULT="SUCCESS"
+  MESSAGE="[SUCCESS] object backup command completed on $(hostname) at $(date -Is). S3 summarize was written to log. log=${LOGFILE}"
 else
   RESULT="FAILED"
+  MESSAGE="[FAILED] object backup command failed on $(hostname) at $(date -Is). Check log. log=${LOGFILE}"
 fi
 
 if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
   curl -fsS -X POST \
     -H "Content-Type: application/json" \
-    --data "{\"text\":\"[${RESULT}] object backup on $(hostname) at $(date -Is). log=${LOGFILE}\"}" \
+    --data "{\"text\":\"${MESSAGE}\"}" \
     "${SLACK_WEBHOOK_URL}" >/dev/null || true
 fi
 
 exit "${STATUS}"
 ```
 
+Slack 알림 해석:
+
+- `[SUCCESS]`: 스크립트 명령 exit code가 0
+- `[SUCCESS]`: `rclone copy`와 `aws s3 ls --summarize` 명령이 실패 없이 종료됨
+- `[SUCCESS]`: 로그에 S3 object count/size 출력이 남았다는 의미
+- `[SUCCESS]`: 업무적 백업 검증이 자동으로 끝났다는 의미는 아님
+- 최종 확인 기준: 로그의 `[VERIFY]` 구간, `Total Objects`, `Total Size`
+
 Thanos 사용 시 아래 복사 줄을 스크립트의 App/Object 복사 다음에 추가함.
 
 ```bash
+  echo "[COPY] cephthanos:thanos-metrics -> aws-s3:team2-thanos-metrics-backup"
   rclone copy cephthanos:thanos-metrics aws-s3:team2-thanos-metrics-backup \
     --config "${CONFIG}" \
     --checksum \
     --stats 30s
+
+  echo "[VERIFY] s3://team2-thanos-metrics-backup/"
+  aws s3 ls s3://team2-thanos-metrics-backup \
+    --recursive \
+    --summarize
 ```
 
 스크립트 권한 설정:
@@ -1238,11 +1548,6 @@ chmod 700 /home/ubuntu/backup-test/object-backup-copy-only.sh
 Dry-run:
 
 ```bash
-rclone copy cephharbor:harbor-registry aws-s3:team2-harbor-registry-backup \
-  --config /home/ubuntu/backup-test/rclone.conf \
-  --dry-run \
-  --progress
-
 rclone copy cephteam2:team2-bucket aws-s3:team2-app-objects-backup/team2-bucket \
   --config /home/ubuntu/backup-test/rclone.conf \
   --dry-run \
@@ -1368,19 +1673,10 @@ Kubernetes CronJob 방식은 신규 백업 경로로 사용하지 않음.
 예시: AWS S3 backup -> Ceph RGW test bucket
 
 ```bash
-rclone copy aws-s3:team2-harbor-registry-backup cephharbor:harbor-registry-restore-test \
+rclone copy aws-s3:team2-app-objects-backup/team2-bucket cephteam2:team2-bucket-restore-test \
   --config ./rclone.conf \
   --dry-run \
   --progress
-```
-
-검증 후 실제 복구:
-
-```bash
-rclone copy aws-s3:team2-harbor-registry-backup cephharbor:harbor-registry-restore-test \
-  --config ./rclone.conf \
-  --progress \
-  --checksum
 ```
 
 App/Object 이미지 bucket 복구 예:
@@ -1391,6 +1687,13 @@ rclone copy aws-s3:team2-app-objects-backup/team2-photo-bucket cephteam2:team2-p
   --dry-run \
   --progress
 ```
+
+Harbor image 복구 기준:
+
+- S3 object restore 대상 아님
+- ECR `library/kosa-tickets:<tag>`에서 pull 가능 여부 확인
+- ECR archived image는 Standard로 restore 후 사용
+- Harbor로 되돌릴 필요가 있으면 ECR pull 후 Harbor tag/push 수행
 
 ## 8.2 Thanos bucket 복구
 
@@ -1410,7 +1713,9 @@ Thanos bucket은 block 구조를 수동으로 수정하지 않음.
 
 ---
 
-## 9. Glacier 복구 절차
+## 9. Archive 복구 절차
+
+## 9.1 S3 Glacier 객체 복구 절차
 
 Glacier Flexible Retrieval/Deep Archive 객체는 즉시 읽을 수 없음. 먼저 restore 요청이 필요함.
 
@@ -1441,23 +1746,95 @@ aws s3 cp \
   --metadata-directive COPY
 ```
 
+## 9.2 ECR archive image 복구 절차
+
+ECR archive는 S3 Glacier와 다른 ECR 전용 archive storage class임.
+
+복구 원칙:
+
+- EKS cloud bursting 대상 image는 archive 상태로 두지 않음
+- archived image가 필요하면 ECR Standard로 restore 후 pull
+- restore 완료 전 Pod image pull 대상 tag로 사용하지 않음
+- AWS 기준 ECR archive restore는 보통 20분 이내 완료 기대
+
+상태 확인:
+
+```bash
+aws ecr describe-images \
+  --repository-name library/kosa-tickets \
+  --region ap-northeast-2 \
+  --query 'imageDetails[].{tags:imageTags,digest:imageDigest,status:imageStatus,pushed:imagePushedAt,transitioned:imageTransitionedAt}' \
+  --output table
+```
+
+CLI 복구 예시:
+
+```bash
+aws ecr update-image-storage-class \
+  --repository-name library/kosa-tickets \
+  --image-id imageTag=<TAG> \
+  --target-storage-class STANDARD \
+  --region ap-northeast-2
+```
+
+digest 기준 복구 예시:
+
+```bash
+aws ecr update-image-storage-class \
+  --repository-name library/kosa-tickets \
+  --image-id imageDigest=sha256:<DIGEST> \
+  --target-storage-class STANDARD \
+  --region ap-northeast-2
+```
+
+수동 archive 예시:
+
+```bash
+aws ecr update-image-storage-class \
+  --repository-name library/kosa-tickets \
+  --image-id imageTag=<TAG> \
+  --target-storage-class ARCHIVE \
+  --region ap-northeast-2
+```
+
+UI 복구:
+
+UI 경로:
+
+- AWS Console
+- Elastic Container Registry
+- Private repositories
+- `library/kosa-tickets`
+- Images
+- archived image 선택
+- Restore to standard storage class
+
+주의:
+
+- restore 완료까지 지연 가능
+- restore 완료 후 image pull 검증
+- restored image는 lifecycle policy 대상이므로 재archive 조건 확인
+- burst 직전 필요한 image는 Standard 유지
+
 ---
 
 ## 10. 검증 체크리스트
 
-| 검증 항목             | 명령/방법                                         | 기대 결과                                             |
-| :-------------------- | :------------------------------------------------ | :---------------------------------------------------- |
-| RGW 직접 접근         | `curl -I http://10.10.10.11:7480`                 | `200 OK`, `Ceph Object Gateway`                       |
-| Deprecated RGW bridge | `curl -I http://172.16.23.60:7480`                | 기존 구성 확인 시에만 `200 OK`, `Ceph Object Gateway` |
-| Ceph bucket 목록      | `rclone lsd cephharbor:`, `rclone lsd cephteam2:` | 대상 bucket 표시                                      |
-| AWS bucket 목록       | `aws s3 ls`                                       | backup bucket 표시                                    |
-| Dry-run               | `rclone copy ... --dry-run`                       | 삭제 없이 복사 대상 확인                              |
-| Copy-only             | `rclone copy ...`                                 | 원본 유지, destination에 key 생성                     |
-| Key 보존              | `rclone lsf ... --recursive`                      | Ceph/AWS key 경로 일치                                |
-| AWS 복사량 확인       | `aws s3 ls s3://<bucket> --recursive --summarize` | Total Objects/Total Size 확인                         |
-| Thanos upload         | sidecar log                                       | Thanos 사용 시 block upload 오류 없음                 |
-| Thanos Query          | `up{cluster="onprem"}`, `up{cluster="eks"}`       | Thanos 사용 시 양쪽 cluster label 조회                |
-| Glacier test          | `head-object`                                     | StorageClass/Restore 상태 확인                        |
+| 검증 항목             | 명령/방법                                               | 기대 결과                                             |
+| :-------------------- | :------------------------------------------------------ | :---------------------------------------------------- |
+| RGW 직접 접근         | `curl -I http://10.10.10.11:7480`                       | `200 OK`, `Ceph Object Gateway`                       |
+| Deprecated RGW bridge | `curl -I http://172.16.23.60:7480`                      | 기존 구성 확인 시에만 `200 OK`, `Ceph Object Gateway` |
+| Ceph bucket 목록      | `rclone lsd cephteam2:`                                 | 대상 bucket 표시                                      |
+| AWS bucket 목록       | `aws s3 ls`                                             | backup bucket 표시                                    |
+| Harbor -> ECR mirror  | Harbor Replication execution, `aws ecr describe-images` | ECR repo/tag/digest 표시                              |
+| ECR lifecycle preview | `aws ecr get-lifecycle-policy-preview`                  | archive/expire 대상 사전 확인                         |
+| Dry-run               | `rclone copy ... --dry-run`                             | 삭제 없이 복사 대상 확인                              |
+| Copy-only             | `rclone copy ...`                                       | 원본 유지, destination에 key 생성                     |
+| Key 보존              | `rclone lsf ... --recursive`                            | Ceph/AWS key 경로 일치                                |
+| AWS 복사량 확인       | `aws s3 ls s3://<bucket> --recursive --summarize`       | Total Objects/Total Size 확인                         |
+| Thanos upload         | sidecar log                                             | Thanos 사용 시 block upload 오류 없음                 |
+| Thanos Query          | `up{cluster="onprem"}`, `up{cluster="eks"}`             | Thanos 사용 시 양쪽 cluster label 조회                |
+| Glacier test          | `head-object`                                           | StorageClass/Restore 상태 확인                        |
 
 ---
 
@@ -1465,15 +1842,25 @@ aws s3 cp \
 
 현재 단계:
 
-> bastion VM에서 Ceph RGW(`10.10.10.11:7480`)에 직접 접근해 Object 데이터를 AWS S3로 동일 key 구조로
-> 복제하는 copy-only 백업을 우선 적용한다. 이 단계에서는 Ceph 원본을 유지해 서비스 영향 없이 백업
-> 무결성과 복구 가능성을 검증한다.
+> 사용자 업로드 객체는 bastion VM에서 Ceph RGW(`10.10.10.11:7480`)에 직접 접근해 AWS S3로 동일 key
+> 구조로 복제하는 copy-only 백업을 적용한다. 배포 이미지는 Harbor registry blob을 S3로 중복 백업하지
+> 않고, Harbor event-based replication으로 ECR Seoul에 복제해 AWS cloud bursting 시 EKS node가 AWS
+> 내부 registry에서 빠르게 pull하도록 구성한다.
 
 향후 단계:
 
 > 검증이 완료되면 DB 메타데이터에 `storage_type`, `bucket`, `object_key`를 관리하도록 확장하고,
 > 오래된 객체는 Ceph에서 삭제한 뒤 AWS S3를 직접 조회하는 Tiered Storage 구조로 전환한다. 장기 보관
-> 데이터는 S3 Lifecycle을 통해 Glacier로 이동한다.
+> 객체 데이터는 S3 Lifecycle을 통해 Glacier로 이동한다. 오래된 container image는 S3 Glacier가 아니라
+> ECR Lifecycle을 통해 ECR archive storage class로 전환하고, burst 대상 active image는 ECR
+> Standard에 유지한다.
+
+Harbor/ECR 범위 설명:
+
+> Harbor -> ECR replication은 백업이라기보다 AWS cloud bursting의 배포 성능 최적화 경로다. ECR
+> 복제본은 image pull 가용성과 속도를 높이지만 Harbor project, user, robot account, replication
+> policy 같은 Harbor metadata 전체를 대체하지는 않는다. 따라서 Harbor 설정 백업은 별도 운영 항목으로
+> 분리한다.
 
 백업 경로 원칙:
 
