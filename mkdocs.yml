@@ -85,6 +85,8 @@ nav:
       - Outline: presentation/outline.md
       - Storage Platform A to Z: presentation/storage-platform-a-to-z.md
       - Storage Platform Slides: presentation/storage-platform-slides.md
+      - Storage Platform Real Slides: presentation/storage-platform-real-slides.md
+      - Storage Platform Real Speaker Notes: presentation/storage-platform-real-speaker-notes.md
       - Slides: presentation/presentation.md
       - Demo Script: presentation/demo_script.md
       - Q&A: presentation/qna.md

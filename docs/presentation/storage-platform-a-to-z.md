@@ -376,7 +376,6 @@ flowchart LR
 - Redis: 인메모리 데이터 저장소
 - DB 앞단 캐시
 - 세션 저장소 후보
-- idempotency key 저장 후보
 - rate limit 카운터 후보
 - AWS burst traffic 공유 상태 저장 후보
 - 예매 상태 단일 기준점 후보

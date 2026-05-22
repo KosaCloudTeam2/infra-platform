@@ -539,7 +539,6 @@ RGW bucket / rclone / AWS S3 / Lifecycle 캡처
   <div class="box">좌석 hold</div>
   <div class="box">예매 진행 상태</div>
   <div class="box">대기열 token</div>
-  <div class="box">idempotency key</div>
 </div>
 
 <br>
