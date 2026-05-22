@@ -151,40 +151,40 @@ style: |
 
 # 기술 선택과 효용가치
 
-| 기술          | 사용 이유                  | 효용가치                    |
-| :------------ | :------------------------- | :-------------------------- |
-| Ceph RBD      | K8s PVC, Proxmox VM 디스크 | 저장소 운영 통합            |
-| Ceph RGW      | Harbor, 앱 S3 자원         | Harbor image/앱 Object 저장 |
-| Harbor        | 내부 이미지 저장소         | 온프레 pull 속도            |
-| ECR Mirror    | AWS burst pull             | cold start 감소             |
-| AWS S3 Backup | 정적 자원 2차 백업         | 삭제/오염 복구              |
-| Redis         | 티켓팅 조회 캐시           | DB 부하 감소                |
+| 기술          | 사용 이유                  | 효용가치                           |
+| :------------ | :------------------------- | :--------------------------------- |
+| Ceph RBD      | K8s PVC, Proxmox VM 디스크 | 저장소 운영 통합                   |
+| Ceph RGW      | Harbor, 앱 S3 자원         | Harbor image blob / 앱 Object 저장 |
+| Harbor        | 내부 이미지 저장소         | 온프레 pull 속도                   |
+| ECR Mirror    | AWS burst pull             | cold start 감소                    |
+| AWS S3 Backup | 정적 자원 2차 백업         | 삭제/오염 복구                     |
+| Redis         | 예매 상태 기준점           | DB 부하 감소 + 일관성              |
 
 ---
 
 # 왜 현재 설정인가
 
-| 설정                | 대안                   | 선택 이유             |
-| :------------------ | :--------------------- | :-------------------- |
-| RBD for K8s/VM      | 로컬 디스크, NFS       | block volume 통합     |
-| RGW for Harbor      | filesystem backend     | object blob 저장 적합 |
-| Ceph S3 for 앱 자원 | DB blob 저장           | 이미지/영상 분리      |
-| Harbor -> ECR       | AWS가 Harbor 직접 pull | burst pull 지연 감소  |
-| Redis cache-aside   | DB only, write-through | 단순성, DB 원본 유지  |
-| etcd local          | etcd on Ceph           | 제어 평면 장애 격리   |
+| 설정                 | 대안                   | 선택 이유             |
+| :------------------- | :--------------------- | :-------------------- |
+| RBD for K8s/VM       | 로컬 디스크, NFS       | block volume 통합     |
+| RGW for Harbor       | filesystem backend     | object blob 저장 적합 |
+| Ceph S3 for 앱 자원  | DB blob 저장           | 이미지/영상 분리      |
+| Harbor -> ECR        | AWS가 Harbor 직접 pull | burst pull 지연 감소  |
+| Redis 예매 상태 기준 | RDS Read Replica 조회  | AWS/온프레 판단 통일  |
+| etcd local           | etcd on Ceph           | 제어 평면 장애 격리   |
 
 ---
 
 # 담당 범위
 
-| 구분     | 담당 내용                     | 발표 핵심             |
-| :------- | :---------------------------- | :-------------------- |
-| Ceph RBD | K8s PVC, Proxmox VM           | block storage         |
-| Ceph RGW | Harbor, 앱 S3 자원            | object storage        |
-| Harbor   | 사내 자체 이미지 저장소       | 내부 pull, ECR mirror |
-| Backup   | 정적 자원, 이미지, 장기 보관  | Ceph RGW -> AWS S3    |
-| Redis    | 캐시, 일관성 보조, burst 흡수 | DB 부하 감소          |
-| etcd     | 제어 평면 데이터              | 로컬 디스크 유지      |
+| 구분     | 담당 내용                     | 발표 핵심                |
+| :------- | :---------------------------- | :----------------------- |
+| Ceph RBD | K8s PVC, Proxmox VM           | block storage            |
+| Ceph RGW | Harbor, 앱 S3 자원            | object storage           |
+| Harbor   | 사내 자체 이미지 저장소       | 내부 pull, ECR mirror    |
+| Backup   | 정적 자원, 이미지, 장기 보관  | Ceph RGW -> AWS S3       |
+| Redis    | 캐시, 일관성 보조, burst 흡수 | DB 부하 감소 + 예매 기준 |
+| etcd     | 제어 평면 데이터              | 로컬 디스크 유지         |
 
 ---
 
@@ -397,7 +397,7 @@ etcd local disk 확인 캡처
 - 내부망 image pull 속도 확보
 - 이미지 저장 위치 통제
 - 발표 환경 네트워크 영향 감소
-- Harbor blob object 저장
+- Harbor image blob 저장
 
 </div>
 </div>
@@ -503,6 +503,7 @@ RGW bucket / rclone / AWS S3 / Lifecycle 캡처
 - rate limit 카운터 후보
 - AWS burst 공유 상태 후보
 - DB 일관성 보조
+- 예매 상태 단일 기준점
 
 </div>
 <div>
@@ -515,10 +516,38 @@ RGW bucket / rclone / AWS S3 / Lifecycle 캡처
 - 반복 조회 응답 시간 감소
 - AWS burst traffic 흡수
 - 온프레/AWS 동일 캐시 기준
+- RDS Read Replica 지연 회피
+- 예매 상태 판단 기준 통일
 - TTL 기반 stale data 제한
 
 </div>
 </div>
+
+---
+
+# 예매 정보 일관성
+
+<div class="flow">
+  <div class="box">On-prem App</div>
+  <div class="arrow">→</div>
+  <div class="box">Redis 단일 기준</div>
+  <div class="arrow">←</div>
+  <div class="box">AWS Burst App</div>
+</div>
+
+<div class="flow">
+  <div class="box">좌석 hold</div>
+  <div class="box">예매 진행 상태</div>
+  <div class="box">대기열 token</div>
+  <div class="box">idempotency key</div>
+</div>
+
+<br>
+
+- RDS Read Replica / 온프레 DB 간 수초 지연 가능
+- 중요 예매 정보는 Redis key 기준 판단
+- DB는 최종 확정 저장과 정산 기준
+- Redis HA와 TTL 정책 필요
 
 ---
 
@@ -551,21 +580,23 @@ RGW bucket / rclone / AWS S3 / Lifecycle 캡처
 <br>
 
 - DB: 원본 데이터
-- Redis: 파생 데이터와 임시 상태
-- cache-aside 기준 설명
+- Redis: 실시간 예매 상태와 캐시 기준점
+- AWS/온프레 모두 Redis 단일 endpoint 조회
+- cache-aside + 예매 상태 key 기준 설명
 - DB commit 후 cache 삭제 또는 갱신
 
 ---
 
 # Redis 유무 비교
 
-| 항목        | Redis 없음   | Redis 있음          | 효과           |
-| :---------- | :----------- | :------------------ | :------------- |
-| 공연 조회   | DB 직접 조회 | Redis hit           | 응답 지연 감소 |
-| DB query    | 높음         | 낮음                | DB 부하 감소   |
-| AWS burst   | DB 집중      | Redis 흡수          | DB 보호        |
-| 일관성      | DB 기준      | TTL/invalidate 필요 | 정책 필요      |
-| 장애 리스크 | DB 병목      | Redis HA 필요       | 한계 명시      |
+| 항목        | Redis 없음        | Redis 있음          | 효과           |
+| :---------- | :---------------- | :------------------ | :------------- |
+| 공연 조회   | DB 직접 조회      | Redis hit           | 응답 지연 감소 |
+| DB query    | 높음              | 낮음                | DB 부하 감소   |
+| AWS burst   | DB 집중           | Redis 흡수          | DB 보호        |
+| 예매 상태   | replica 지연 가능 | Redis 단일 key      | 판단 기준 통일 |
+| 일관성      | DB 기준           | TTL/invalidate 필요 | 정책 필요      |
+| 장애 리스크 | DB 병목           | Redis HA 필요       | 한계 명시      |
 
 ---
 
@@ -655,6 +686,12 @@ Redis INFO / hit-miss / latency / k6 비교 캡처
 - 응답 지연과 DB 부하 증가
 - Sentinel/Replica 필요성
 
+## Redis와 예매 일관성?
+
+- AWS/온프레 모두 Redis 기준
+- RDS Read Replica 지연 회피
+- DB는 최종 저장 기준
+
 ## Ceph 복제면 백업 불필요?
 
 - 불필요 아님
@@ -666,6 +703,7 @@ Redis INFO / hit-miss / latency / k6 비교 캡처
 
 - Ceph에 저장했으니 백업 완료
 - Redis가 있으니 DB 일관성 자동 보장
+- RDS Read Replica로 예매 일관성 자동 보장
 - ECR 미러링이 Harbor 전체 백업
 - 10G라서 무조건 빠름
 - RAM 추가로 성능 몇 배 향상
@@ -689,6 +727,6 @@ Redis INFO / hit-miss / latency / k6 비교 캡처
 - RGW: Harbor storage와 공연 자원 S3
 - Harbor/ECR: 내부 pull과 AWS burst pull 분리
 - Backup: 공연 이미지/영상 AWS S3 2차 백업
-- Redis: 티켓팅 조회 부하와 burst traffic 흡수
+- Redis: 티켓팅 조회 부하, burst traffic, 예매 상태 기준점
 - etcd: Ceph 제외, 로컬 디스크 유지
 - HDD + 10G: 네트워크 이점과 쓰기 한계 분리

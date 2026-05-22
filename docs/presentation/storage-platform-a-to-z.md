@@ -56,29 +56,29 @@
 
 ## 4. 기술 선택과 효용가치
 
-| 기술            | 사용 이유                               | 효용가치                                                    |
-| :-------------- | :-------------------------------------- | :---------------------------------------------------------- |
-| Ceph RBD        | Kubernetes PVC와 Proxmox VM 디스크 통합 | VM/PVC 이동성, 장애 대응, 저장소 운영 일원화                |
-| Ceph RGW        | 공연 이미지/동영상/Harbor blob 저장     | S3 API 호환, 대용량 정적 자원 저장, 온프레 내부 보관        |
-| Harbor          | 온프레 자체 이미지 저장소 필요          | 내부망 pull 속도, 이미지 통제, 외부 registry 의존도 감소    |
-| ECR Mirror      | AWS burst 환경 image pull 최적화        | AWS 내부 pull, cold start 감소, WAN 경유 제거               |
-| AWS S3 Backup   | Ceph RGW 자원 2차 백업                  | 삭제/오염/장애 복구, 장기 보관, lifecycle 적용              |
-| Redis           | 티켓팅 조회 트래픽과 DB 부하 흡수       | 반복 조회 응답 속도 개선, DB query 감소, burst traffic 완충 |
-| etcd Local Disk | 제어 평면 안정성 우선                   | Ceph 장애와 Kubernetes 제어 평면 장애 분리                  |
+| 기술            | 사용 이유                               | 효용가치                                                         |
+| :-------------- | :-------------------------------------- | :--------------------------------------------------------------- |
+| Ceph RBD        | Kubernetes PVC와 Proxmox VM 디스크 통합 | VM/PVC 이동성, 장애 대응, 저장소 운영 일원화                     |
+| Ceph RGW        | Harbor image blob / 앱 Object 저장      | S3 API 호환, 대용량 정적 자원 저장, 온프레 내부 보관             |
+| Harbor          | 온프레 자체 이미지 저장소 필요          | 내부망 pull 속도, 이미지 통제, 외부 registry 의존도 감소         |
+| ECR Mirror      | AWS burst 환경 image pull 최적화        | AWS 내부 pull, cold start 감소, WAN 경유 제거                    |
+| AWS S3 Backup   | Ceph RGW 자원 2차 백업                  | 삭제/오염/장애 복구, 장기 보관, lifecycle 적용                   |
+| Redis           | 예매 상태 단일 기준점과 DB 부하 흡수    | AWS/온프레 동일 예매 정보 조회, replica 지연 회피, DB query 감소 |
+| etcd Local Disk | 제어 평면 안정성 우선                   | Ceph 장애와 Kubernetes 제어 평면 장애 분리                       |
 
 ---
 
 ## 5. 설정 선택 이유
 
-| 설정                      | 대안                         | 현재 선택 이유                                       |
-| :------------------------ | :--------------------------- | :--------------------------------------------------- |
-| Ceph RBD for K8s/VM       | 로컬 디스크, NFS             | block volume 성능/격리, VM/PVC 운영 통합             |
-| Ceph RGW for Harbor       | filesystem backend, 외부 S3  | S3 호환 object backend, 온프레 내부 registry storage |
-| Ceph S3 for app resources | DB blob 저장, 로컬 파일 저장 | 이미지/동영상 대용량 자원 분리, 앱 확장성 확보       |
-| Harbor -> ECR mirror      | AWS에서 Harbor 직접 pull     | AWS 내부 pull 속도, burst cold start 감소            |
-| Redis cache-aside         | write-through, DB only       | 구현 단순성, DB 원본 유지, TTL/invalidate 제어       |
-| copy-only backup          | sync-delete, 원본 tiering    | 초기 안정성, 삭제 전파 방지, 복구 검증 용이          |
-| etcd local disk           | etcd on Ceph RBD             | 제어 평면과 Ceph 장애 결합 방지                      |
+| 설정                      | 대안                           | 현재 선택 이유                                                             |
+| :------------------------ | :----------------------------- | :------------------------------------------------------------------------- |
+| Ceph RBD for K8s/VM       | 로컬 디스크, NFS               | block volume 성능/격리, VM/PVC 운영 통합                                   |
+| Ceph RGW for Harbor       | filesystem backend, 외부 S3    | S3 호환 object backend, 온프레 내부 registry storage                       |
+| Ceph S3 for app resources | DB blob 저장, 로컬 파일 저장   | 이미지/동영상 대용량 자원 분리, 앱 확장성 확보                             |
+| Harbor -> ECR mirror      | AWS에서 Harbor 직접 pull       | AWS 내부 pull 속도, burst cold start 감소                                  |
+| Redis 예매 상태 기준점    | RDS Read Replica 조회, DB only | AWS/온프레가 같은 예매 정보를 보고, read replica 지연에 따른 불일치를 줄임 |
+| copy-only backup          | sync-delete, 원본 tiering      | 초기 안정성, 삭제 전파 방지, 복구 검증 용이                                |
+| etcd local disk           | etcd on Ceph RBD               | 제어 평면과 Ceph 장애 결합 방지                                            |
 
 ---
 
@@ -313,7 +313,7 @@ flowchart LR
 ### 12.6 발표 문장
 
 - "Harbor는 사내 자체 이미지 저장소이고, ECR은 AWS burst 환경에서 빠르게 pull하기 위한 미러임."
-- "Harbor storage는 Ceph RGW를 사용해 이미지 blob을 object 형태로 내부 보관함."
+- "Harbor storage는 Ceph RGW를 사용해 Harbor image blob을 object 형태로 내부 보관함."
 - "ECR 미러링은 단순 백업보다 배포 속도와 cold start 감소 목적이 큼."
 - "Harbor 프로젝트/사용자/정책 같은 metadata 백업은 image mirror와 별도 항목임."
 
@@ -379,6 +379,7 @@ flowchart LR
 - idempotency key 저장 후보
 - rate limit 카운터 후보
 - AWS burst traffic 공유 상태 저장 후보
+- 예매 상태 단일 기준점 후보
 - DB 일관성 보조 계층
 
 ### 14.2 Redis를 온프레에 둔 이유
@@ -386,6 +387,7 @@ flowchart LR
 - DB와 같은 내부망 배치
 - 캐시와 DB 간 지연 최소화
 - 온프레 앱과 AWS burst 앱의 동일 캐시 기준 제공
+- 온프레 앱과 AWS 앱이 같은 예매 상태를 조회하는 단일 기준점 제공
 - 외부 managed cache 비용 제외
 - 10G 내부망 기반 낮은 latency 활용
 - 장애 범위와 보안 경계 통제
@@ -395,8 +397,10 @@ flowchart LR
 - 공연 목록 반복 조회 흡수
 - 공연 상세/좌석 상태 조회 부하 완화
 - 예매 오픈 직후 읽기 트래픽 완충
+- 예매 진행 상태, 좌석 hold, 대기열 token 단일 기준점 제공
 - rate limit 또는 대기열 상태 저장 후보
 - AWS burst app과 온프레 app의 공통 캐시 기준
+- RDS Read Replica 또는 온프레 DB 조회 지연 차이에 따른 예매 상태 불일치 완화
 - DB 직접 접근량 감소
 
 ### 14.4 Redis 사용 효과
@@ -407,6 +411,8 @@ flowchart LR
 - DB connection pressure 감소
 - 읽기 트래픽 흡수
 - 세션/상태 공유 가능성 확보
+- AWS/온프레 양쪽 앱의 예매 상태 기준 통일
+- RDS Read Replica 수초 지연 가능성 회피
 
 ### 14.5 Redis가 있을 때
 
@@ -414,12 +420,16 @@ flowchart LR
 - DB query 생략
 - ProxySQL/PXC 부하 감소
 - 동일 key 기준 온프레/AWS 응답 일관성 확보
+- 예매 상태는 AWS/온프레 모두 동일 Redis key 기준 조회
+- 좌석 hold, 예매 진행 상태, 대기열 상태의 기준점 단일화
 - TTL(Time To Live) 기반 오래된 캐시 자동 만료
 
 ### 14.6 Redis가 없을 때
 
 - 모든 읽기 요청 DB 직접 접근
 - AWS burst traffic까지 DB 집중
+- AWS/RDS Read Replica와 온프레 DB 사이 지연 차이 노출 가능
+- 같은 좌석/예매 상태를 서로 다르게 볼 위험 증가
 - 동일 데이터 반복 조회 증가
 - DB connection 증가
 - PXC write/read latency 증가 가능성
@@ -428,15 +438,45 @@ flowchart LR
 ### 14.7 Redis와 DB 일관성 원칙
 
 - DB: 원본 데이터(Source of Truth)
-- Redis: 파생 데이터와 임시 상태
-- write-through 또는 cache-aside 중 하나로 설명
-- 현재 발표 추천: cache-aside
+- Redis: 실시간 예매 상태와 캐시 기준점
+- 중요 예매 상태: AWS/온프레 앱이 Redis 단일 endpoint 조회
+- RDS Read Replica: 비동기 복제 지연 가능성 때문에 중요 예매 상태 판단 경로에서 제외
+- DB: 최종 영속 저장과 정산 기준
+- Redis key: 좌석 hold, 예매 진행 상태, 대기열 token, idempotency key
+- TTL: 좌석 hold와 임시 예매 상태 자동 만료
+- write-through 또는 cache-aside 중 하나로 설명 가능
+- 현재 발표 추천: 예매 상태는 Redis 기준, 최종 확정은 DB commit 후 Redis 갱신/삭제
 - 조회: Redis 확인 후 miss 시 DB 조회
 - 저장/수정: DB commit 후 Redis 삭제 또는 갱신
 - 삭제: DB delete 후 Redis key 삭제
 - TTL: stale cache 장기 유지 방지
 
-### 14.8 Redis 사양 발표 항목
+### 14.8 예매 정보 단일 기준 설계
+
+```text
+On-prem App
+AWS Burst App
+  -> Redis 단일 endpoint
+  -> 좌석 hold / 예매 진행 상태 / 대기열 token 확인
+  -> DB commit
+  -> Redis 갱신 또는 삭제
+```
+
+설계 이유:
+
+- AWS와 온프레미스가 서로 다른 DB replica를 보면 수초 차이 가능
+- RDS Read Replica는 비동기 복제 특성상 최신 예매 상태 판단에 부적합 가능
+- 같은 좌석을 두 앱 경로가 다르게 판단하는 상황 방지 필요
+- Redis 단일 key 기준으로 예매 상태 판단 경로 통일
+- DB는 최종 확정 저장소로 유지
+
+주의:
+
+- Redis 자체 HA 필요
+- Redis 장애 시 예매 기능 degrade 또는 DB fallback 정책 필요
+- Redis persistence와 failover 기준 별도 정의 필요
+
+### 14.9 Redis 사양 발표 항목
 
 | 항목        | 발표 기준                               |
 | :---------- | :-------------------------------------- |
@@ -449,11 +489,15 @@ flowchart LR
 | Security    | requirepass, ACL, 내부망 접근 제한      |
 | App env     | `REDIS_URL`, `REDIS_HOST`, `REDIS_PORT` |
 
-### 14.9 발표 문장
+### 14.10 발표 문장
 
 - "Redis는 DB를 대체하지 않고, 반복 조회와 AWS burst 트래픽을 흡수하는 캐시 계층임."
 - "티켓팅 서비스에서는 예매 오픈 시점에 조회 요청이 몰리므로 Redis로 DB 앞단의 반복 조회를 줄이는
   가치가 큼."
+- "중요한 예매 정보는 AWS와 온프레미스가 서로 다른 DB replica를 보지 않고 Redis 하나를 기준으로
+  보도록 설계함."
+- "RDS Read Replica나 온프레 DB 간 수초 지연이 예매 상태 불일치로 이어질 수 있어, 좌석 hold와 예매
+  진행 상태는 Redis 단일 key 기준으로 판단함."
 - "온프레에 Redis를 둔 이유는 DB와 가까운 위치에서 캐시 일관성을 통제하기 위함임."
 - "일관성 기준은 DB commit 후 Redis key 갱신 또는 삭제이며, TTL로 오래된 캐시를 제한함."
 
@@ -1120,6 +1164,8 @@ redis-cli INFO stats | grep -E "keyspace_hits|keyspace_misses"
 5. Redis key 삭제 또는 갱신 확인
 6. 재조회 결과 최신값 확인
 7. TTL 만료 후 DB 재조회 확인
+8. AWS app과 온프레 app에서 같은 Redis key 조회
+9. RDS Read Replica 지연 상황에서도 예매 상태 판단이 Redis 기준으로 동일한지 확인
 
 통과 기준:
 
@@ -1127,6 +1173,8 @@ redis-cli INFO stats | grep -E "keyspace_hits|keyspace_misses"
 - DB commit 후 cache invalidate 또는 refresh
 - stale data 장기 유지 없음
 - 온프레 앱과 AWS 앱 응답 동일
+- 중요 예매 상태는 RDS Read Replica가 아니라 Redis 기준으로 판단
+- 좌석 hold/예매 진행 상태 key TTL 정상 동작
 
 ### 23.5 Redis 유무 성능 비교
 
@@ -1152,13 +1200,14 @@ k6 run load-test-cache-off.js
 
 발표 표:
 
-| 항목              | Redis 없음     | Redis 있음          | 효과         |
-| :---------------- | :------------- | :------------------ | :----------- |
-| 반복 조회 응답    | DB 직접 조회   | Redis hit           | latency 감소 |
-| DB query          | 높음           | 낮음                | DB 부하 감소 |
-| AWS burst traffic | DB 집중        | Redis 흡수          | DB 보호      |
-| 일관성            | DB 기준만 존재 | TTL/invalidate 필요 | 정책 필요    |
-| 장애 리스크       | DB 단일 병목   | Redis 장애 고려     | HA 필요      |
+| 항목              | Redis 없음        | Redis 있음          | 효과                 |
+| :---------------- | :---------------- | :------------------ | :------------------- |
+| 반복 조회 응답    | DB 직접 조회      | Redis hit           | latency 감소         |
+| DB query          | 높음              | 낮음                | DB 부하 감소         |
+| AWS burst traffic | DB 집중           | Redis 흡수          | DB 보호              |
+| 예매 상태 일관성  | replica 지연 가능 | Redis 단일 key 기준 | AWS/온프레 판단 통일 |
+| 일관성            | DB 기준만 존재    | TTL/invalidate 필요 | 정책 필요            |
+| 장애 리스크       | DB 단일 병목      | Redis 장애 고려     | HA 필요              |
 
 현재 주의:
 
@@ -1409,7 +1458,7 @@ redis-cli INFO memory
 ### 27.3 Harbor
 
 - "Harbor는 사내 자체 이미지 저장소 역할임."
-- "Harbor storage는 Ceph RGW를 활용해 이미지 blob을 내부 object storage에 저장함."
+- "Harbor storage는 Ceph RGW를 활용해 Harbor image blob을 내부 object storage에 저장함."
 - "온프레 Kubernetes는 내부 Harbor에서 빠르게 pull하고, AWS burst 환경은 ECR 미러를 사용함."
 - "이렇게 나눈 이유는 AWS 노드가 온프레 Harbor를 WAN/VPN 경유로 pull할 때 생기는 지연을 줄이고,
   티켓팅 피크 시점의 scale-out 시간을 줄이기 위함임."
@@ -1425,6 +1474,8 @@ redis-cli INFO memory
 - "Redis는 DB를 대체하는 계층이 아니라 DB 앞단에서 반복 조회와 burst 트래픽을 흡수하는 계층임."
 - "티켓팅 서비스에서는 공연 정보와 좌석 정보 조회가 반복되므로 Redis로 DB 접근량을 줄이는 가치가
   큼."
+- "특히 예매 상태는 AWS와 온프레미스가 Redis 하나를 기준으로 보게 해서 RDS Read Replica나 온프레 DB
+  간 지연 차이를 줄임."
 - "온프레 Redis를 기준으로 잡으면 온프레 앱과 AWS 앱이 같은 캐시 기준을 볼 수 있음."
 - "일관성은 DB commit 후 Redis key 갱신 또는 삭제, TTL 적용으로 관리함."
 
@@ -1485,7 +1536,9 @@ redis-cli INFO memory
 ### Q7. Redis 때문에 데이터 불일치가 생기지 않는가
 
 - 가능성 있음
-- DB를 Source of Truth로 유지
+- DB를 최종 Source of Truth로 유지
+- 실시간 예매 상태 판단은 Redis 단일 key 기준
+- RDS Read Replica 지연 가능성은 중요 예매 상태 조회 경로에서 배제
 - DB commit 후 cache invalidate 또는 refresh
 - TTL 적용
 - stale cache 허용 범위 정의 필요
@@ -1557,6 +1610,8 @@ redis-cli INFO memory
 - "RAM 추가로 성능 몇 배 향상"
 - "etcd도 Ceph에 올림"
 - "AWS 트래픽도 아무 설정 없이 온프레 Redis 사용"
+- "RDS Read Replica를 보면 예매 상태 일관성이 자동 보장됨"
+- "Redis 하나만 두면 예매 일관성 문제가 자동 해결됨"
 - "10G라서 HDD 쓰기 성능도 충분함"
 - "공연 이미지/영상도 DB에 넣으면 됨"
 
@@ -1568,6 +1623,8 @@ redis-cli INFO memory
 - "Ceph 복제와 백업은 목적 분리"
 - "Ceph RBD는 K8s/Proxmox VM, Ceph RGW는 Harbor/App S3 자원에 사용"
 - "Redis는 DB 부하 감소와 일관성 보조"
+- "중요 예매 상태는 AWS/온프레가 Redis 단일 기준점 조회"
+- "DB/RDS replica 지연 가능성은 Redis 예매 상태 key로 보완"
 - "ECR 미러링은 AWS burst image pull 최적화"
 - "etcd는 제어 평면 안정성을 위해 로컬 디스크 유지"
 - "10G망은 네트워크 병목 완화, HDD 쓰기 성능은 별도 검증 대상"
@@ -1583,7 +1640,7 @@ redis-cli INFO memory
 - Ceph RGW: Harbor storage와 앱 S3 자원
 - Harbor: 내부 이미지 저장소와 AWS ECR 미러링 기준점
 - Backup: Ceph RGW 원본과 AWS S3 2차 백업 구조
-- Redis: DB 부하 감소와 AWS burst traffic 흡수 계층
+- Redis: DB 부하 감소, AWS burst traffic 흡수, 예매 상태 단일 기준점
 - etcd: Ceph 제외, 로컬 디스크 유지 대상
 - HDD + 10G: 네트워크 이점과 디스크 쓰기 한계 분리 설명
 - 핵심 성과: 트래픽 외 인프라 병목 완화와 복구 가능성 확보
