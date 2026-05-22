@@ -45,6 +45,7 @@ site-learning/
 site-project-study-latest/
 site-project-docs-finals/
 site-learning-path/
+tech-icon-cutouts/_tmp/
 
 .venv/
 .audit_cache/
