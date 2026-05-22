@@ -35,6 +35,7 @@ infra/ansible/group_vars/
 *.p12
 *.pfx
 secrets.*
+*.pdf
 
 # Build/cache
 node_modules/

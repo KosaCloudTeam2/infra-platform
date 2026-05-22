@@ -186,8 +186,8 @@ flowchart LR
 | :---------- | :---------------------- | :----------------------------- |
 | Ceph RBD    | Kubernetes PVC          | Pod 재생성 후 데이터 유지      |
 | Ceph RBD    | Proxmox VM 디스크       | VM 디스크 저장소 통합          |
-| Ceph RGW    | Harbor registry storage | 이미지 blob object 저장        |
-| Ceph RGW/S3 | 앱 정적 자원 연결       | 공연 이미지/동영상 object 저장 |
+| Ceph RGW    | Harbor registry storage | Harbor image blob 저장         |
+| Ceph RGW/S3 | 앱 정적 자원 연결       | 공연 이미지/동영상 Object 저장 |
 
 ### 9.5 10G 온프레미스 의미
 

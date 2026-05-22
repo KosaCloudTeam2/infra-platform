@@ -151,14 +151,14 @@ style: |
 
 # 기술 선택과 효용가치
 
-| 기술          | 사용 이유                  | 효용가치                |
-| :------------ | :------------------------- | :---------------------- |
-| Ceph RBD      | K8s PVC, Proxmox VM 디스크 | 저장소 운영 통합        |
-| Ceph RGW      | Harbor, 앱 S3 자원         | 이미지/영상 object 저장 |
-| Harbor        | 내부 이미지 저장소         | 온프레 pull 속도        |
-| ECR Mirror    | AWS burst pull             | cold start 감소         |
-| AWS S3 Backup | 정적 자원 2차 백업         | 삭제/오염 복구          |
-| Redis         | 티켓팅 조회 캐시           | DB 부하 감소            |
+| 기술          | 사용 이유                  | 효용가치                    |
+| :------------ | :------------------------- | :-------------------------- |
+| Ceph RBD      | K8s PVC, Proxmox VM 디스크 | 저장소 운영 통합            |
+| Ceph RGW      | Harbor, 앱 S3 자원         | Harbor image/앱 Object 저장 |
+| Harbor        | 내부 이미지 저장소         | 온프레 pull 속도            |
+| ECR Mirror    | AWS burst pull             | cold start 감소             |
+| AWS S3 Backup | 정적 자원 2차 백업         | 삭제/오염 복구              |
+| Redis         | 티켓팅 조회 캐시           | DB 부하 감소                |
 
 ---
 
@@ -261,7 +261,7 @@ style: |
 - 외부 인터넷 경유 제거
 - RBD로 K8s/VM 저장소 통합
 - RGW로 Harbor blob 저장
-- 공연 이미지/영상 object 저장
+- 공연 이미지/영상 Object 저장
 - 장애 범위와 복구 절차 통제
 
 </div>
