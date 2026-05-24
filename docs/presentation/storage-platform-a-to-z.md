@@ -210,7 +210,87 @@ flowchart LR
 - 실서비스 전제: hot data, DB성 workload, 고 IOPS 요구 구간은 SSD/NVMe OSD 또는 고성능 디스크 전제
 - 현재 발표 전제: 대용량 이미지/동영상 object 중심 workload에 적합성 설명
 
-### 9.7 발표 문장
+### 9.7 Ceph RBD/RGW 자동 이중화 개념
+
+결론:
+
+- Ceph RBD 자동 이중화 존재
+- Ceph RGW 데이터 자동 이중화 존재
+- 단, "파일 복사"가 아니라 Ceph pool, PG(Placement Group), OSD 기반 자동 분산/복제 구조
+- replica size 기준 복제본 수 유지
+- OSD 장애 시 self-healing으로 다른 OSD에 재복제 수행
+
+RBD 데이터 흐름:
+
+```text
+RBD Volume
+  -> Ceph Pool
+  -> PG
+  -> OSD1 / OSD4 / OSD7 ...
+```
+
+RGW 데이터 흐름:
+
+```text
+Application
+  -> RGW endpoint
+  -> RGW bucket
+  -> Ceph RGW data pool
+  -> PG
+  -> OSD1 / OSD4 / OSD7 ...
+```
+
+replica size = 3 의미:
+
+```text
+Object A
+├─ OSD1
+├─ OSD4
+└─ OSD7
+```
+
+RBD 이중화 의미:
+
+- Kubernetes PVC 데이터 유지
+- Proxmox VM disk 데이터 유지
+- 디스크 1개 장애 시 데이터 보존
+- 노드 1개 장애 시 replica 배치 조건에 따라 서비스 지속 가능
+- `active+clean` 상태 복귀 시 정상 복제 상태 판단
+
+RGW 이중화 의미:
+
+- bucket object 데이터가 Ceph pool에 저장
+- RGW object도 pool replica size 정책 적용
+- Harbor image blob과 앱 Object 데이터 복제 적용
+- RGW endpoint 자체는 별도 HA 구성 필요
+- RGW daemon 다중 구성과 LB 연결 시 RGW 서비스 장애 대응 가능
+
+RGW 서비스 HA 구조:
+
+```text
+LB / VIP
+├─ RGW1
+├─ RGW2
+└─ RGW3
+```
+
+주의:
+
+- Ceph data replica와 RGW service HA 구분
+- Ceph replica는 데이터 가용성
+- RGW 다중화는 S3 endpoint 가용성
+- Ceph replica는 삭제/오염 복구용 백업 아님
+- AWS S3 backup은 별도 복구 계층
+
+발표 표현:
+
+- "Ceph는 데이터를 여러 OSD에 자동 복제하여 노드 또는 디스크 장애 상황에서도 데이터 가용성을
+  유지함."
+- "RBD와 RGW 데이터 모두 Ceph의 분산 스토리지 구조를 기반으로 자동 복제와 self-healing 기능을
+  제공함."
+- "다만 RGW API endpoint 자체의 가용성은 RGW daemon 다중화와 LB 구성이 별도 필요함."
+
+### 9.8 발표 문장
 
 - "Ceph는 단순 백업 저장소가 아니라 VM 디스크, Pod PVC, Object Storage를 묶는 온프레 저장소 계층임."
 - "공연 기획 회사 시나리오에서는 이미지와 동영상 자원이 많기 때문에 Ceph S3가 앱 자원 저장소로
@@ -653,7 +733,176 @@ ceph osd tree
 - `min_size 2` 이상
 - OSD host 분산 확인
 
-### 18.3 10G 네트워크
+### 18.3 RBD/RGW 자동 이중화 확인
+
+목적:
+
+- RBD와 RGW가 별도 파일 복사가 아니라 Ceph pool replica 정책으로 이중화되는지 확인
+- replica size 확인
+- 실제 data pool과 OSD acting set 확인
+- RGW data HA와 RGW service HA 구분 확인
+
+#### 18.3.1 Replica Size 확인
+
+Ceph 노드:
+
+```bash
+ceph osd pool ls detail
+ceph osd pool get <RBD_POOL> size
+ceph osd pool get <RBD_POOL> min_size
+ceph osd pool get <RGW_DATA_POOL> size
+ceph osd pool get <RGW_DATA_POOL> min_size
+ceph osd tree
+ceph pg stat
+```
+
+통과 기준:
+
+- RBD pool `size 3`
+- RGW data pool `size 3`
+- `min_size 2` 이상
+- PG 상태 `active+clean`
+- OSD가 host 단위로 분산
+
+#### 18.3.2 RBD 이중화 확인
+
+Ceph 노드:
+
+```bash
+rbd ls -p <RBD_POOL>
+rbd info -p <RBD_POOL> <RBD_IMAGE>
+rbd status -p <RBD_POOL> <RBD_IMAGE>
+```
+
+RBD object placement 확인:
+
+```bash
+rbd info -p <RBD_POOL> <RBD_IMAGE> | grep block_name_prefix
+rados -p <RBD_POOL> ls | grep <BLOCK_NAME_PREFIX> | head -1
+ceph osd map <RBD_POOL> <RBD_OBJECT_NAME>
+```
+
+통과 기준:
+
+- RBD image 존재
+- RBD image가 대상 pool에 존재
+- `ceph osd map` 결과에 여러 OSD acting set 표시
+- acting set OSD가 서로 다른 host에 분산
+
+주의:
+
+- 운영 RBD에 쓰기 테스트 금지
+- 가능하면 테스트 PVC 또는 테스트 VM 디스크 사용
+
+#### 18.3.3 RGW 데이터 이중화 확인
+
+Ceph 노드:
+
+```bash
+radosgw-admin bucket list
+radosgw-admin bucket stats --bucket <APP_BUCKET>
+radosgw-admin bucket stats --bucket <HARBOR_BUCKET>
+radosgw-admin object stat --bucket <APP_BUCKET> --object <OBJECT_KEY>
+```
+
+RGW data pool 확인:
+
+```bash
+ceph osd pool ls detail | grep rgw
+ceph osd pool get <RGW_DATA_POOL> size
+ceph osd pool get <RGW_DATA_POOL> min_size
+rados -p <RGW_DATA_POOL> ls | head -5
+ceph osd map <RGW_DATA_POOL> <RGW_INTERNAL_OBJECT_NAME>
+```
+
+통과 기준:
+
+- bucket object count/size 확인
+- RGW data pool replica size 확인
+- object stat 성공
+- `ceph osd map` 결과에 여러 OSD acting set 표시
+- Harbor push 또는 앱 object upload 후 bucket size 증가
+
+주의:
+
+- RGW internal object name은 S3 key와 1:1로 단순 매칭되지 않을 수 있음
+- 발표 캡처는 bucket stats와 pool size 중심으로 구성 가능
+
+#### 18.3.4 Self-Healing 확인
+
+상태 확인:
+
+```bash
+ceph -s
+ceph health detail
+ceph pg stat
+ceph osd tree
+ceph osd df tree
+```
+
+장애 복구 흐름 관찰:
+
+```bash
+ceph -w
+```
+
+통과 기준:
+
+- OSD 장애 후 PG가 최종적으로 `active+clean` 복귀
+- degraded object 수 0 복귀
+- misplaced object 수 0 복귀
+- pool replica size 유지
+
+주의:
+
+- `ceph osd out <OSD_ID>` 같은 장애 주입은 실습/검증 환경에서만 수행
+- 발표 전 운영 데이터 환경에서 임의 장애 주입 금지
+- 실제 발표는 기존 장애 복구 로그 또는 `ceph -s` 정상 상태 캡처 우선
+
+#### 18.3.5 RGW 서비스 HA 확인
+
+RGW daemon 확인:
+
+```bash
+ceph orch ps --daemon_type rgw
+ceph orch ls --service_type rgw
+```
+
+cephadm 미사용 환경 후보:
+
+```bash
+systemctl list-units | grep radosgw
+ss -lntp | grep 7480
+```
+
+Kubernetes 배포형 후보:
+
+```bash
+kubectl get pod -A | grep -i rgw
+kubectl get svc -A | grep -i rgw
+```
+
+LB endpoint 확인:
+
+```bash
+curl -I http://<RGW_LB_ENDPOINT>:7480
+curl -I http://<RGW_NODE_1>:7480
+curl -I http://<RGW_NODE_2>:7480
+```
+
+통과 기준:
+
+- RGW daemon 2개 이상
+- LB 또는 VIP가 RGW daemon 앞단에 존재
+- RGW 1개 장애 시 다른 RGW로 S3 요청 처리 가능
+- bucket list/object stat 요청 성공
+
+주의:
+
+- RGW data replica와 RGW service HA 혼동 금지
+- RGW daemon 1개뿐이면 데이터는 복제돼도 S3 endpoint는 단일 장애점
+
+### 18.4 10G 네트워크
 
 각 Ceph/Proxmox 노드:
 
@@ -679,7 +928,7 @@ iperf3 -c <PEER_IP> -P 4 -t 30
 - iperf 측정값이 1G 한계보다 충분히 높음
 - 단, 이 결과는 네트워크 검증이며 HDD 쓰기 성능 검증은 아님
 
-### 18.4 HDD 쓰기 성능 검증
+### 18.5 HDD 쓰기 성능 검증
 
 Ceph 노드:
 
@@ -715,7 +964,7 @@ fio --name=rbd-write-check \
 - OSD별 latency 편차 확인
 - 발표 수치 반영 전 측정값 확보
 
-### 18.5 RBD/StorageClass/PVC
+### 18.6 RBD/StorageClass/PVC
 
 Kubernetes 접근 노드:
 
@@ -740,7 +989,7 @@ rbd info -p <RBD_POOL> <IMAGE_NAME>
 - PV에 RBD image handle 존재
 - Ceph pool에 실제 RBD image 존재
 
-### 18.6 Pod PVC 영속성
+### 18.7 Pod PVC 영속성
 
 검증 절차:
 
@@ -1570,6 +1819,9 @@ redis-cli INFO memory
 | :-------------- | :----------------------------- | :-------- |
 | Ceph 상태       | `ceph -s`                      | Pass/Fail |
 | Ceph 3중 복제   | `ceph osd pool ls detail`      | Pass/Fail |
+| RBD 이중화      | `rbd info`, `ceph osd map`     | Pass/Fail |
+| RGW 데이터 복제 | `bucket stats`, pool `size`    | Pass/Fail |
+| RGW 서비스 HA   | RGW daemon 2개 이상, LB 확인   | Pass/Fail |
 | 10G 링크        | `ethtool`, `iperf3`            | Pass/Fail |
 | HDD 쓰기 성능   | `fio`, `rados bench`           | Pass/Fail |
 | VM RBD          | Proxmox Storage, `rbd ls`      | Pass/Fail |

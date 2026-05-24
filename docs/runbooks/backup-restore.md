@@ -1,8 +1,7 @@
 ﻿# 백업/복구 Runbook
 
 > Status: Unverified 범위: 현재 우선순위는 **App/Object Ceph RGW -> AWS S3 백업**과 **Harbor -> ECR
-> image replication 운영 기준**임. DB/PVC/etcd/GitOps/Secret 전체 백업은 현재 범위에서 제외하고,
-> 한계만 명시함.
+> image replication 운영 기준**임. DB, Harbor metadata, etcd는 전용 Runbook 기준으로 분리함.
 
 ---
 
@@ -19,14 +18,14 @@
 
 ## 1.2 현재 제외 범위
 
-| 구분                | 제외 사유                                                                              | 한계                                                                             |
-| :------------------ | :------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
-| Harbor RGW S3 백업  | cloud bursting 이미지 pull 속도 확보를 위해 Harbor -> ECR event-based replication 적용 | ECR은 이미지 복제본이며 Harbor project/user/robot/정책 metadata 전체 백업은 아님 |
-| DB 백업             | 현재 PXC 3노드 + Ceph RBD(`team2-rbd-block`) 기반으로 노드/디스크 장애 대응을 우선함   | RBD replica는 논리 삭제/오염 복구용 백업은 아님. 추후 XtraBackup/binlog 필요     |
-| Thanos Metrics      | 현재 Thanos 미사용 전제                                                                | Thanos 도입 후 `thanos-metrics` bucket과 별도 RGW user/key 기준 추가 필요        |
-| etcd/Velero         | 이번 우선 목표가 Object 백업임                                                         | 클러스터 전체 재해복구는 별도 Runbook 필요                                       |
-| GitOps/Secret       | Git 저장소와 Secret 관리 정책은 별도 주제                                              | Secret 평문 백업 금지. SOPS/SealedSecret/ExternalSecret 검토 필요                |
-| pfSense/Proxmox/IaC | 인프라 설정 백업은 별도 운영 절차                                                      | config.xml, Terraform state 등 별도 보관 필요                                    |
+| 구분                | 제외 사유                                                                              | 한계                                                                                                   |
+| :------------------ | :------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| Harbor RGW S3 백업  | cloud bursting 이미지 pull 속도 확보를 위해 Harbor -> ECR event-based replication 적용 | Harbor metadata는 [Harbor metadata 백업/복구 Runbook](harbor-metadata-backup-restore.md) 기준으로 분리 |
+| DB 백업             | 현재 PXC 3노드 + Ceph RBD(`team2-rbd-block`) 기반으로 노드/디스크 장애 대응을 우선함   | PXC 데이터 백업은 [PXC 백업/복구 Runbook](pxc-backup-restore.md) 기준으로 분리                         |
+| Thanos Metrics      | 현재 Thanos 미사용 전제                                                                | Thanos 도입 후 `thanos-metrics` bucket과 별도 RGW user/key 기준 추가 필요                              |
+| etcd/Velero         | 이번 우선 목표가 Object 백업임                                                         | etcd snapshot은 [etcd 백업/복구 Runbook](etcd-backup-restore.md) 기준으로 분리                         |
+| GitOps/Secret       | Git 저장소와 Secret 관리 정책은 별도 주제                                              | Secret 평문 백업 금지. SOPS/SealedSecret/ExternalSecret 검토 필요                                      |
+| pfSense/Proxmox/IaC | 인프라 설정 백업은 별도 운영 절차                                                      | config.xml, Terraform state 등 별도 보관 필요                                                          |
 
 > 발표 시 표현: 사용자 업로드 객체는 **copy-only 백업**으로 S3에 보관하고, 배포 이미지는 cloud
 > bursting 시 EKS pull 지연을 줄이기 위해 Harbor에서 ECR로 event-based replication한다. Harbor
@@ -1859,8 +1858,8 @@ Harbor/ECR 범위 설명:
 
 > Harbor -> ECR replication은 백업이라기보다 AWS cloud bursting의 배포 성능 최적화 경로다. ECR
 > 복제본은 image pull 가용성과 속도를 높이지만 Harbor project, user, robot account, replication
-> policy 같은 Harbor metadata 전체를 대체하지는 않는다. 따라서 Harbor 설정 백업은 별도 운영 항목으로
-> 분리한다.
+> policy 같은 Harbor metadata 전체를 대체하지는 않는다. Harbor 설정 백업은
+> [Harbor metadata 백업/복구 Runbook](harbor-metadata-backup-restore.md) 기준으로 분리한다.
 
 백업 경로 원칙:
 
@@ -1871,5 +1870,5 @@ Harbor/ECR 범위 설명:
 DB 범위 설명:
 
 > DB는 현재 PXC 3노드와 Ceph RBD 기반으로 노드/디스크 장애에 대응한다. 다만 이는 논리 삭제나 데이터
-> 오염 복구를 위한 백업은 아니므로, 추후 PITR 요구가 생기면 XtraBackup/binlog 기반 DB 백업을 별도
-> 도입한다.
+> 오염 복구를 위한 백업은 아니므로, [PXC 백업/복구 Runbook](pxc-backup-restore.md) 기준으로
+> XtraBackup 기반 별도 백업을 운영한다. PITR과 incremental 백업은 추후 개선 항목으로 관리한다.
