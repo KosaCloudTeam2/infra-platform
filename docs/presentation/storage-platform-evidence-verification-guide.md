@@ -40,15 +40,20 @@
 3. RBD/RGW 사용 근거 확인
 4. 10G network 성능 확인
 5. Ceph RADOS/RBD 성능 측정
-6. RGW endpoint HA 리스크 확인
-7. On-prem DB 경로 확인
-8. PXC Galera 상태 확인
-9. DB backup 근거 확인
-10. Object backup 근거 확인
-11. Redis Sentinel HA 확인
-12. Redis 기능/효과 확인
-13. 발표용 수치 표 작성
-14. 민감 정보 마스킹
+6. Kubernetes PVC 기반 fio 측정
+7. RGW endpoint HA 리스크 확인
+8. On-prem DB 경로 확인
+9. PXC Galera 상태 확인
+10. PXC OLTP 성능 측정
+11. DB backup 근거 확인
+12. Object backup 근거 확인
+13. Redis Sentinel HA 확인
+14. Sentinel failover 시연
+15. Redis 기능/효과 확인
+16. Redis throughput 측정
+17. Cache HIT/MISS 응답 시간 측정
+18. 발표용 수치 표 작성
+19. 민감 정보 마스킹
 
 ---
 
@@ -408,6 +413,156 @@ rbd rm -p <RBD_POOL> perf-rbd-test
 - 1M seqwrite 낮음: sequential write도 HDD/replica/WAL 영향
 - SSD WAL/DB 분리 개선 후보
 
+### 7.10 Kubernetes PVC 기반 fio 측정
+
+목적:
+
+- 실제 Kubernetes PVC 경로 기준 측정
+- Ceph CSI + RBD + Pod I/O 경로 확인
+- 발표 시 "앱이 쓰는 volume 기준" 보조 근거 확보
+
+사전 확인:
+
+```bash
+kubectl get sc
+kubectl get node -o wide
+```
+
+주의:
+
+- `storageClassName`은 현재 cluster 값으로 교체
+- 운영 PVC reuse 금지
+- 테스트 PVC 신규 생성 후 삭제
+- `nodeName`, `nodeSelector` 고정 필요 시 현재 노드명 확인 후 사용
+
+테스트 PVC/Pod:
+
+```bash
+cat <<'EOF' | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fio-rbd-test
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: <RBD_STORAGE_CLASS>
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fio-rbd-test
+  namespace: default
+spec:
+  containers:
+    - name: fio
+      image: dmonakhov/alpine-fio
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: fio-rbd-test
+EOF
+
+kubectl wait --for=condition=ready pod/fio-rbd-test --timeout=120s
+```
+
+4K randwrite:
+
+```bash
+kubectl exec fio-rbd-test -- fio \
+  --name=randwrite \
+  --filename=/data/testfile \
+  --rw=randwrite \
+  --bs=4k \
+  --size=1G \
+  --numjobs=1 \
+  --iodepth=32 \
+  --time_based \
+  --runtime=60 \
+  --ioengine=libaio \
+  --direct=1 \
+  --group_reporting
+```
+
+4K randread:
+
+```bash
+kubectl exec fio-rbd-test -- fio \
+  --name=randread \
+  --filename=/data/testfile \
+  --rw=randread \
+  --bs=4k \
+  --size=1G \
+  --numjobs=1 \
+  --iodepth=32 \
+  --time_based \
+  --runtime=60 \
+  --ioengine=libaio \
+  --direct=1 \
+  --group_reporting
+```
+
+1M seqwrite:
+
+```bash
+kubectl exec fio-rbd-test -- fio \
+  --name=seqwrite \
+  --filename=/data/testfile \
+  --rw=write \
+  --bs=1m \
+  --size=2G \
+  --numjobs=1 \
+  --iodepth=16 \
+  --ioengine=libaio \
+  --direct=1 \
+  --group_reporting
+```
+
+정리:
+
+```bash
+kubectl delete pod fio-rbd-test
+kubectl delete pvc fio-rbd-test
+```
+
+발표에 남길 값:
+
+| 발표 항목           | 기록값      |
+| :------------------ | :---------- |
+| PVC StorageClass    | RBD 기반 값 |
+| 4K randwrite IOPS   | 측정값      |
+| 4K randwrite p95    | 측정값      |
+| 4K randread IOPS    | 측정값      |
+| 1M seqwrite MB/s    | 측정값      |
+| Pod scheduled node  | 노드명      |
+| 테스트 PVC 삭제여부 | 완료/미완료 |
+
+### 7.11 PPT 성능 표 변환
+
+| Layer   | 측정 항목             | 발표값      | 의미                       |
+| :------ | :-------------------- | :---------- | :------------------------- |
+| Storage | Ceph RBD 4K randwrite | 최신 측정값 | HDD 기반 write path 한계   |
+| Storage | Ceph RBD 1M seqwrite  | 최신 측정값 | 대용량 write throughput    |
+| Storage | RADOS 4K write        | 최신 측정값 | Ceph backend 기준 성능     |
+| Network | NIC raw iperf3        | 최신 측정값 | 10G fabric 정상 여부       |
+| Network | Pod-to-Pod iperf3     | 최신 측정값 | CNI overhead 포함 app 경로 |
+| 개선안  | SSD WAL/DB, NVMe OSD  | 후보        | HDD write 병목 완화 방향   |
+
+발표 문장 후보:
+
+```text
+10G network는 정상 대역폭이 확인됐지만, RBD 4K/1M write는 HDD 기반 Ceph write path에서 제한됐습니다.
+따라서 현재 병목은 network보다 disk/WAL/replica write path에 가깝고, 운영급 구성에서는 SSD WAL/DB 분리를 개선 후보로 잡았습니다.
+```
+
 ---
 
 ## 8. RGW Endpoint HA 리스크 확인
@@ -548,6 +703,116 @@ SHOW PROCESSLIST;
 - RBD PVC는 DB 저장소 계층
 - DB backup은 별도 필요
 
+### 10.6 PXC OLTP 성능 측정
+
+목적:
+
+- 온프레 DB 응답성 기준 확보
+- ProxySQL 경유 OLTP 처리량 확인
+- Redis 효과 비교용 DB baseline 확보
+
+범위:
+
+- AWS RDS 제외
+- 분석 workload 제외
+- 운영 데이터 직접 변경 금지
+- 별도 test schema/table 기준
+
+사전 준비:
+
+```sql
+CREATE DATABASE IF NOT EXISTS perf_test;
+CREATE USER IF NOT EXISTS '<TEST_USER>'@'%' IDENTIFIED BY '<TEST_PASSWORD>';
+GRANT ALL PRIVILEGES ON perf_test.* TO '<TEST_USER>'@'%';
+```
+
+sysbench Pod:
+
+```bash
+kubectl run sysbench-pxc \
+  --image=severalnines/sysbench \
+  --restart=Never \
+  --command -- sleep 3600
+
+kubectl wait --for=condition=ready pod/sysbench-pxc --timeout=120s
+```
+
+prepare:
+
+```bash
+kubectl exec sysbench-pxc -- sysbench \
+  --db-driver=mysql \
+  --mysql-host=<PROXYSQL_ENDPOINT> \
+  --mysql-port=6033 \
+  --mysql-user=<TEST_USER> \
+  --mysql-password=<TEST_PASSWORD> \
+  --mysql-db=perf_test \
+  --tables=4 \
+  --table-size=100000 \
+  /usr/share/sysbench/oltp_read_write.lua prepare
+```
+
+run:
+
+```bash
+kubectl exec sysbench-pxc -- sysbench \
+  --db-driver=mysql \
+  --mysql-host=<PROXYSQL_ENDPOINT> \
+  --mysql-port=6033 \
+  --mysql-user=<TEST_USER> \
+  --mysql-password=<TEST_PASSWORD> \
+  --mysql-db=perf_test \
+  --tables=4 \
+  --table-size=100000 \
+  --threads=8 \
+  --time=60 \
+  --report-interval=10 \
+  /usr/share/sysbench/oltp_read_write.lua run
+```
+
+cleanup:
+
+```bash
+kubectl exec sysbench-pxc -- sysbench \
+  --db-driver=mysql \
+  --mysql-host=<PROXYSQL_ENDPOINT> \
+  --mysql-port=6033 \
+  --mysql-user=<TEST_USER> \
+  --mysql-password=<TEST_PASSWORD> \
+  --mysql-db=perf_test \
+  --tables=4 \
+  /usr/share/sysbench/oltp_read_write.lua cleanup
+
+kubectl delete pod sysbench-pxc
+```
+
+발표에 남길 값:
+
+| 발표 항목 | 기록값    |
+| :-------- | :-------- |
+| TPS       | 측정값    |
+| QPS       | 측정값    |
+| avg       | ms        |
+| p95       | ms        |
+| p99       | ms        |
+| errors    | 건수/비율 |
+
+참고 기준:
+
+| 항목        | 발표 판단 기준                        |
+| :---------- | :------------------------------------ |
+| TPS         | 환경별 편차 설명 가능한 수준          |
+| avg latency | 5~20ms 수준이면 OLTP 응답성 근거      |
+| p95 latency | 50ms 이하이면 안정적 응답성 근거      |
+| p99 latency | 100ms 이하이면 tail latency 관리 근거 |
+| error       | 0 또는 원인 설명 가능                 |
+
+발표 해석:
+
+- PXC 성능은 Galera 동기 복제와 RBD PVC 영향 포함
+- Redis HIT/MISS 비교 시 DB baseline 역할
+- 수치 부진 시 HDD/RBD/동기 복제/동시성 조건 함께 설명
+
 ---
 
 ## 11. DB Backup 근거 확인
@@ -670,13 +935,77 @@ kubectl exec -n redis <REDIS_POD> -c sentinel -- \
   redis-cli -p 26379 <AUTH_OPTION> sentinel ckquorum mymaster
 ```
 
-### 13.3 Failover 시험
+### 13.3 Sentinel 수동 failover 시연
+
+목적:
+
+- Redis HA 시연
+- master 교체 흐름 확인
+- 실제 Pod kill 없이 controlled failover 수행
 
 주의:
 
-- 발표 준비 시간대에만 수행
+- 발표 준비 시간대 수행
 - 운영 영향 가능성 사전 공유
-- 테스트 환경 우선
+- test/staging 환경 우선
+- failover 중 write 일시 실패 가능성 고려
+
+현재 master 확인:
+
+```bash
+kubectl exec -n redis <REDIS_POD> -c sentinel -- \
+  redis-cli -p 26379 <AUTH_OPTION> sentinel get-master-addr-by-name mymaster
+```
+
+cache baseline 확인:
+
+```bash
+curl -s -k <APP_CACHE_URL>
+curl -s -k <APP_CACHE_URL>
+```
+
+failover 실행:
+
+```bash
+kubectl exec -n redis <REDIS_POD> -c sentinel -- \
+  redis-cli -p 26379 <AUTH_OPTION> sentinel failover mymaster
+
+sleep 30
+```
+
+새 master 확인:
+
+```bash
+kubectl exec -n redis <REDIS_POD> -c sentinel -- \
+  redis-cli -p 26379 <AUTH_OPTION> sentinel get-master-addr-by-name mymaster
+```
+
+failover 후 cache 확인:
+
+```bash
+curl -s -k <APP_CACHE_URL>
+curl -s -k <APP_CACHE_URL>
+```
+
+정상 기준:
+
+- failover 전후 master 주소 변경
+- `ckquorum` 정상
+- cache HIT 응답 유지
+- failover time 기록 가능
+
+### 13.4 강한 장애 주입 시험
+
+목적:
+
+- 실제 master Pod 장애 상황 검증
+- Kubernetes reschedule + Sentinel failover 동작 확인
+
+주의:
+
+- 운영 발표 시연보다 사전 검증용 권장
+- Pod 삭제 전 현재 master 확인 필수
+- Redis write 영향 가능성 명시
 
 실행 후보:
 
@@ -687,20 +1016,24 @@ kubectl exec -n redis <REDIS_POD> -c sentinel -- \
   redis-cli -p 26379 <AUTH_OPTION> sentinel get-master-addr-by-name mymaster
 ```
 
-### 13.4 발표에 남길 값
+### 13.5 발표에 남길 값
 
-| 발표 항목        | 기록값      |
-| :--------------- | :---------- |
-| Redis node count | 3           |
-| Sentinel quorum  | 2           |
-| usable Sentinels | 3           |
-| failover time    | 초          |
-| PVC type         | RBD RWO PVC |
+| 발표 항목        | 기록값        |
+| :--------------- | :------------ |
+| Redis node count | 3             |
+| Sentinel quorum  | 2             |
+| usable Sentinels | 3             |
+| failover time    | 초            |
+| failover 방식    | 수동/Pod 장애 |
+| cache 유지       | 성공/실패     |
+| PVC type         | RBD RWO PVC   |
 
-### 13.5 발표 해석
+### 13.6 발표 해석
 
 - Redis Sentinel 3 nodes + quorum 2
 - 1 node 장애 시 failover 가능
+- 수동 failover는 발표 시연용으로 안전성 높음
+- Pod 삭제는 실제 장애 주입 성격
 - failover 시험 없으면 "구성상 가능"으로 표현
 
 ---
@@ -767,7 +1100,106 @@ SHOW STATUS LIKE 'Threads_connected';
 SHOW GLOBAL STATUS LIKE 'Questions';
 ```
 
-### 14.5 발표에 남길 값
+### 14.5 Redis throughput 측정
+
+목적:
+
+- Redis 자체 처리량 확인
+- cache layer capacity 근거 확보
+- DB offload 여유 설명 근거 확보
+
+주의:
+
+- 운영 peak 시간대 실행 금지
+- production 직접 측정 시 `-n`, `-c` 축소
+- password/endpoint 캡처 마스킹
+
+실행:
+
+```bash
+kubectl run redis-bench \
+  --rm -i \
+  --restart=Never \
+  --image=redis:7-alpine \
+  --command -- \
+  redis-benchmark \
+    -h <REDIS_MASTER_ENDPOINT> \
+    -p 6379 \
+    <AUTH_OPTION> \
+    -t get,set,incr,lpush,rpush \
+    -n 50000 \
+    -c 100 \
+    -q
+```
+
+발표에 남길 값:
+
+| 발표 항목     | 기록값     |
+| :------------ | :--------- |
+| GET ops/sec   | 측정값     |
+| SET ops/sec   | 측정값     |
+| INCR ops/sec  | 측정값     |
+| LPUSH ops/sec | 측정값     |
+| concurrency   | `100` 등   |
+| request 수    | `50000` 등 |
+
+### 14.6 ticket-app Cache HIT/MISS 측정
+
+목적:
+
+- 사용자가 체감하는 Redis 효과 확인
+- cache HIT와 MISS latency 차이 확보
+- "DB 부하 감소"가 아닌 "응답 시간 개선 + DB 접근 감소" 근거 확보
+
+HIT 측정:
+
+```bash
+curl -s -k <APP_CACHE_HIT_URL> > /dev/null
+
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  curl -s -k -w "%{time_total}\n" -o /dev/null <APP_CACHE_HIT_URL>
+done
+```
+
+MISS 측정:
+
+```bash
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  curl -s -k -w "%{time_total}\n" -o /dev/null "<APP_CACHE_MISS_URL>?seed=$i"
+done
+```
+
+Redis stats 전후 비교:
+
+```bash
+redis-cli <AUTH_OPTION> INFO stats | grep -E "keyspace_hits|keyspace_misses|total_commands_processed"
+```
+
+DB/ProxySQL 전후 비교:
+
+```sql
+SHOW STATUS LIKE 'Threads_connected';
+SHOW GLOBAL STATUS LIKE 'Questions';
+```
+
+발표에 남길 값:
+
+| 발표 항목            | 기록값 |
+| :------------------- | :----- |
+| Cache HIT latency    | ms     |
+| Cache MISS latency   | ms     |
+| HIT/MISS 개선 배율   | 배     |
+| keyspace_hits 증가   | 건수   |
+| keyspace_misses 증가 | 건수   |
+| DB query 증가량      | 건수   |
+
+계산:
+
+```text
+improvement_ratio = cache_miss_latency / cache_hit_latency
+```
+
+### 14.7 발표에 남길 값
 
 | 발표 항목       | 기록값          |
 | :-------------- | :-------------- |
@@ -778,19 +1210,26 @@ SHOW GLOBAL STATUS LIKE 'Questions';
 | Redis latency   | ms              |
 | DB connection   | Redis 없음/있음 |
 | App p95 latency | Redis 없음/있음 |
+| GET ops/sec     | 측정값          |
+| SET ops/sec     | 측정값          |
+| HIT latency     | ms              |
+| MISS latency    | ms              |
+| HIT/MISS ratio  | 배              |
 
-### 14.6 hit ratio 계산
+### 14.8 hit ratio 계산
 
 ```text
 hit_ratio = keyspace_hits / (keyspace_hits + keyspace_misses)
 ```
 
-### 14.7 발표 해석
+### 14.9 발표 해석
 
 - hit ratio만으로 DB 부하 감소 단정 금지
 - DB QPS 또는 connection 감소와 함께 제시
 - queue는 LPUSH/RPOP/LLEN 증가로 설명
 - Redis latency spike가 크면 cache 자체 병목 가능성 언급
+- cache HIT/MISS latency 차이는 사용자 체감 효과로 설명
+- Redis throughput은 티켓팅 순간 부하 흡수 여유로 설명
 
 ---
 
@@ -841,23 +1280,64 @@ kubectl delete pod iperf-server iperf-client
 5. 발표 가능 여부 결정
 6. 캡처 파일명 연결
 7. 민감 정보 마스킹 확인
+8. 발표 슬라이드용 1줄 해석 작성
+9. Q&A 대비 한계/개선안 작성
 
 ### 16.1 최종 표 템플릿
 
 | 영역   | 지표                       | 기존 참고값  | 최신 측정값 | 차이 원인 | 발표 여부 | 캡처 |
 | :----- | :------------------------- | :----------- | :---------- | :-------- | :-------- | :--- |
 | Ceph   | 10G network                | 9.4 Gbps     |             |           |           |      |
+| Ceph   | Pod-to-Pod network         | 5.34 Gbps    |             |           |           |      |
 | Ceph   | RBD 1M seqwrite            | 35 MB/s      |             |           |           |      |
 | Ceph   | RADOS 4K write             | 99 IOPS      |             |           |           |      |
 | Ceph   | RBD 4K randwrite cache on  | 1,700 IOPS   |             |           |           |      |
 | Ceph   | RBD 4K randwrite cache off | 100~200 IOPS |             |           |           |      |
 | DB     | PXC node count             | 3            |             |           |           |      |
 | DB     | Threads_connected          | 측정 필요    |             |           |           |      |
+| DB     | PXC OLTP TPS               | 측정 필요    |             |           |           |      |
+| DB     | PXC avg latency            | 측정 필요    |             |           |           |      |
+| DB     | PXC p95 latency            | 측정 필요    |             |           |           |      |
 | Backup | object count match         | 측정 필요    |             |           |           |      |
+| Backup | restore dry-run            | 측정 필요    |             |           |           |      |
 | Redis  | Sentinel quorum            | quorum 2     |             |           |           |      |
 | Redis  | usable Sentinels           | 3            |             |           |           |      |
 | Redis  | failover time              | 약 30초      |             |           |           |      |
+| Redis  | GET ops/sec                | 측정 필요    |             |           |           |      |
+| Redis  | SET ops/sec                | 측정 필요    |             |           |           |      |
 | Redis  | hit ratio                  | 측정 필요    |             |           |           |      |
+| Redis  | Cache HIT latency          | 측정 필요    |             |           |           |      |
+| Redis  | Cache MISS latency         | 측정 필요    |             |           |           |      |
+| Redis  | HIT/MISS 개선 배율         | 측정 필요    |             |           |           |      |
+
+### 16.2 발표 자료 캡처 후보
+
+| 슬라이드 주제 | 캡처 후보                        | 발표 메시지                    |
+| :------------ | :------------------------------- | :----------------------------- |
+| Ceph 상태     | `ceph -s`, `ceph df`             | 정상 cluster + usable 용량     |
+| Ceph replica  | pool `size`, `min_size`          | replica로 장애 risk 감소       |
+| Ceph 성능     | fio/rados/iperf3 결과            | 10G 정상, HDD write path 한계  |
+| RBD/RGW 활용  | PVC/StorageClass, bucket stats   | block/object 분리 활용         |
+| On-prem DB    | PXC wsrep, ProxySQL route        | 3-node PXC + ProxySQL endpoint |
+| DB backup     | backup timestamp, binlog         | DB 복구 기준 확보              |
+| Object backup | source/backup count, dry-run     | copy-only backup + 복구 가능성 |
+| Redis HA      | `ckquorum`, failover 전후 master | quorum 기반 failover           |
+| Redis 효과    | benchmark, HIT/MISS 응답 시간    | DB 부하 감소 + 응답 시간 개선  |
+
+### 16.3 발표 슬라이드 표 후보
+
+| Layer   | 측정                  | 발표값 | 해석                     |
+| :------ | :-------------------- | :----- | :----------------------- |
+| Storage | RBD 4K randwrite      | 최신값 | HDD write path 한계      |
+| Storage | RBD 1M seqwrite       | 최신값 | 대용량 write 기준        |
+| Network | NIC raw iperf3        | 최신값 | 10G fabric 정상          |
+| Network | Pod-to-Pod iperf3     | 최신값 | CNI overhead 포함        |
+| DB      | PXC OLTP TPS          | 최신값 | 온프레 DB 처리량 기준    |
+| DB      | PXC p95 latency       | 최신값 | 사용자 요청 tail latency |
+| Cache   | Redis GET/SET ops/sec | 최신값 | 순간 부하 흡수 여유      |
+| App     | Cache HIT latency     | 최신값 | Redis 응답 경로          |
+| App     | Cache MISS latency    | 최신값 | DB 접근 포함 경로        |
+| Backup  | restore dry-run       | 최신값 | 복구 가능성 근거         |
 
 ---
 
@@ -870,6 +1350,8 @@ kubectl delete pod iperf-server iperf-client
 - 수치 의미 설명 가능
 - 기존 참고값과 차이 원인 설명 가능
 - 운영 영향 없는 검증 방식
+- failover/benchmark 시연 범위 설명 가능
+- 한계와 개선안 함께 제시 가능
 
 ### 17.2 발표 보류
 
@@ -880,6 +1362,8 @@ kubectl delete pod iperf-server iperf-client
 - cache on/off 구분 불가
 - DB backup restore 근거 없음
 - Redis failover 시험 실패
+- benchmark가 운영 장애를 유발한 경우
+- endpoint/secret 노출 캡처
 
 ### 17.3 발표 표현 조정
 
@@ -890,3 +1374,29 @@ kubectl delete pod iperf-server iperf-client
 | 구성만 확인        | "구성상 가능"                             |
 | 장애 시험 미수행   | "failover 검증은 추가 확인 필요"          |
 | restore 미수행     | "백업 파일 존재, 복구 테스트는 후속 과제" |
+| cache 포함 수치    | "cache 포함 조건의 측정값"                |
+| HDD 병목 확인      | "10G는 정상, write path는 HDD 영향"       |
+| benchmark 미수행   | "구성 검증 완료, 성능 수치는 재측정 필요" |
+
+### 17.4 발표 시연 후보
+
+| 후보                    | 발표 효과             | 주의점                       |
+| :---------------------- | :-------------------- | :--------------------------- |
+| Redis Sentinel failover | HA 동작 가시화        | 운영 시간대 회피             |
+| Cache HIT/MISS 비교     | Redis 효용가치 정량화 | 동일 endpoint 반복 호출 기준 |
+| Ceph fio 결과표         | HDD write 병목 설명   | live 부하보다 사전 캡처 권장 |
+| Object restore dry-run  | backup 복구성 설명    | 실제 overwrite 금지          |
+| PXC wsrep 상태          | 온프레 DB HA 설명     | DB endpoint/계정 마스킹      |
+
+### 17.5 발표 전 체크리스트
+
+- Ceph health 최신 캡처
+- Ceph replica size 최신 캡처
+- fio/iperf3 최신 결과
+- PXC wsrep 상태 캡처
+- DB backup timestamp 캡처
+- object backup count/dry-run 캡처
+- Redis ckquorum 캡처
+- Redis failover 전후 master 캡처
+- Redis benchmark 또는 HIT/MISS 캡처
+- 최종 수치표와 캡처 파일명 매핑
