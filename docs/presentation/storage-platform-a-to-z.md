@@ -1,7 +1,7 @@
-# Ceph Harbor Backup Redis 발표 A to Z
+# Ceph On-prem DB Backup Redis 발표 A to Z
 
-> 작성일: 2026-05-22 목적: Ceph, Harbor, 백업 정책, Redis 담당 범위 발표 준비 기준: 기존 오래된 문서
-> 재사용 아님, 발표 메시지와 검증 방법 중심 정리
+> 작성일: 2026-05-22 업데이트: 2026-05-24 목적: Ceph, 온프레미스 DB, 백업 정책, Redis 담당 범위 발표
+> 준비 기준: `CLAUDE.md` 재사용 아님, 발표 메시지와 검증 방법 중심 정리
 
 ---
 
@@ -12,10 +12,11 @@
 - 10G 온프레미스(On-premises) 기반 성능 확보 구조 설명
 - Ceph RBD 기반 Kubernetes/Proxmox VM 저장소 설명
 - Ceph RGW 기반 Harbor와 앱 자원 S3 연동 설명
-- Harbor 자체 레지스트리(Registry)와 AWS ECR 미러링 이유 설명
-- Redis 캐시(Cache) 기반 DB 부하 감소와 앱 일관성 보조 설명
+- 온프레미스 PXC(Percona XtraDB Cluster)와 ProxySQL 경로 설명
+- Redis 캐시(Cache) 기반 온프레 DB 부하 감소와 예매 상태 보조 설명
 - Ceph RGW와 AWS S3 기반 정적 자원 백업 구조 설명
 - etcd 로컬 디스크 유지 이유와 착오 해결 내용 설명
+- AWS RDS Read Replica와 OLAP 분석 워크로드는 담당 범위 제외
 
 ---
 
@@ -26,59 +27,62 @@
 - 트래픽 특성: 예매 오픈 시점 단기 폭증
 - 데이터 특성: 공연 포스터, 좌석도, 홍보 이미지, 공연 영상, 첨부 자료 다량 보유
 - 기본 운영 위치: 온프레미스 Kubernetes
-- 폭증 대응 위치: AWS cloud bursting
+- AWS cloud bursting: 후속/연계 영역
 - 저장소 요구: 이미지/동영상 Object Storage 확장성
-- 배포 요구: 온프레/AWS 양쪽 빠른 이미지 pull
+- 배포 요구: 온프레 내부 image pull 안정성
 - 캐시 요구: 티켓/공연 조회 반복 요청 흡수
 - 백업 요구: 정적 자원 삭제/오염/장애 복구
+- DB 범위: 온프레미스 PXC/ProxySQL 운영 경로
+- 제외 범위: RDS Read Replica, OLAP, 데이터 워크로드 튜닝
 
 발표 핵심:
 
 - "공연 기획 회사는 이미지와 영상 자원이 많고, 티켓팅 시점에는 짧은 시간에 트래픽이 집중됨."
-- "평상시는 온프레미스 자원을 활용하고, 피크 시간에는 AWS burst로 확장하는 구조가 비용과 성능 균형에
-  맞음."
+- "내 담당 범위는 온프레 저장소, 온프레 DB 경로, Redis, 백업 계층이며 데이터 워크로드와 AWS DB는
+  제외함."
 
 ---
 
 ## 3. 발표 범위
 
-| 구분     | 발표 대상                               | 핵심 질문                                  |
-| :------- | :-------------------------------------- | :----------------------------------------- |
-| Ceph RBD | Kubernetes PVC, Proxmox VM 디스크       | 왜 block storage를 Ceph RBD로 묶었는가     |
-| Ceph RGW | Harbor storage, 앱 자원 S3              | 왜 object storage를 Ceph S3로 두었는가     |
-| Harbor   | 사내 자체 이미지 저장소                 | 왜 ECR 직접 사용만으로 끝내지 않았는가     |
-| Backup   | 정적 자원, 이미지, 장기 보관            | 장애 또는 삭제 후 무엇을 어디서 복구하는가 |
-| Redis    | 캐시, 세션/일관성 보조, AWS 트래픽 처리 | 왜 DB 앞단에 Redis가 필요한가              |
-| etcd     | Kubernetes 제어 평면 데이터             | 왜 Ceph가 아니라 로컬 디스크인가           |
-| IOPS     | 스토리지 성능, 네트워크 성능            | 어떤 병목을 줄였는가                       |
+| 구분        | 발표 대상                               | 핵심 질문                                      |
+| :---------- | :-------------------------------------- | :--------------------------------------------- |
+| Ceph RBD    | Kubernetes PVC, Proxmox VM 디스크       | 왜 block storage를 Ceph RBD로 묶었는가         |
+| Ceph RGW    | Harbor storage, 앱 자원 S3              | 왜 object storage를 Ceph RGW로 두었는가        |
+| On-prem DB  | PXC, ProxySQL                           | 왜 앱 DB 접속을 ProxySQL endpoint로 통제하는가 |
+| Backup      | 정적 자원, DB 백업 경계, 장기 보관      | 장애 또는 삭제 후 무엇을 어디서 복구하는가     |
+| Redis       | 캐시, 대기열, 예매 상태 보조            | 왜 온프레 DB 앞단에 Redis가 필요한가           |
+| etcd        | Kubernetes 제어 평면 데이터             | 왜 Ceph가 아니라 로컬 디스크인가               |
+| IOPS        | Ceph, RBD, DB 경로, Redis 성능          | 어떤 병목을 줄였고 어떤 한계가 남았는가        |
+| 비담당/참고 | RDS Read Replica, OLAP, 데이터 워크로드 | 왜 이번 발표에서 깊게 다루지 않는가            |
 
 ---
 
 ## 4. 기술 선택과 효용가치
 
-| 기술            | 사용 이유                               | 효용가치                                                         |
-| :-------------- | :-------------------------------------- | :--------------------------------------------------------------- |
-| Ceph RBD        | Kubernetes PVC와 Proxmox VM 디스크 통합 | VM/PVC 이동성, 장애 대응, 저장소 운영 일원화                     |
-| Ceph RGW        | Harbor image blob / 앱 Object 저장      | S3 API 호환, 대용량 정적 자원 저장, 온프레 내부 보관             |
-| Harbor          | 온프레 자체 이미지 저장소 필요          | 내부망 pull 속도, 이미지 통제, 외부 registry 의존도 감소         |
-| ECR Mirror      | AWS burst 환경 image pull 최적화        | AWS 내부 pull, cold start 감소, WAN 경유 제거                    |
-| AWS S3 Backup   | Ceph RGW 자원 2차 백업                  | 삭제/오염/장애 복구, 장기 보관, lifecycle 적용                   |
-| Redis           | 예매 상태 단일 기준점과 DB 부하 흡수    | AWS/온프레 동일 예매 정보 조회, replica 지연 회피, DB query 감소 |
-| etcd Local Disk | 제어 평면 안정성 우선                   | Ceph 장애와 Kubernetes 제어 평면 장애 분리                       |
+| 기술            | 사용 이유                               | 효용가치                                                       |
+| :-------------- | :-------------------------------------- | :------------------------------------------------------------- |
+| Ceph RBD        | Kubernetes PVC와 Proxmox VM 디스크 통합 | VM/PVC 이동성, 장애 대응, 저장소 운영 일원화                   |
+| Ceph RGW        | Harbor image blob / 앱 Object 저장      | S3 API 호환, 대용량 정적 자원 저장, 온프레 내부 보관           |
+| PXC             | 온프레 운영 DB                          | 티켓팅 OLTP 요청 처리, 운영 데이터 primary source              |
+| ProxySQL        | 앱 DB 접속 endpoint                     | PXC 직접 접속 방지, writer 경로 통제, connection 관리          |
+| AWS S3 Backup   | Ceph RGW 자원 2차 백업                  | 삭제/오염/장애 복구, 장기 보관, lifecycle 적용                 |
+| Redis           | 캐시, 대기열, 예매 상태 보조            | 온프레 DB query 감소, connection pressure 감소, 임시 상태 관리 |
+| etcd Local Disk | 제어 평면 안정성 우선                   | Ceph 장애와 Kubernetes 제어 평면 장애 분리                     |
 
 ---
 
 ## 5. 설정 선택 이유
 
-| 설정                      | 대안                           | 현재 선택 이유                                                             |
-| :------------------------ | :----------------------------- | :------------------------------------------------------------------------- |
-| Ceph RBD for K8s/VM       | 로컬 디스크, NFS               | block volume 성능/격리, VM/PVC 운영 통합                                   |
-| Ceph RGW for Harbor       | filesystem backend, 외부 S3    | S3 호환 object backend, 온프레 내부 registry storage                       |
-| Ceph S3 for app resources | DB blob 저장, 로컬 파일 저장   | 이미지/동영상 대용량 자원 분리, 앱 확장성 확보                             |
-| Harbor -> ECR mirror      | AWS에서 Harbor 직접 pull       | AWS 내부 pull 속도, burst cold start 감소                                  |
-| Redis 예매 상태 기준점    | RDS Read Replica 조회, DB only | AWS/온프레가 같은 예매 정보를 보고, read replica 지연에 따른 불일치를 줄임 |
-| copy-only backup          | sync-delete, 원본 tiering      | 초기 안정성, 삭제 전파 방지, 복구 검증 용이                                |
-| etcd local disk           | etcd on Ceph RBD               | 제어 평면과 Ceph 장애 결합 방지                                            |
+| 설정                      | 대안                         | 현재 선택 이유                                               |
+| :------------------------ | :--------------------------- | :----------------------------------------------------------- |
+| Ceph RBD for K8s/VM       | 로컬 디스크, NFS             | block volume 성능/격리, VM/PVC 운영 통합                     |
+| Ceph RGW for Harbor       | filesystem backend, 외부 S3  | S3 호환 object backend, 온프레 내부 registry storage         |
+| Ceph S3 for app resources | DB blob 저장, 로컬 파일 저장 | 이미지/동영상 대용량 자원 분리, 앱 확장성 확보               |
+| App -> ProxySQL -> PXC    | PXC 직접 접속                | DB endpoint 통제, writer 경로 관리, connection pressure 완화 |
+| Redis 예매 상태 기준점    | PXC 직접 조회, 앱 로컬 상태  | 반복 조회 흡수, 임시 상태 TTL 관리, 온프레 DB 부하 감소      |
+| copy-only backup          | sync-delete, 원본 tiering    | 초기 안정성, 삭제 전파 방지, 복구 검증 용이                  |
+| etcd local disk           | etcd on Ceph RBD             | 제어 평면과 Ceph 장애 결합 방지                              |
 
 ---
 
@@ -93,6 +97,8 @@
 - "ECR 미러링은 백업" 단정 금지
 - "Ceph 복제는 백업" 단정 금지
 - "10G 연결만으로 HDD 쓰기 성능 보장" 표현 금지
+- "RDS/OLAP/데이터 워크로드까지 내 담당"처럼 들리는 표현 금지
+- "DB도 Ceph로 다 해결" 표현 금지
 
 ---
 
@@ -101,33 +107,31 @@
 ```mermaid
 flowchart LR
     User["사용자 요청"] --> App["On-prem App Pod"]
-    User --> AwsApp["AWS Burst App"]
 
     App --> Redis["Redis Cache"]
-    AwsApp --> Redis
-
-    App --> DB["PXC / ProxySQL"]
-    AwsApp --> DB
+    App --> ProxySQL["ProxySQL"]
+    ProxySQL --> PXC["On-prem PXC"]
 
     App --> RGW["Ceph RGW / App S3"]
     RGW --> S3["AWS S3 Backup"]
 
     Dev["CI / Developer"] --> Harbor["Harbor Registry"]
     Harbor --> CephObj["Ceph RGW Storage"]
-    Harbor --> ECR["AWS ECR Mirror"]
-    AwsApp --> ECR
 
     K8s["Kubernetes Pod PVC"] --> RBD["Ceph RBD"]
     VM["Proxmox VM Disk"] --> RBD
     Etcd["Kubernetes etcd"] --> LocalDisk["Control-plane Local Disk"]
+
+    Admin["OLAP / RDS / Data Workload"] -. "담당 제외" .-> OutScope["Other Owner"]
 ```
 
 - RBD 저장소 축: Kubernetes PVC, Proxmox VM
 - RGW 저장소 축: Harbor, 앱 S3 자원
-- 이미지 배포 축: Harbor -> ECR
+- 온프레 DB 축: App -> ProxySQL -> PXC
 - 정적 자원 백업 축: Ceph RGW -> AWS S3
 - 캐시/일관성 축: Redis
 - 제어 평면 예외: etcd 로컬 디스크
+- 제외 축: RDS Read Replica, OLAP, 데이터 워크로드
 
 ---
 
@@ -140,15 +144,80 @@ flowchart LR
 5. Ceph RBD/RGW 사용 구분 설명
 6. 10G + HDD 성능 고려사항 설명
 7. etcd 로컬 유지 이유 설명
-8. Harbor 자체 레지스트리와 ECR 미러링 설명
+8. 온프레 PXC/ProxySQL 경로 설명
 9. 정적 자원 백업 정책 설명
-10. Redis 도입 이유와 일관성 설명
+10. Redis 도입 이유와 DB 부하 완화 설명
 11. 구현 여부 검증 체크리스트 설명
 12. 한계와 후속 과제 설명
 
 ---
 
+## 8.5 IOPS/성능 발표 준비용 참조 위치
+
+먼저 볼 곳:
+
+- `9.0 CLAUDE.md 기준 실제 Ceph 구성`: 실제 Ceph 노드, OSD, pool 이름, RGW SPoF
+- `9.5 10G 온프레미스 의미`: 10G가 도움 되는 구간
+- `9.6 HDD 기반 Ceph 고려사항`: 10G와 HDD write 병목 구분
+- `15. IOPS와 인프라 성능 발표 핵심`: 발표 메시지와 실측값 해석
+- `25. IOPS 성능 검증`: rados bench, fio, Redis latency 측정 명령
+
+성능 캡처 준비:
+
+- `18.4 10G 네트워크`: `ethtool`, `iperf3`
+- `18.5 HDD 쓰기 성능 검증`: `ceph osd perf`, `rados bench`, `fio`
+- `21.7 온프레 DB 검증`: ProxySQL/PXC connection, `wsrep_*`, `Threads_connected`
+- `23.5 Redis 유무 성능 비교`: Redis hit ratio, DB QPS, p95/p99
+- `26. 발표 캡처 목록`: 발표용 화면 캡처 체크리스트
+
+발표 Q&A 준비:
+
+- `28. Q3 Ceph HDD인데 성능 괜찮은가`
+- `28. Q9 RAM 추가가 실제로 성능을 올렸는가`
+- `30. 현재 발표 리스크`
+- `31. 발표 금지 표현`
+- `32. 발표 추천 표현`
+
+핵심 해석:
+
+- 네트워크: 10G, iperf3 실측 9.4 Gbps
+- Ceph write: RBD 1M seqwrite 35 MB/s
+- RADOS random write: 4K randwrite 99 IOPS
+- 결론: 네트워크보다 HDD 기반 Ceph write path 병목
+- Redis: DB 직접 접근량과 connection pressure 감소 관점
+- DB: 온프레 PXC/ProxySQL 경로까지만 설명
+
+---
+
 ## 9. Ceph 발표 핵심
+
+### 9.0 `CLAUDE.md` 기준 실제 Ceph 구성
+
+물리 구성:
+
+- Ceph 노드 6대
+- 각 노드 1TB HDD 1개
+- 총 raw 6TB
+- OSD 6개
+- OSD backend: BlueStore
+- 10GbE Spine-Leaf fabric
+- Ceph public/cluster network 연결
+
+실제 pool 이름:
+
+- K8s CSI용 RBD pool: `team2-k8s-pvc-rbd`
+- 팀별 RBD pool: `rbd-team1` ~ `rbd-team4`
+- RGW backend pool: `default.rgw.*`
+- CephFS pool: `cephfs_metadata`, `cephfs_data`
+
+발표 주의:
+
+- 기존 문서의 `team2-rbd-block` 같은 pool 이름은 실제와 다를 수 있음
+- 발표 캡처는 `ceph osd pool ls`와 `kubectl get sc -o yaml | grep pool` 기준 사용
+- CephFS는 존재하지만 현재 발표 핵심은 RBD/RGW 중심
+- RGW endpoint: `http://10.10.10.11:7480`
+- RGW는 `ceph1` 단일 daemon 기준으로 기록되어 있어 서비스 SPoF
+- 데이터는 Ceph pool replica로 보호되지만 RGW API endpoint는 별도 HA 필요
 
 ### 9.1 Ceph 역할
 
@@ -203,10 +272,12 @@ flowchart LR
 - 현재 Ceph OSD 디스크: HDD 기준
 - 노드 간 연결: 10G 전송선 기준
 - 네트워크 대역폭: 충분할 가능성
-- 쓰기 성능 병목: HDD random write, seek latency 가능성
-- RBD write latency: fio 측정 필요
-- RGW object upload throughput: rados/rclone 측정 필요
-- 발표 표현: "10G 네트워크 병목 완화"와 "HDD 쓰기 성능 검증 필요" 분리
+- 쓰기 성능 병목: HDD random write, seek latency 확인 필요
+- `CLAUDE.md` 기준: 네트워크는 정상, HDD write path 병목
+- RBD 1M seqwrite 실측: 35 MB/s
+- RADOS 4K randwrite 실측: 99 IOPS
+- iperf3 실측: 9.4 Gbps
+- 발표 표현: "10G 네트워크 병목은 낮지만, HDD 기반 Ceph 쓰기 성능은 한계가 확인됨"
 - 실서비스 전제: hot data, DB성 workload, 고 IOPS 요구 구간은 SSD/NVMe OSD 또는 고성능 디스크 전제
 - 현재 발표 전제: 대용량 이미지/동영상 object 중심 workload에 적합성 설명
 
@@ -343,7 +414,14 @@ LB / VIP
 
 ---
 
-## 12. Harbor 발표 핵심
+## 12. Harbor / RGW 소비자 참고
+
+발표 경계:
+
+- Harbor 자체 운영은 주 담당 아님
+- ECR 미러링은 주 담당 아님
+- 내 발표에서는 Harbor가 Ceph RGW를 사용하는 소비자라는 점만 연결
+- Harbor image blob 저장 위치와 RGW bucket 증가 확인만 Ceph 근거로 활용
 
 ### 12.1 Harbor 역할
 
@@ -371,7 +449,7 @@ LB / VIP
 - registry storage와 VM/PVC storage 역할 분리
 - Harbor는 RGW, K8s/VM은 RBD로 경계 명확화
 
-### 12.4 ECR 미러링 이유
+### 12.4 ECR 미러링 이유(참고/비담당)
 
 - AWS ECR(Elastic Container Registry): AWS 내부 이미지 저장소
 - AWS burst app 또는 EKS PoC에서 빠른 image pull 목적
@@ -449,136 +527,203 @@ flowchart LR
 
 ---
 
-## 14. Redis 발표 핵심
+## 14. 온프레 DB와 Redis 발표 핵심
 
-### 14.1 Redis 역할
+### 14.1 이번 담당 범위
+
+담당:
+
+- Ceph
+- 온프레미스 DB
+- Backup
+- Redis
+
+DB 담당 범위:
+
+- 온프레미스 PXC(Percona XtraDB Cluster)
+- 온프레미스 ProxySQL
+- 애플리케이션 운영 트랜잭션 경로
+- DB 접속 경로, 부하, 연결 수, 장애 격리 설명
+
+비담당 범위:
+
+- AWS RDS Read Replica
+- OLAP(Online Analytical Processing) 분석 워크로드
+- admin-app 분석 쿼리 설계
+- PXC -> RDS external replication
+- 데이터 워크로드 튜닝
+- EKS/Lambda 기반 cloud bursting trigger
+
+발표 경계:
+
+- "DB는 온프레미스 운영 트랜잭션 경로까지만 설명함."
+- "RDS Read Replica와 OLAP 분석 워크로드는 다른 담당 영역으로 분리함."
+- "Redis는 온프레 DB 앞단의 부하 완화와 예매 상태 기준점 관점에서 설명함."
+
+### 14.2 온프레 DB 역할
+
+- PXC: 운영 데이터의 primary source
+- ProxySQL: 애플리케이션 DB endpoint
+- Single Writer 기준 운영 설명
+- 앱은 PXC 직접 연결 지양
+- 앱은 ProxySQL endpoint 경유
+- DB connection pressure 관찰 대상
+- OLTP(Online Transaction Processing) 요청 처리 중심
+
+운영 path:
+
+```text
+On-prem App
+  -> ProxySQL
+  -> PXC
+```
+
+설명 포인트:
+
+- ProxySQL을 두는 이유: DB endpoint 단순화, writer 경로 통제, connection 관리
+- PXC를 두는 이유: 온프레 운영 DB 고가용성 기반
+- Redis를 두는 이유: 반복 조회와 임시 상태를 DB 앞단에서 흡수
+
+### 14.3 온프레 DB와 Ceph 경계
+
+- PXC 주 데이터: 고 IOPS, 저지연 요구
+- Ceph RBD 사용 여부: 실제 VM 디스크 배치 확인 필요
+- 로컬 SSD/NVMe 사용 여부: 별도 확인 필요
+- Ceph RBD 사용 시: HDD 기반 latency와 random write IOPS 검증 필수
+- 발표 금지: "DB도 Ceph에 올렸으니 자동으로 안전함"
+- 발표 기준: DB 디스크 배치와 Ceph RBD 적용 범위 분리 설명
+
+확인 명령 후보:
+
+```bash
+mysql -h <PROXYSQL_ENDPOINT> -P 6033 -u <USER> -p -e "SELECT @@hostname;"
+mysql -h <PROXYSQL_ENDPOINT> -P 6033 -u <USER> -p -e "SHOW STATUS LIKE 'Threads_connected';"
+mysql -h <PROXYSQL_ADMIN> -P 6032 -u <ADMIN_USER> -p -e "SELECT hostgroup_id,hostname,port,status FROM mysql_servers;"
+```
+
+### 14.4 DB 백업 경계
+
+- Object backup과 DB backup 분리
+- Ceph RGW -> AWS S3 backup: 정적 자원 백업
+- PXC backup: XtraBackup, binlog, dump, snapshot 후보
+- AWS RDS backup: 발표 담당 제외
+- etcd snapshot: control-plane 운영 백업, DB 백업과 별도
+- 발표 전 실제 DB backup 구현 여부 확인 필요
+
+발표 문장:
+
+- "정적 자원 백업은 Ceph RGW에서 AWS S3로 보내고, DB 백업은 PXC 기준으로 별도 정책이 필요함."
+- "Ceph replica는 DB 백업이 아니고, DB 백업은 트랜잭션 일관성과 복구 시점 기준이 따로 필요함."
+
+### 14.5 데이터 워크로드 제외 범위
+
+- OLTP/OLAP 분리 개념은 참고 설명만 가능
+- OLAP 분석 쿼리, admin-app, RDS Read Replica는 담당 외 영역
+- 데이터 모델, index, query tuning은 담당 외 영역
+- 발표에서 데이터 워크로드 성능을 내 성과로 말하지 않음
+- 내 성능 발표는 Ceph I/O, ProxySQL/PXC 연결 경로, Redis hit ratio, backup throughput 중심
+
+### 14.6 Redis 역할
 
 - Redis: 인메모리 데이터 저장소
 - DB 앞단 캐시
-- 세션 저장소 후보
+- 대기열 상태 저장
+- 좌석 hold 후보
 - rate limit 카운터 후보
-- AWS burst traffic 공유 상태 저장 후보
-- 예매 상태 단일 기준점 후보
-- DB 일관성 보조 계층
+- 예매 진행 상태 기준점 후보
+- DB 부하 완화 계층
+- 온프레 PXC 보호 계층
 
-### 14.2 Redis를 온프레에 둔 이유
+### 14.7 Redis를 온프레에 둔 이유
 
-- DB와 같은 내부망 배치
+- PXC/ProxySQL과 같은 내부망 배치
 - 캐시와 DB 간 지연 최소화
-- 온프레 앱과 AWS burst 앱의 동일 캐시 기준 제공
-- 온프레 앱과 AWS 앱이 같은 예매 상태를 조회하는 단일 기준점 제공
 - 외부 managed cache 비용 제외
 - 10G 내부망 기반 낮은 latency 활용
 - 장애 범위와 보안 경계 통제
+- 온프레 운영 DB 부하 완화 목적
 
-### 14.3 티켓팅 서비스에서 Redis가 필요한 이유
+### 14.8 티켓팅 서비스에서 Redis가 필요한 이유
 
 - 공연 목록 반복 조회 흡수
 - 공연 상세/좌석 상태 조회 부하 완화
 - 예매 오픈 직후 읽기 트래픽 완충
-- 예매 진행 상태, 좌석 hold, 대기열 token 단일 기준점 제공
-- rate limit 또는 대기열 상태 저장 후보
-- AWS burst app과 온프레 app의 공통 캐시 기준
-- RDS Read Replica 또는 온프레 DB 조회 지연 차이에 따른 예매 상태 불일치 완화
+- 예매 진행 상태, 좌석 hold, 대기열 token 기준점 제공
 - DB 직접 접근량 감소
+- ProxySQL/PXC connection pressure 감소
+- PXC write/read latency 악화 완화
 
-### 14.4 Redis 사용 효과
+### 14.9 Redis 사용 효과
 
 - 반복 조회 DB query 감소
 - 인기 데이터 응답 시간 감소
-- AWS burst app의 DB 직접 접근량 감소
 - DB connection pressure 감소
 - 읽기 트래픽 흡수
-- 세션/상태 공유 가능성 확보
-- AWS/온프레 양쪽 앱의 예매 상태 기준 통일
-- RDS Read Replica 수초 지연 가능성 회피
+- 좌석 hold와 대기열 상태 기준점 확보
+- TTL(Time To Live) 기반 오래된 상태 자동 만료
+- DB 장애 전파 지연 완화 가능성
 
-### 14.5 Redis가 있을 때
+### 14.10 Redis와 DB 일관성 원칙
 
-- App -> Redis cache hit
-- DB query 생략
-- ProxySQL/PXC 부하 감소
-- 동일 key 기준 온프레/AWS 응답 일관성 확보
-- 예매 상태는 AWS/온프레 모두 동일 Redis key 기준 조회
-- 좌석 hold, 예매 진행 상태, 대기열 상태의 기준점 단일화
-- TTL(Time To Live) 기반 오래된 캐시 자동 만료
-
-### 14.6 Redis가 없을 때
-
-- 모든 읽기 요청 DB 직접 접근
-- AWS burst traffic까지 DB 집중
-- AWS/RDS Read Replica와 온프레 DB 사이 지연 차이 노출 가능
-- 같은 좌석/예매 상태를 서로 다르게 볼 위험 증가
-- 동일 데이터 반복 조회 증가
-- DB connection 증가
-- PXC write/read latency 증가 가능성
-- 장애 시 병목 원인 설명 어려움
-
-### 14.7 Redis와 DB 일관성 원칙
-
-- DB: 원본 데이터(Source of Truth)
-- Redis: 실시간 예매 상태와 캐시 기준점
-- 중요 예매 상태: AWS/온프레 앱이 Redis 단일 endpoint 조회
-- RDS Read Replica: 비동기 복제 지연 가능성 때문에 중요 예매 상태 판단 경로에서 제외
-- DB: 최종 영속 저장과 정산 기준
+- DB: 최종 영속 저장소(Source of Truth)
+- Redis: 실시간 임시 상태와 캐시 기준점
 - Redis key: 좌석 hold, 예매 진행 상태, 대기열 token, idempotency key
 - TTL: 좌석 hold와 임시 예매 상태 자동 만료
-- write-through 또는 cache-aside 중 하나로 설명 가능
-- 현재 발표 추천: 예매 상태는 Redis 기준, 최종 확정은 DB commit 후 Redis 갱신/삭제
 - 조회: Redis 확인 후 miss 시 DB 조회
 - 저장/수정: DB commit 후 Redis 삭제 또는 갱신
 - 삭제: DB delete 후 Redis key 삭제
-- TTL: stale cache 장기 유지 방지
+- stale cache 장기 유지 방지
 
-### 14.8 예매 정보 단일 기준 설계
+### 14.11 Redis Sentinel 현재 기준
 
-```text
-On-prem App
-AWS Burst App
-  -> Redis 단일 endpoint
-  -> 좌석 hold / 예매 진행 상태 / 대기열 token 확인
-  -> DB commit
-  -> Redis 갱신 또는 삭제
+`CLAUDE.md` 기준:
+
+- Bitnami Helm 기반 Redis
+- Sentinel HA 3 nodes
+- quorum 2
+- 1대 장애 시 failover 가능
+- 이전 2 nodes + quorum 2 구성은 SPoF
+- ticket-app 대기열 endpoint 동작 확인
+- `LPUSH`, `RPOP`, `LLEN` 기반 FIFO 대기열 동작 확인
+
+검증 명령:
+
+```bash
+kubectl exec -n redis kosa-redis-node-0 -c sentinel -- \
+  redis-cli -p 26379 -a <REDIS_PASSWORD> sentinel get-master-addr-by-name mymaster
+
+kubectl exec -n redis kosa-redis-node-0 -c sentinel -- \
+  redis-cli -p 26379 -a <REDIS_PASSWORD> sentinel ckquorum mymaster
 ```
 
-설계 이유:
+통과 기준:
 
-- AWS와 온프레미스가 서로 다른 DB replica를 보면 수초 차이 가능
-- RDS Read Replica는 비동기 복제 특성상 최신 예매 상태 판단에 부적합 가능
-- 같은 좌석을 두 앱 경로가 다르게 판단하는 상황 방지 필요
-- Redis 단일 key 기준으로 예매 상태 판단 경로 통일
-- DB는 최종 확정 저장소로 유지
+- `OK 3 usable Sentinels`
+- master 주소 조회 성공
+- master Pod 장애 후 다른 node로 failover
 
-주의:
-
-- Redis 자체 HA 필요
-- Redis 장애 시 예매 기능 degrade 또는 DB fallback 정책 필요
-- Redis persistence와 failover 기준 별도 정의 필요
-
-### 14.9 Redis 사양 발표 항목
+### 14.12 Redis 사양 발표 항목
 
 | 항목        | 발표 기준                               |
 | :---------- | :-------------------------------------- |
-| 구성        | 단일 Redis 또는 Sentinel/Replica 여부   |
+| 구성        | Redis Sentinel 3 nodes                  |
+| Quorum      | quorum 2                                |
 | CPU         | vCPU 수                                 |
 | Memory      | maxmemory, eviction policy              |
 | Network     | 온프레 10G망 또는 VM NIC                |
 | Persistence | RDB/AOF 사용 여부                       |
-| HA          | Sentinel, Replica, 단일 구성 한계       |
+| HA          | Sentinel failover                       |
 | Security    | requirepass, ACL, 내부망 접근 제한      |
 | App env     | `REDIS_URL`, `REDIS_HOST`, `REDIS_PORT` |
 
-### 14.10 발표 문장
+### 14.13 발표 문장
 
-- "Redis는 DB를 대체하지 않고, 반복 조회와 AWS burst 트래픽을 흡수하는 캐시 계층임."
-- "티켓팅 서비스에서는 예매 오픈 시점에 조회 요청이 몰리므로 Redis로 DB 앞단의 반복 조회를 줄이는
-  가치가 큼."
-- "중요한 예매 정보는 AWS와 온프레미스가 서로 다른 DB replica를 보지 않고 Redis 하나를 기준으로
-  보도록 설계함."
-- "RDS Read Replica나 온프레 DB 간 수초 지연이 예매 상태 불일치로 이어질 수 있어, 좌석 hold와 예매
-  진행 상태는 Redis 단일 key 기준으로 판단함."
-- "온프레에 Redis를 둔 이유는 DB와 가까운 위치에서 캐시 일관성을 통제하기 위함임."
-- "일관성 기준은 DB commit 후 Redis key 갱신 또는 삭제이며, TTL로 오래된 캐시를 제한함."
+- "DB는 AWS RDS가 아니라 온프레미스 PXC와 ProxySQL 경로까지만 설명함."
+- "앱은 PXC에 직접 붙지 않고 ProxySQL endpoint를 통해 운영 DB에 접근함."
+- "Redis는 DB를 대체하지 않고, 온프레 PXC 앞단에서 반복 조회와 임시 예매 상태를 흡수하는 계층임."
+- "Redis Sentinel 3노드와 quorum 2 구성으로 단일 Redis 장애 시 failover가 가능하도록 구성함."
+- "중요한 일관성 기준은 DB commit 이후 Redis key를 갱신하거나 삭제하고, TTL로 오래된 상태를 제한하는
+  것임."
 
 ---
 
@@ -588,19 +733,57 @@ AWS Burst App
 
 - IOPS(Input/Output Operations Per Second): 초당 입출력 처리량
 - RBD random read/write 성능 기준
-- DB/Registry/PVC 체감 성능과 직접 관련
+- DB/PVC/registry backend 체감 성능과 직접 관련
 - latency와 함께 봐야 하는 지표
+- IOPS만 단독 발표 금지
+- throughput, p95/p99 latency, cache 적용 여부 함께 설명
 
 ### 15.2 현재 물리 구성 고려사항
 
 - Ceph 구성 디스크: HDD
 - 노드 간 연결: 10G 전송선
-- 네트워크 전송속도: 빠른 편
-- HDD write latency: 미확인
-- random write IOPS: HDD 특성상 제한 가능성
+- 네트워크 전송속도: 실측 9.4 Gbps
+- HDD write latency: 병목 확인 필요
+- random write IOPS: HDD 특성상 제한 확인
 - sequential object upload: 상대적으로 유리 가능성
 - RBD DB성 workload: 신중한 검증 필요
-- 발표 기준: "네트워크는 10G로 확보했지만, 디스크 쓰기 성능은 fio/rados bench로 확인 필요"
+- 발표 기준: "네트워크는 10G로 확보했지만, 실제 병목은 HDD 기반 Ceph write path임"
+
+### 15.2.1 `CLAUDE.md` 기준 Ceph 실측값
+
+실측 기준:
+
+- 측정일: 2026-05-18
+- 대상 pool: `rbd-team2`
+- RBD 4K randwrite: 1,700 IOPS(cache 포함)
+- RBD 4K randwrite cache off: 약 100~200 IOPS
+- RBD 1M seqwrite: 35 MB/s
+- RADOS 4K randwrite: 99 IOPS
+- 같은 NIC iperf3: 9.4 Gbps, 약 1,175 MB/s
+
+주의:
+
+- 위 수치는 `CLAUDE.md` 기준 참고값
+- 현재 cluster 상태, pool 이름, OSD 상태, cache 설정에 따라 변경 가능
+- 발표 전 재측정 필요
+- 발표 수치 확정 전 `25.1 Ceph 실측값 재검증 절차` 기준으로 캡처 확보
+- 실제 pool은 `ceph osd pool ls`, `kubectl get sc -o yaml`로 재확인
+
+해석:
+
+- 10G network 자체는 병목 아님
+- HDD OSD와 3-replica write path가 병목
+- WAL/DB가 같은 HDD에 있을 때 seek thrashing 가능성
+- "10G라서 Ceph도 빠름" 표현 금지
+- "네트워크는 충분하지만 HDD 기반 write 성능은 제한됨" 표현 권장
+
+개선 후보:
+
+- SSD WAL/DB 분리
+- SSD/NVMe OSD
+- 고 IOPS workload 별도 배치
+- DB hot path와 Ceph HDD pool 분리
+- 측정값 기반 발표 수치만 사용
 
 ### 15.3 성능 개선 포인트
 
@@ -617,10 +800,10 @@ AWS Burst App
 
 - 현재 PoC: HDD 기반 Ceph 한계 명시
 - 실제 운영: SSD/NVMe 또는 enterprise HDD 검토
-- DB hot path: 로컬 SSD 또는 고성능 RBD 검토
+- DB hot path: 로컬 SSD, NVMe, 또는 고성능 RBD 검토
 - Object storage: 이미지/동영상 중심 sequential workload에 적합
 - Cache layer: Redis로 반복 조회 흡수
-- Burst layer: AWS로 순간 트래픽 확장
+- AWS burst layer: 이번 담당 발표에서는 참고 영역
 
 ### 15.5 RAM 카드 추가 의미
 
@@ -634,8 +817,10 @@ AWS Burst App
 ### 15.6 발표 문장
 
 - "이번 성능 포인트는 CPU보다 I/O 경로임."
-- "10G망과 Ceph RBD/RGW, Redis 캐시를 조합해 네트워크 병목과 DB 직접 접근을 줄임."
-- "현재 Ceph 디스크가 HDD이므로 쓰기 IOPS는 측정 전까지 단정하지 않고 고려사항으로 남김."
+- "10G망은 충분히 확보됐지만, Ceph 쓰기 성능은 HDD와 replica write path의 영향을 받음."
+- "실측 기준 RBD 1M seqwrite는 35 MB/s, RADOS 4K randwrite는 99 IOPS 수준이므로 네트워크보다 디스크
+  병목으로 해석함."
+- "Redis 캐시는 온프레 DB 직접 접근량을 줄여 ProxySQL/PXC connection pressure를 낮추는 역할임."
 - "RAM 증설은 Redis와 스토리지 캐시 여유를 늘려 반복 조회와 object read의 체감 지연을 줄이는
   방향임."
 
@@ -643,16 +828,17 @@ AWS Burst App
 
 ## 16. 현재 저장소 기준 구현 흔적
 
-| 영역                  | 저장소 기준 확인                                                             | 현재 판정               |
-| :-------------------- | :--------------------------------------------------------------------------- | :---------------------- |
-| FlaskApp Ceph S3 연동 | `FlaskApp/application.py`의 `get_s3_client()`, `put_object()`, `/photo/<id>` | 코드 흔적 있음          |
-| 앱 object key 저장    | `FlaskApp/database.py`의 `object_key` 조회/저장                              | 코드 흔적 있음          |
-| Redis 앱 연동         | `REDIS_URL`, redis client import, cache 로직 검색                            | 현재 저장소 근거 부족   |
-| Harbor 배포/설정      | Harbor Helm values, namespace manifest, registry secret 검색                 | 현재 저장소 근거 부족   |
-| Ceph live 구성        | 저장소 파일만으로 판정 불가                                                  | 실환경 명령 필요        |
-| 백업 자동화           | rclone/cron script 실파일 검색 필요                                          | 현재 저장소 근거 제한   |
-| ECR 미러링            | Terraform/ECR repo 또는 Harbor replication config 검색                       | 실환경/UI 확인 필요     |
-| etcd local            | 저장소 파일만으로 판정 불가                                                  | control-plane 명령 필요 |
+| 영역                  | 저장소/운영 기준 확인                                                        | 현재 판정                         |
+| :-------------------- | :--------------------------------------------------------------------------- | :-------------------------------- |
+| FlaskApp Ceph S3 연동 | `FlaskApp/application.py`의 `get_s3_client()`, `put_object()`, `/photo/<id>` | 코드 흔적 있음                    |
+| 앱 object key 저장    | `FlaskApp/database.py`의 `object_key` 조회/저장                              | Ceph RGW 사용 근거용 참고         |
+| 온프레 DB 경로        | ProxySQL endpoint, PXC pod/service, `mysql_servers`                          | 실환경 명령 필요                  |
+| Redis Sentinel        | `redis` namespace, Sentinel pod, quorum 확인                                 | `CLAUDE.md` 기준 검증 이력 있음   |
+| Redis 앱 연동         | `REDIS_URL`, queue endpoint, Redis keyspace                                  | `CLAUDE.md` 기준 대기열 동작 확인 |
+| Harbor 배포/설정      | Harbor Helm values, namespace manifest, registry secret 검색                 | Ceph RGW 소비자 관점에서만 참고   |
+| Ceph live 구성        | `ceph -s`, pool 이름, OSD tree, RGW endpoint                                 | 실환경 명령 필요                  |
+| 백업 자동화           | rclone/cron script, AWS S3 object count                                      | 실환경 명령 필요                  |
+| etcd local            | 저장소 파일만으로 판정 불가                                                  | control-plane 명령 필요           |
 
 ---
 
@@ -669,7 +855,8 @@ AWS Burst App
 명령:
 
 ```bash
-rg -n --ignore-case "redis|REDIS_URL|redis-cli|cache" app FlaskApp k8s infra docs
+rg -n --ignore-case "redis|REDIS_URL|redis-cli|cache|queue" app FlaskApp k8s infra docs
+rg -n --ignore-case "proxysql|pxc|mysql_servers|6033|6032" app FlaskApp k8s infra docs
 rg -n --ignore-case "S3_ENDPOINT_URL|PHOTOS_BUCKET|put_object|get_object|object_key" FlaskApp
 rg -n --ignore-case "harbor|registry|ecr|replication" k8s infra docs .github
 rg -n --ignore-case "ceph|rbd|rgw|storageclass|pvc" k8s infra docs
@@ -678,6 +865,7 @@ rg -n --ignore-case "ceph|rbd|rgw|storageclass|pvc" k8s infra docs
 통과 기준:
 
 - Redis: 앱 코드 또는 manifest에 Redis 접속 정보 존재
+- On-prem DB: 앱 DB endpoint가 ProxySQL 기준
 - S3: 앱 코드에 `put_object`, `get_object`, bucket 환경변수 존재
 - Harbor: image registry 주소 또는 Harbor 배포 설정 존재
 - Ceph: StorageClass/PVC/RGW/RBD 관련 설정 존재
@@ -685,7 +873,8 @@ rg -n --ignore-case "ceph|rbd|rgw|storageclass|pvc" k8s infra docs
 현재 주의:
 
 - FlaskApp S3 연동 흔적 존재
-- Redis 구현 흔적은 현재 저장소 기준 부족
+- Redis는 `CLAUDE.md` 기준 Sentinel 3노드와 대기열 endpoint 검증 이력 존재
+- 온프레 DB는 PXC/ProxySQL 실환경 명령으로 확인 필요
 - Harbor/Ceph 실구성은 Git 저장소만으로 확정 불가
 
 ---
@@ -1104,7 +1293,7 @@ docker pull <HARBOR_URL>/<PROJECT>/<IMAGE>:<TAG>
 - Harbor UI artifact 표시
 - Kubernetes image pull 성공
 
-### 20.4 Harbor -> ECR 미러링
+### 20.4 Harbor -> ECR 미러링(참고/비담당)
 
 Harbor UI:
 
@@ -1260,6 +1449,95 @@ rclone copy aws-s3:<BACKUP_BUCKET>/<APP_BUCKET> cephteam2:<RESTORE_TEST_BUCKET> 
 
 ---
 
+## 21.7 온프레 DB 검증
+
+### 21.7.1 ProxySQL endpoint 확인
+
+애플리케이션 접근 노드:
+
+```bash
+nc -vz <PROXYSQL_ENDPOINT> 6033
+mysql -h <PROXYSQL_ENDPOINT> -P 6033 -u <APP_USER> -p -e "SELECT @@hostname, @@port;"
+```
+
+통과 기준:
+
+- ProxySQL 6033 접속 성공
+- 앱 계정으로 query 성공
+- 응답 DB host 확인 가능
+- PXC 직접 endpoint가 아니라 ProxySQL endpoint 사용
+
+### 21.7.2 ProxySQL routing 확인
+
+ProxySQL admin:
+
+```sql
+SELECT hostgroup_id, hostname, port, status FROM mysql_servers;
+SELECT username, default_hostgroup FROM mysql_users;
+SELECT rule_id, active, match_pattern, destination_hostgroup FROM mysql_query_rules ORDER BY rule_id;
+```
+
+통과 기준:
+
+- 앱 user의 `default_hostgroup`이 온프레 PXC hostgroup
+- write/read 경로가 발표 내용과 일치
+- RDS/RDS Read Replica hostgroup은 이번 담당 범위에서 제외
+- 앱이 PXC node에 직접 접속하지 않음
+
+### 21.7.3 PXC 상태 확인
+
+PXC pod 또는 DB 노드:
+
+```sql
+SHOW STATUS LIKE 'wsrep_cluster_status';
+SHOW STATUS LIKE 'wsrep_cluster_size';
+SHOW STATUS LIKE 'wsrep_ready';
+SHOW STATUS LIKE 'Threads_connected';
+SHOW PROCESSLIST;
+```
+
+통과 기준:
+
+- `wsrep_cluster_status = Primary`
+- `wsrep_ready = ON`
+- cluster size가 설계값과 일치
+- connection 수와 slow query 여부 확인
+- 장애 상태 없이 앱 query 처리 가능
+
+### 21.7.4 온프레 DB 백업 확인
+
+확인 대상:
+
+- XtraBackup 실행 여부
+- binlog 보관 여부
+- dump 또는 snapshot 정책
+- 백업 저장 위치
+- 복구 테스트 여부
+
+명령 후보:
+
+```bash
+ls -al <DB_BACKUP_DIR>
+find <DB_BACKUP_DIR> -maxdepth 2 -type f | tail
+mysql -h <PXC_ENDPOINT> -u <USER> -p -e "SHOW VARIABLES LIKE 'log_bin';"
+mysql -h <PXC_ENDPOINT> -u <USER> -p -e "SHOW BINARY LOGS;"
+```
+
+통과 기준:
+
+- 백업 파일 생성 시각 확인
+- binlog 활성 여부 확인
+- 복구 테스트 또는 restore dry-run 증거 확보
+- Object backup과 DB backup 구분 설명 가능
+
+주의:
+
+- 운영 DB에 destructive query 금지
+- 발표에서는 DB 백업 구현 여부와 후보 정책 구분
+- AWS RDS backup은 이번 담당 범위 제외
+
+---
+
 ## 22. FlaskApp Ceph S3 검증
 
 ### 22.1 코드 검증
@@ -1328,6 +1606,7 @@ Kubernetes:
 ```bash
 kubectl get deploy,statefulset,svc,configmap,secret -A | grep -i redis
 kubectl get pod -A -o wide | grep -i redis
+kubectl get svc -n redis
 ```
 
 VM:
@@ -1350,12 +1629,29 @@ redis-cli ROLE
 - role 확인
 - 접근 경로 내부망 제한
 
+Sentinel 확인:
+
+```bash
+kubectl exec -n redis kosa-redis-node-0 -c sentinel -- \
+  redis-cli -p 26379 -a <REDIS_PASSWORD> sentinel get-master-addr-by-name mymaster
+
+kubectl exec -n redis kosa-redis-node-0 -c sentinel -- \
+  redis-cli -p 26379 -a <REDIS_PASSWORD> sentinel ckquorum mymaster
+```
+
+Sentinel 통과 기준:
+
+- Redis node 3개
+- Sentinel quorum 2
+- `OK 3 usable Sentinels`
+- master 주소 조회 성공
+
 ### 23.2 앱 연동 여부
 
 저장소:
 
 ```bash
-rg -n --ignore-case "redis|REDIS_URL|REDIS_HOST|cache|ttl" app FlaskApp k8s infra
+rg -n --ignore-case "redis|REDIS_URL|REDIS_HOST|cache|ttl|queue" app FlaskApp k8s infra
 ```
 
 App Pod 또는 VM:
@@ -1369,6 +1665,7 @@ env | grep -E "REDIS_URL|REDIS_HOST|REDIS_PORT"
 - 앱 코드에 Redis client 사용
 - 배포 환경변수에 Redis endpoint 존재
 - Redis key 생성 확인
+- queue endpoint 또는 캐시 대상 endpoint 확인
 
 ### 23.3 캐시 hit/miss 검증
 
@@ -1378,7 +1675,7 @@ Redis:
 redis-cli INFO stats | grep -E "keyspace_hits|keyspace_misses"
 redis-cli --latency -h <REDIS_HOST> -p <REDIS_PORT>
 redis-cli DBSIZE
-redis-cli KEYS '*'
+redis-cli --scan --pattern '*'
 ```
 
 앱 테스트:
@@ -1401,7 +1698,7 @@ redis-cli INFO stats | grep -E "keyspace_hits|keyspace_misses"
 - 운영 Redis에서 `KEYS *` 장시간 사용 금지
 - 운영 확인은 `SCAN` 사용
 
-### 23.4 DB 일관성 검증
+### 23.4 온프레 DB 일관성 보조 검증
 
 검증 시나리오:
 
@@ -1412,17 +1709,14 @@ redis-cli INFO stats | grep -E "keyspace_hits|keyspace_misses"
 5. Redis key 삭제 또는 갱신 확인
 6. 재조회 결과 최신값 확인
 7. TTL 만료 후 DB 재조회 확인
-8. AWS app과 온프레 app에서 같은 Redis key 조회
-9. RDS Read Replica 지연 상황에서도 예매 상태 판단이 Redis 기준으로 동일한지 확인
 
 통과 기준:
 
 - DB commit 전 cache 갱신 없음
 - DB commit 후 cache invalidate 또는 refresh
 - stale data 장기 유지 없음
-- 온프레 앱과 AWS 앱 응답 동일
-- 중요 예매 상태는 RDS Read Replica가 아니라 Redis 기준으로 판단
 - 좌석 hold/예매 진행 상태 key TTL 정상 동작
+- ProxySQL/PXC query 수 감소 확인 가능
 
 ### 23.5 Redis 유무 성능 비교
 
@@ -1444,91 +1738,299 @@ k6 run load-test-cache-off.js
 - DB connection count
 - Redis hit ratio
 - App error rate
-- AWS burst app 응답 시간
 
 발표 표:
 
-| 항목              | Redis 없음        | Redis 있음          | 효과                 |
-| :---------------- | :---------------- | :------------------ | :------------------- |
-| 반복 조회 응답    | DB 직접 조회      | Redis hit           | latency 감소         |
-| DB query          | 높음              | 낮음                | DB 부하 감소         |
-| AWS burst traffic | DB 집중           | Redis 흡수          | DB 보호              |
-| 예매 상태 일관성  | replica 지연 가능 | Redis 단일 key 기준 | AWS/온프레 판단 통일 |
-| 일관성            | DB 기준만 존재    | TTL/invalidate 필요 | 정책 필요            |
-| 장애 리스크       | DB 단일 병목      | Redis 장애 고려     | HA 필요              |
+| 항목           | Redis 없음     | Redis 있음          | 효과              |
+| :------------- | :------------- | :------------------ | :---------------- |
+| 반복 조회 응답 | DB 직접 조회   | Redis hit           | latency 감소      |
+| DB query       | 높음           | 낮음                | DB 부하 감소      |
+| DB connection  | 높음           | 낮음                | ProxySQL/PXC 보호 |
+| 예매 상태 보조 | DB 직접 판단   | Redis key 기준      | 임시 상태 관리    |
+| 일관성         | DB 기준만 존재 | TTL/invalidate 필요 | 정책 필요         |
+| 장애 리스크    | DB 단일 병목   | Redis 장애 고려     | HA 필요           |
 
 현재 주의:
 
-- 저장소 기준 Redis 구현 흔적 부족
-- 발표 전 실제 구현 또는 "설계/후속 적용" 구분 필요
-- 구현 완료 전 "Redis 적용 완료" 표현 금지
+- `CLAUDE.md` 기준 Redis Sentinel 3노드 검증 이력 존재
+- ticket-app 대기열 endpoint 동작 확인 이력 존재
+- 발표 전 최신 `kubectl`, `redis-cli`, keyspace 캡처 재확인 필요
 
 ---
 
-## 24. AWS 트래픽 처리 검증
+## 24. AWS 연계 검증(비담당 참고)
 
-### 24.1 AWS app이 같은 Redis를 보는지 확인
+이번 발표 제외:
 
-AWS app node 또는 Pod:
+- AWS RDS Read Replica
+- OLAP 분석 query
+- admin-app 분석 경로
+- EKS burst trigger
+- Lambda scale-out trigger
+- AWS app -> 온프레 DB 연결 검증
 
-```bash
-nc -vz <REDIS_HOST> 6379
-redis-cli -h <REDIS_HOST> -p 6379 PING
-env | grep -E "REDIS_URL|REDIS_HOST|REDIS_PORT"
-```
+이번 발표 포함:
 
-통과 기준:
+- AWS S3 backup bucket
+- Ceph RGW -> AWS S3 copy-only backup
+- S3 Lifecycle/Glacier 장기 보관 정책
 
-- AWS 실행 환경에서 Redis 접근 가능
-- 온프레 앱과 같은 Redis endpoint 사용
-- 보안 그룹/방화벽이 필요한 경로만 허용
+발표 대응:
 
-### 24.2 AWS app이 ECR에서 pull하는지 확인
-
-AWS node:
-
-```bash
-docker pull <ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/<REPO>:<TAG>
-```
-
-Kubernetes/EKS:
-
-```bash
-kubectl describe pod <POD_NAME> | grep -E "Image:|Pulled|Pulling"
-```
-
-통과 기준:
-
-- image 주소가 ECR
-- pull 성공
-- Harbor 직접 pull보다 AWS 내부 pull 경로 사용
-
-### 24.3 AWS app과 DB/ProxySQL 경로
-
-AWS app node:
-
-```bash
-nc -vz <PROXYSQL_ENDPOINT> 6033
-```
-
-DB:
-
-```sql
-SHOW PROCESSLIST;
-SHOW STATUS LIKE 'Threads_connected';
-```
-
-통과 기준:
-
-- AWS app이 ProxySQL endpoint 경유
-- PXC 직접 접속 지양
-- burst traffic 시 DB connection 급증 완화
+- "AWS DB와 데이터 분석 워크로드는 제 담당 범위가 아니므로 여기서는 온프레 PXC/ProxySQL 경로까지만
+  설명함."
+- "AWS는 이번 범위에서 정적 자원 백업 대상과 일부 연계 참고 영역으로만 다룸."
 
 ---
 
 ## 25. IOPS 성능 검증
 
-### 25.1 Ceph pool 벤치마크
+### 25.1 Ceph 실측값 재검증 절차
+
+목적:
+
+- `15.2.1`의 수치 최신화
+- pool 이름 변경 여부 확인
+- cache 포함/제외 결과 구분
+- 10G network와 HDD write 병목 분리
+
+주의:
+
+- 운영 PVC, 운영 RBD image 직접 fio 금지
+- 테스트 전용 pool 또는 테스트 전용 RBD image 사용
+- 업무 시간대 쓰기 부하 테스트 지양
+- 결과 캡처에 날짜, 대상 pool, OSD 상태, cache 설정 포함
+- `CLAUDE.md` 수치는 참고값이며 발표 직전 재측정값 우선
+
+#### 25.1.1 대상 pool과 StorageClass 확인
+
+Ceph 노드:
+
+```bash
+ceph -s
+ceph osd pool ls
+ceph osd pool ls detail
+ceph osd tree
+ceph osd perf
+```
+
+Kubernetes 접근 노드:
+
+```bash
+kubectl get sc
+kubectl get sc -o yaml | grep -E "provisioner:|pool:|clusterID:"
+```
+
+확인 기준:
+
+- 실제 RBD pool 이름 확인
+- `rbd-team2`가 현재 대상인지 확인
+- K8s CSI pool이 `team2-k8s-pvc-rbd`인지 확인
+- OSD `up/in` 상태 확인
+- PG `active+clean` 확인
+
+#### 25.1.2 10G network 재검증
+
+서버 노드:
+
+```bash
+iperf3 -s -B <SERVER_10G_IP>
+```
+
+클라이언트 노드:
+
+```bash
+ip route get <SERVER_10G_IP>
+ethtool <10G_NIC>
+iperf3 -c <SERVER_10G_IP> -P 4 -t 30
+```
+
+기록 항목:
+
+- sender Gbits/sec
+- receiver Gbits/sec
+- retransmits
+- NIC negotiated speed
+- storage network interface명
+
+판단 기준:
+
+- 1G 한계보다 충분히 높은 값
+- 10G link negotiated
+- `CLAUDE.md` 기준 9.4 Gbps와 비교
+- 네트워크 병목 여부 판단
+
+#### 25.1.3 RADOS 4K write 재검증
+
+Ceph 노드:
+
+```bash
+rados bench -p <POOL_NAME> 60 write -b 4K -t 16 --no-cleanup
+rados bench -p <POOL_NAME> 60 seq -t 16
+rados bench -p <POOL_NAME> 60 rand -t 16
+rados cleanup -p <POOL_NAME>
+```
+
+기록 항목:
+
+- write IOPS
+- write bandwidth
+- average latency
+- read bandwidth
+- rand read bandwidth
+
+주의:
+
+- `rados bench write -b 4K`는 RADOS 4K write 측정
+- true random write 수치가 필요하면 fio RBD randwrite 결과와 구분
+- `CLAUDE.md`의 "RADOS 4K randwrite" 표현은 실제 측정 도구 원문 확인 필요
+- 발표 표기 추천: "RADOS 4K write IOPS" 또는 "측정 도구 기준 RADOS 4K write"
+
+#### 25.1.4 테스트 RBD image 생성
+
+Ceph 노드 또는 테스트 클라이언트:
+
+```bash
+rbd create -p <RBD_POOL> perf-rbd-test --size 4096
+rbd info -p <RBD_POOL> perf-rbd-test
+```
+
+테스트 후 정리:
+
+```bash
+rbd rm -p <RBD_POOL> perf-rbd-test
+```
+
+주의:
+
+- 운영 RBD image 사용 금지
+- 테스트 image 이름에 날짜 또는 담당자명 포함 가능
+- 테스트 중 장애 발생 시 즉시 중단
+
+#### 25.1.5 RBD 4K randwrite(cache 포함) 재검증
+
+fio RBD engine 사용 가능 환경:
+
+```bash
+fio --name=rbd-4k-randwrite-cache-on \
+  --ioengine=rbd \
+  --clientname=admin \
+  --pool=<RBD_POOL> \
+  --rbdname=perf-rbd-test \
+  --rw=randwrite \
+  --bs=4k \
+  --iodepth=32 \
+  --numjobs=4 \
+  --runtime=60 \
+  --time_based \
+  --group_reporting
+```
+
+기록 항목:
+
+- `write: IOPS`
+- bandwidth
+- average latency
+- p95/p99 latency
+- CPU 사용률
+- `ceph osd perf` 변화
+
+판단 기준:
+
+- `CLAUDE.md` 기준 1,700 IOPS와 비교
+- cache 포함 여부 명시
+- 측정 대상 pool과 image 명시
+
+#### 25.1.6 RBD 4K randwrite(cache off) 재검증
+
+임시 client config 생성:
+
+```bash
+cp /etc/ceph/ceph.conf /tmp/ceph-cache-off.conf
+printf '\n[client]\nrbd cache = false\n' >> /tmp/ceph-cache-off.conf
+```
+
+fio RBD engine:
+
+```bash
+fio --name=rbd-4k-randwrite-cache-off \
+  --ioengine=rbd \
+  --clientname=admin \
+  --pool=<RBD_POOL> \
+  --rbdname=perf-rbd-test \
+  --conf=/tmp/ceph-cache-off.conf \
+  --rw=randwrite \
+  --bs=4k \
+  --iodepth=32 \
+  --numjobs=4 \
+  --runtime=60 \
+  --time_based \
+  --group_reporting
+```
+
+기록 항목:
+
+- `write: IOPS`
+- bandwidth
+- average latency
+- p95/p99 latency
+- cache off 설정 파일 캡처
+
+주의:
+
+- 운영 cluster 전역 `rbd cache` 설정 변경 금지
+- 임시 client config로 테스트 범위 제한
+- `CLAUDE.md` 기준 100~200 IOPS와 비교
+
+#### 25.1.7 RBD 1M seqwrite 재검증
+
+fio RBD engine:
+
+```bash
+fio --name=rbd-1m-seqwrite \
+  --ioengine=rbd \
+  --clientname=admin \
+  --pool=<RBD_POOL> \
+  --rbdname=perf-rbd-test \
+  --rw=write \
+  --bs=1m \
+  --iodepth=16 \
+  --numjobs=1 \
+  --runtime=60 \
+  --time_based \
+  --group_reporting
+```
+
+기록 항목:
+
+- write bandwidth MB/s
+- write IOPS
+- average latency
+- p95/p99 latency
+
+판단 기준:
+
+- `CLAUDE.md` 기준 35 MB/s와 비교
+- HDD sequential write 한계 판단
+- 10G network 대비 실제 write path 병목 설명
+
+#### 25.1.8 발표용 결과 표
+
+| 항목                       | 기존 참고값  | 재측정값 | 명령/도구          | 비고                |
+| :------------------------- | :----------- | :------- | :----------------- | :------------------ |
+| 10G network                | 9.4 Gbps     | 측정값   | `iperf3`           | NIC/route 함께 캡처 |
+| RADOS 4K write             | 99 IOPS      | 측정값   | `rados bench`      | randwrite 표현 주의 |
+| RBD 4K randwrite cache on  | 1,700 IOPS   | 측정값   | `fio ioengine=rbd` | cache 설정 명시     |
+| RBD 4K randwrite cache off | 100~200 IOPS | 측정값   | `fio ioengine=rbd` | 임시 config 사용    |
+| RBD 1M seqwrite            | 35 MB/s      | 측정값   | `fio ioengine=rbd` | HDD write path 판단 |
+
+발표 기준:
+
+- 재측정값이 있으면 재측정값 우선
+- 재측정 전이면 `CLAUDE.md` 수치를 참고값으로만 표현
+- 수치 차이가 크면 OSD 상태, pool, cache, 테스트 block size, 동시성 차이 설명
+
+### 25.2 Ceph pool 벤치마크
 
 Ceph 노드:
 
@@ -1546,7 +2048,7 @@ rados cleanup -p <POOL_NAME>
 - 테스트 object 정리
 - 운영 시간대 영향 최소화
 
-### 25.2 RBD fio
+### 25.3 RBD fio
 
 테스트 VM 또는 테스트 Pod:
 
@@ -1596,7 +2098,7 @@ fio --name=rbd-randwrite \
 - 쓰기 테스트 후 정리
 - HDD 기반 결과는 실서비스 목표치가 아니라 현재 PoC 한계로 설명
 
-### 25.3 Redis latency
+### 25.4 Redis latency
 
 Redis 노드:
 
@@ -1613,7 +2115,7 @@ redis-cli INFO memory
 - memory fragmentation 과도하지 않음
 - evicted_keys 급증 없음
 
-### 25.4 발표용 성능 표
+### 25.5 발표용 성능 표
 
 | 지표                   | Redis 없음 | Redis 있음      | 비고                 |
 | :--------------------- | :--------- | :-------------- | :------------------- |
@@ -1622,7 +2124,8 @@ redis-cli INFO memory
 | Redis hit ratio        | 해당 없음  | 측정값          | `keyspace_hits` 기준 |
 | RBD randread IOPS      | 측정값     | 해당 없음       | fio 기준             |
 | RGW backup throughput  | 측정값     | 해당 없음       | rclone 기준          |
-| Harbor image pull time | 측정값     | 측정값          | Harbor vs ECR 비교   |
+| ProxySQL connection    | 측정값     | 측정값          | `Threads_connected`  |
+| Redis Sentinel quorum  | 해당 없음  | 측정값          | `ckquorum` 기준      |
 | HDD RBD randwrite IOPS | 측정값     | 실서비스 목표값 | fio 기준             |
 
 주의:
@@ -1653,13 +2156,12 @@ redis-cli INFO memory
 - `/var/lib/etcd` local mount
 - `findmnt /var/lib/etcd`
 
-### 26.3 Harbor
+### 26.3 Harbor / RGW 참고
 
 - Harbor project artifact 화면
-- Harbor replication policy 화면
-- Harbor replication execution 성공 화면
-- AWS ECR image tag 화면
 - Kubernetes image pull 성공 이벤트
+- Harbor registry storage가 Ceph RGW를 쓰는 설정 화면
+- Harbor image blob bucket stats
 
 ### 26.4 Backup
 
@@ -1670,11 +2172,23 @@ redis-cli INFO memory
 - S3 Lifecycle 설정
 - restore-test dry-run 결과
 
-### 26.5 Redis
+### 26.5 On-prem DB
+
+- ProxySQL `mysql_servers`
+- ProxySQL `mysql_users`
+- ProxySQL query rule
+- PXC `wsrep_cluster_status`
+- PXC `wsrep_cluster_size`
+- `Threads_connected`
+- DB 백업 파일 또는 binlog 목록
+
+### 26.6 Redis
 
 - `redis-cli INFO memory`
 - `redis-cli INFO stats`
 - `redis-cli ROLE`
+- Sentinel `get-master-addr-by-name`
+- Sentinel `ckquorum`
 - Redis hit/miss 변화
 - 앱 응답 시간 비교
 - DB query 감소 지표
@@ -1688,10 +2202,9 @@ redis-cli INFO memory
 - "시나리오는 공연 기획 회사의 티켓팅 서비스임."
 - "공연 서비스는 이미지와 영상 자료가 많고, 예매 오픈 시점에 트래픽이 짧게 몰리는 특성이 있음."
 - "제가 맡은 부분은 사용자 트래픽을 직접 받는 앱 레이어보다, 그 뒤에서 성능과 복구성을 받쳐주는
-  저장소, 이미지 저장소, 캐시, 백업 계층임."
-- "키워드는 Ceph, Harbor, Backup, Redis 네 가지임."
-- "공통 목표는 10G 온프레 환경을 최대한 활용하고, AWS로 넘어가는 구간은 필요한 부분만 미러링하거나
-  백업하는 구조임."
+  저장소, 온프레 DB, 캐시, 백업 계층임."
+- "키워드는 Ceph, On-prem DB, Backup, Redis 네 가지임."
+- "RDS Read Replica와 OLAP 분석 워크로드는 담당 범위가 아니므로 온프레 운영 경로까지만 설명함."
 
 ### 27.2 Ceph
 
@@ -1703,47 +2216,45 @@ redis-cli INFO memory
 - "다만 Kubernetes 제어 평면 핵심인 etcd는 로컬 디스크에 둠."
 - "etcd까지 Ceph에 올리면 스토리지 장애와 제어 평면 장애가 묶일 수 있기 때문임."
 
-### 27.3 Harbor
+### 27.3 On-prem DB
 
-- "Harbor는 사내 자체 이미지 저장소 역할임."
-- "Harbor storage는 Ceph RGW를 활용해 Harbor image blob을 내부 object storage에 저장함."
-- "온프레 Kubernetes는 내부 Harbor에서 빠르게 pull하고, AWS burst 환경은 ECR 미러를 사용함."
-- "이렇게 나눈 이유는 AWS 노드가 온프레 Harbor를 WAN/VPN 경유로 pull할 때 생기는 지연을 줄이고,
-  티켓팅 피크 시점의 scale-out 시간을 줄이기 위함임."
+- "DB는 AWS RDS가 아니라 온프레미스 PXC와 ProxySQL 경로까지만 설명함."
+- "앱은 PXC에 직접 붙지 않고 ProxySQL endpoint를 통해 운영 DB에 접근함."
+- "ProxySQL을 두는 이유는 DB endpoint를 단순화하고 writer 경로와 connection을 통제하기 위함임."
+- "PXC 주 데이터가 Ceph RBD에 있는지, 로컬 SSD에 있는지는 반드시 실제 배치를 확인해서 말해야 함."
 
 ### 27.4 Backup
 
 - "공연 이미지와 동영상 같은 정적 자원은 Ceph RGW에 저장하고 AWS S3로 copy-only 백업함."
 - "삭제나 장애 복구를 위해 원본 key 구조를 유지함."
 - "S3 Lifecycle은 장기 보관 비용 절감 목적이고, 즉시 조회 대상과 archive 대상은 구분함."
+- "DB 백업은 정적 자원 백업과 별도이며, PXC 기준 XtraBackup이나 binlog 정책 확인이 필요함."
 
 ### 27.5 Redis
 
-- "Redis는 DB를 대체하는 계층이 아니라 DB 앞단에서 반복 조회와 burst 트래픽을 흡수하는 계층임."
+- "Redis는 DB를 대체하는 계층이 아니라 온프레 DB 앞단에서 반복 조회와 임시 상태를 흡수하는 계층임."
 - "티켓팅 서비스에서는 공연 정보와 좌석 정보 조회가 반복되므로 Redis로 DB 접근량을 줄이는 가치가
   큼."
-- "특히 예매 상태는 AWS와 온프레미스가 Redis 하나를 기준으로 보게 해서 RDS Read Replica나 온프레 DB
-  간 지연 차이를 줄임."
-- "온프레 Redis를 기준으로 잡으면 온프레 앱과 AWS 앱이 같은 캐시 기준을 볼 수 있음."
+- "현재 기준은 Redis Sentinel 3노드와 quorum 2 구성으로 단일 장애 시 failover를 기대할 수 있음."
 - "일관성은 DB commit 후 Redis key 갱신 또는 삭제, TTL 적용으로 관리함."
 
 ### 27.6 마무리
 
 - "결론적으로 이 파트는 트래픽 외적인 인프라 성능 계층임."
-- "Ceph는 저장소 통합, Harbor/ECR은 이미지 pull 최적화, Backup은 복구 가능성, Redis는 DB 부하 감소와
+- "Ceph는 저장소 통합, On-prem DB는 운영 트랜잭션 경로, Backup은 복구 가능성, Redis는 DB 부하 감소와
   응답 지연 감소를 담당함."
 
 ---
 
 ## 28. 예상 질문과 답변
 
-### Q1. 왜 모든 것을 AWS S3/ECR에 두지 않았는가
+### Q1. 왜 모든 것을 AWS에 두지 않았는가
 
 - 온프레 10G망 활용 목적
-- 내부 Kubernetes pull 속도 확보
+- 내부 저장소와 DB 경로 통제
 - 외부 네트워크 의존도 감소
 - 발표/PoC 비용 통제
-- AWS는 백업과 burst 최적화 대상으로 제한
+- AWS는 이번 담당 범위에서 정적 자원 2차 백업 대상으로 제한
 
 ### Q2. 왜 공연 기획 회사에 Ceph S3가 맞는가
 
@@ -1754,11 +2265,12 @@ redis-cli INFO memory
 
 ### Q3. Ceph HDD인데 성능 괜찮은가
 
-- 네트워크는 10G로 확보
-- HDD 쓰기 성능은 별도 검증 필요
+- 네트워크는 10G, iperf3 실측 9.4 Gbps
+- RBD 1M seqwrite 실측 35 MB/s
+- RADOS 4K randwrite 실측 99 IOPS
+- 병목은 네트워크보다 HDD write path로 해석
 - object 중심 workload는 순차 처리 비중이 있어 설명 가능
 - 고 IOPS workload는 SSD/NVMe 전제 또는 별도 배치 필요
-- 발표 수치는 fio/rados bench 측정 후 확정
 
 ### Q4. Ceph 복제면 백업이 필요 없는가
 
@@ -1767,26 +2279,26 @@ redis-cli INFO memory
 - 백업: 삭제, 오염, 랜섬웨어, 운영 실수 복구
 - 목적 자체가 다름
 
-### Q5. ECR 미러링은 백업인가
+### Q5. Harbor/ECR은 이번 담당인가
 
-- 부분적 복제본임
-- image pull 가용성과 속도 목적
-- Harbor metadata 전체 백업 아님
-- project/user/robot/policy 백업은 별도 필요
+- 주 담당 아님
+- Harbor는 Ceph RGW를 사용하는 소비자 관점에서만 설명
+- ECR은 AWS burst/image pull 담당 영역에 가까움
+- 이번 발표에서는 Ceph RGW backend와 backup 경계만 언급
 
 ### Q6. Redis 장애 시 앱은 어떻게 되는가
 
 - Redis가 cache-aside 구조면 DB fallback 가능
 - 응답 지연과 DB 부하 증가 가능
-- Sentinel/Replica 없으면 단일 장애점
-- 발표 시 단일 구성 한계 명시 필요
+- 현재 기준 Redis Sentinel 3노드, quorum 2 구성
+- failover 캡처 필요
+- Redis 장애 시 degrade 또는 DB fallback 정책 필요
 
 ### Q7. Redis 때문에 데이터 불일치가 생기지 않는가
 
 - 가능성 있음
 - DB를 최종 Source of Truth로 유지
 - 실시간 예매 상태 판단은 Redis 단일 key 기준
-- RDS Read Replica 지연 가능성은 중요 예매 상태 조회 경로에서 배제
 - DB commit 후 cache invalidate 또는 refresh
 - TTL 적용
 - stale cache 허용 범위 정의 필요
@@ -1815,40 +2327,41 @@ redis-cli INFO memory
 
 ## 29. 발표 전 최종 체크리스트
 
-| 항목            | 확인                           | 결과      |
-| :-------------- | :----------------------------- | :-------- |
-| Ceph 상태       | `ceph -s`                      | Pass/Fail |
-| Ceph 3중 복제   | `ceph osd pool ls detail`      | Pass/Fail |
-| RBD 이중화      | `rbd info`, `ceph osd map`     | Pass/Fail |
-| RGW 데이터 복제 | `bucket stats`, pool `size`    | Pass/Fail |
-| RGW 서비스 HA   | RGW daemon 2개 이상, LB 확인   | Pass/Fail |
-| 10G 링크        | `ethtool`, `iperf3`            | Pass/Fail |
-| HDD 쓰기 성능   | `fio`, `rados bench`           | Pass/Fail |
-| VM RBD          | Proxmox Storage, `rbd ls`      | Pass/Fail |
-| Pod PVC         | `kubectl get pvc,pv`           | Pass/Fail |
-| etcd local      | `findmnt /var/lib/etcd`        | Pass/Fail |
-| Harbor 동작     | push/pull                      | Pass/Fail |
-| Harbor -> ECR   | replication execution, ECR tag | Pass/Fail |
-| RGW object      | bucket stats                   | Pass/Fail |
-| AWS S3 백업     | rclone copy, object count      | Pass/Fail |
-| 복구 테스트     | restore-test dry-run           | Pass/Fail |
-| Redis 실행      | `redis-cli PING`               | Pass/Fail |
-| Redis 앱 연동   | env/code/key 확인              | Pass/Fail |
-| Redis 성능 차이 | k6/cache hit ratio             | Pass/Fail |
+| 항목            | 확인                         | 결과      |
+| :-------------- | :--------------------------- | :-------- |
+| Ceph 상태       | `ceph -s`                    | Pass/Fail |
+| Ceph 3중 복제   | `ceph osd pool ls detail`    | Pass/Fail |
+| RBD 이중화      | `rbd info`, `ceph osd map`   | Pass/Fail |
+| RGW 데이터 복제 | `bucket stats`, pool `size`  | Pass/Fail |
+| RGW 서비스 HA   | RGW daemon 2개 이상, LB 확인 | Pass/Fail |
+| 10G 링크        | `ethtool`, `iperf3`          | Pass/Fail |
+| HDD 쓰기 성능   | `fio`, `rados bench`         | Pass/Fail |
+| VM RBD          | Proxmox Storage, `rbd ls`    | Pass/Fail |
+| Pod PVC         | `kubectl get pvc,pv`         | Pass/Fail |
+| etcd local      | `findmnt /var/lib/etcd`      | Pass/Fail |
+| ProxySQL 경로   | `mysql_servers`, app query   | Pass/Fail |
+| PXC 상태        | `wsrep_*`, connection count  | Pass/Fail |
+| RGW object      | bucket stats                 | Pass/Fail |
+| AWS S3 백업     | rclone copy, object count    | Pass/Fail |
+| DB 백업         | XtraBackup/binlog/dump 확인  | Pass/Fail |
+| 복구 테스트     | restore-test dry-run         | Pass/Fail |
+| Redis 실행      | `redis-cli PING`             | Pass/Fail |
+| Redis Sentinel  | `ckquorum`, master 조회      | Pass/Fail |
+| Redis 앱 연동   | env/code/key 확인            | Pass/Fail |
+| Redis 성능 차이 | k6/cache hit ratio           | Pass/Fail |
 
 ---
 
 ## 30. 현재 발표 리스크
 
-| 리스크                         | 영향                         | 대응                                       |
-| :----------------------------- | :--------------------------- | :----------------------------------------- |
-| Redis 구현 근거 부족           | 발표 내용과 실제 구현 불일치 | 구현 완료 또는 설계/후속 적용으로 표현     |
-| Harbor 설정 저장소 근거 부족   | 재현성 설명 약화             | UI/CLI 캡처 확보                           |
-| 백업 자동화 실파일 부재        | 운영성 주장 약화             | cron/rclone 실행 로그 확보                 |
-| Ceph 성능 수치 부재            | IOPS 개선 주장 약화          | fio/rados/iperf 측정표 작성                |
-| HDD 기반 Ceph 쓰기 성능 불명확 | 10G 성능 주장 과장 위험      | HDD 한계 명시, SSD/NVMe 실서비스 전제 분리 |
-| etcd 로컬 캡처 부재            | 착오 해결 설명 근거 부족     | control-plane 캡처 확보                    |
-| DB 디스크 배치 불명확          | Ceph 적용 범위 혼동          | PXC VM 디스크 배치 확인                    |
+| 리스크                  | 영향                     | 대응                                |
+| :---------------------- | :----------------------- | :---------------------------------- |
+| Redis 최신 캡처 부재    | 발표 근거 약화           | Sentinel/quorum/keyspace 캡처 확보  |
+| 온프레 DB 배치 불명확   | DB/Ceph 경계 혼동        | ProxySQL/PXC/VM disk 배치 캡처 확보 |
+| 백업 자동화 실파일 부재 | 운영성 주장 약화         | cron/rclone 실행 로그 확보          |
+| Ceph 성능 해석 과장     | 10G 성능 주장 과장 위험  | 35 MB/s, 99 IOPS 실측 기준으로 설명 |
+| RGW 단일 daemon         | S3 endpoint SPoF         | RGW 2개 이상 + LB 개선 과제로 명시  |
+| etcd 로컬 캡처 부재     | 착오 해결 설명 근거 부족 | control-plane 캡처 확보             |
 
 ---
 
@@ -1856,15 +2369,15 @@ redis-cli INFO memory
 
 - "Ceph에 저장했으니 백업 완료"
 - "Redis가 있으니 DB 일관성 자동 보장"
-- "ECR 미러링이 Harbor 전체 백업"
 - "10G라서 무조건 빠름"
 - "RAM 추가로 성능 몇 배 향상"
 - "etcd도 Ceph에 올림"
-- "AWS 트래픽도 아무 설정 없이 온프레 Redis 사용"
 - "RDS Read Replica를 보면 예매 상태 일관성이 자동 보장됨"
 - "Redis 하나만 두면 예매 일관성 문제가 자동 해결됨"
 - "10G라서 HDD 쓰기 성능도 충분함"
 - "공연 이미지/영상도 DB에 넣으면 됨"
+- "데이터 워크로드 성능까지 내가 담당함"
+- "AWS DB까지 내가 검증함"
 
 ---
 
@@ -1873,12 +2386,11 @@ redis-cli INFO memory
 - "공연 기획 회사 특성상 이미지/동영상 object storage 가치가 큼"
 - "Ceph 복제와 백업은 목적 분리"
 - "Ceph RBD는 K8s/Proxmox VM, Ceph RGW는 Harbor/App S3 자원에 사용"
-- "Redis는 DB 부하 감소와 일관성 보조"
-- "중요 예매 상태는 AWS/온프레가 Redis 단일 기준점 조회"
-- "DB/RDS replica 지연 가능성은 Redis 예매 상태 key로 보완"
-- "ECR 미러링은 AWS burst image pull 최적화"
+- "온프레 DB는 PXC/ProxySQL 경로까지만 설명"
+- "Redis는 온프레 DB 부하 감소와 임시 상태 관리 보조"
+- "Redis Sentinel 3노드와 quorum 2 기준으로 HA를 설명"
 - "etcd는 제어 평면 안정성을 위해 로컬 디스크 유지"
-- "10G망은 네트워크 병목 완화, HDD 쓰기 성능은 별도 검증 대상"
+- "10G망은 정상이나 HDD 기반 Ceph write path가 병목"
 - "성능 개선은 fio, rados bench, iperf, k6로 검증"
 - "현재 구현과 설계 예정 범위를 분리해 설명"
 
@@ -1889,10 +2401,10 @@ redis-cli INFO memory
 - 시나리오: 공연 기획 회사의 티켓팅 서비스
 - Ceph RBD: Kubernetes PVC와 Proxmox VM 디스크
 - Ceph RGW: Harbor storage와 앱 S3 자원
-- Harbor: 내부 이미지 저장소와 AWS ECR 미러링 기준점
+- On-prem DB: PXC와 ProxySQL 운영 경로
 - Backup: Ceph RGW 원본과 AWS S3 2차 백업 구조
-- Redis: DB 부하 감소, AWS burst traffic 흡수, 예매 상태 단일 기준점
+- Redis: 온프레 DB 부하 감소, 대기열/임시 상태 보조, Sentinel HA
 - etcd: Ceph 제외, 로컬 디스크 유지 대상
-- HDD + 10G: 네트워크 이점과 디스크 쓰기 한계 분리 설명
+- HDD + 10G: 9.4 Gbps 네트워크와 35 MB/s RBD seqwrite 한계 분리 설명
 - 핵심 성과: 트래픽 외 인프라 병목 완화와 복구 가능성 확보
-- 발표 핵심: "공연 자원 저장, 이미지 pull 최적화, 티켓팅 burst 대응, 캐시 기반 DB 부하 감소"
+- 발표 핵심: "공연 자원 저장, 온프레 DB 경로 통제, 백업 복구성, Redis 기반 DB 부하 감소"
