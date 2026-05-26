@@ -11,7 +11,7 @@
 발표 문장:
 온프레미스 앱은 DB node에 직접 붙지 않고 ProxySQL Service를 통해 PXC로 접근합니다.
 예매 상태처럼 여러 앱이 같은 기준으로 봐야 하는 값은 Redis 계층을 통해 빠르게 참조하도록 분리했습니다.
-Storage는 block volume과 object storage 역할을 나눠, DB/PVC 계열은 RBD로, 이미지와 영상 object는 RGW/S3로 처리했습니다.
+Storage는 역할에 따라 block volume과 object storage로 분리했습니다.
 
 참고:
 - Redis Sentinel: HA/failover 목적, 강한 일관성 보장 구조로 설명 금지
@@ -22,9 +22,8 @@ Storage는 block volume과 object storage 역할을 나눠, DB/PVC 계열은 RBD
 [3] BACKUP ARCHITECTURE
 
 발표 문장:
-Ceph replica와 backup은 역할이 다릅니다.
-Replica는 디스크나 노드 장애에 대한 가용성 risk를 줄이는 구조이고, backup은 삭제나 오염 같은 논리 장애에서 되돌리기 위한 구조입니다.
-현재는 etcd snapshot과 S3 object backup을 적용했고, Harbor image는 backup이 아니라 AWS burst를 위한 ECR mirror로 분리했습니다.
+조금 더 자세한 구조를 보면 Kubernetes PVC 데이터들은 RBD Pool, Harbor 이미지 와 이미지·영상파일과 같은 app object 들은 RGW/S3 기반으로 구성했습니다. Harbor의 metadata는 RBD Pool을 사용했습니다.
+RGW/S3의 데이터는 설정된 주기마다 AWS S3로 backup 되도록 적용했고, 구조도에는 없지만 etcd 데이터도 S3로 backup 되도록 했습니다. Harbor 이미지는 AWS burst 환경에서 이미지를 빠르게 pull할 수 있도록 ECR로 미러링되도록 설정했습니다.
 
 참고:
 - etcd snapshot: Kubernetes control plane 복구 목적, application DB backup 아님
@@ -36,8 +35,8 @@ Replica는 디스크나 노드 장애에 대한 가용성 risk를 줄이는 구�
 
 발표 문장:
 Ceph는 하나의 storage backend에서 RBD와 RGW를 모두 제공할 수 있어서 선택했습니다.
-ProxySQL은 앱의 DB endpoint를 단순화하고, PXC는 3-node DB 가용성을 확보하기 위해 사용했습니다.
-Redis는 DB 부하를 줄이면서 예매 상태를 온프레미스와 AWS burst app이 같은 기준으로 보도록 하기 위해 사용했습니다.
+PXC는 3-node DB 가용성을 확보하기 위해 사용하였고, ProxySQL은 애플리케이션이 여러 DB Pod를 직접 바라보지 않도록 DB endpoint를 단순화하고, writer routing과 connection 관리를 통해 DB 접근을 안정적으로 제어하기 위해 사용했습니다.
+Redis는 DB 부하를 줄이고, 온프레미스와 AWS burst app이 동일한 예매 상태를 공유하도록 하기 위해 사용했습니다.
 
 참고:
 - Redis Sentinel은 failover 구조
@@ -51,6 +50,8 @@ Redis는 DB 부하를 줄이면서 예매 상태를 온프레미스와 AWS burst
 RBD는 Kubernetes PVC와 VM disk처럼 block volume이 필요한 영역에 사용했습니다.
 PXC DB volume, Redis persistence volume, Harbor metadata, Jenkins, Prometheus, Grafana, Proxmox VM disk가 여기에 해당합니다.
 RGW/S3는 Harbor image blob과 앱의 이미지, 영상 object 저장에 사용했습니다.
+Redis는 앞서 Redis를 사용한 이유에 말씀드린바와 같이 예매 상태 공유, 부하 감소를 담당하고,
+Redis Sentinel은 Redis 장애 감지와 자동 failover를 담당합니다.
 
 참고:
 - ProxySQL: DB data 저장 계층 아님, endpoint/routing 계층
@@ -63,7 +64,7 @@ RGW/S3는 Harbor image blob과 앱의 이미지, 영상 object 저장에 사용�
 발표 문장:
 Backup은 적용 범위와 성공 여부를 확인할 수 있어야 합니다.
 etcd snapshot은 control plane 상태 복구 목적이고, S3 object backup은 RGW object를 AWS S3로 복사하는 목적입니다.
-Backup 완료 후 Slack 알림을 남겨, 실제 수행 여부를 발표 증빙으로 사용할 예정입니다.
+Backup 완료 후 Slack 알림을 남겨, 실제 수행 여부를 증빙으로 사용할 예정입니다.
 
 참고:
 - S3 object backup: RGW object -> AWS S3
@@ -74,6 +75,7 @@ Backup 완료 후 Slack 알림을 남겨, 실제 수행 여부를 발표 증빙�
 [7] BACKUP POLICY
 
 발표 문장:
+Replica가 디스크/노드 장애에 대비한 가용성 확보 수단이라면, Backup은 데이터 삭제나 오염 발생 시 복구하기 위한 보호 수단입니다.
 Backup 정책은 현재 적용된 범위와 보강할 범위를 나눠서 설명하겠습니다.
 현재는 etcd와 S3 object backup이 적용되어 있고, Harbor metadata와 PXC DB data는 추가 적용 대상입니다.
 앞으로는 backup 파일 존재뿐 아니라 특정 시점으로 복구 가능한지까지 검증해야 합니다.
@@ -89,7 +91,7 @@ Backup 정책은 현재 적용된 범위와 보강할 범위를 나눠서 설명
 발표 문장:
 성능은 네트워크와 스토리지 write path를 분리해서 확인했습니다.
 이 슬라이드는 수치를 자세히 읽기 위한 장표가 아니라, 실제로 iperf3와 fio로 측정했다는 증빙입니다.
-캡처에서는 10G network 확인값과 RBD PVC write 결과만 짧게 짚고 넘어가겠습니다.
+캡처 이미지는 10G network 확인값과 RBD PVC write 결과입니다.
 
 참고:
 - 4K random write: 작은 DB성 write 패턴
@@ -101,7 +103,7 @@ Backup 정책은 현재 적용된 범위와 보강할 범위를 나눠서 설명
 [9] PERFORMANCE ANALYSIS
 
 발표 문장:
-10G network가 있다고 해서 Ceph write 성능이 자동으로 보장되지는 않습니다.
+10G network가 있다고 해서 Ceph의 write 성능이 자동으로 보장되지는 않습니다.
 Ceph write는 HDD OSD, replica write path, WAL/DB 위치 같은 요소의 영향을 받습니다.
 이번 결과는 Ceph 전체 최대 성능이 아니라, 현재 구성에서 RBD write path가 주요 병목 후보라는 근거로 보겠습니다.
 운영급 개선은 SSD WAL/DB 분리나 NVMe OSD 전환 후 재측정하는 방향이 적절합니다.
@@ -115,8 +117,9 @@ Ceph write는 HDD OSD, replica write path, WAL/DB 위치 같은 요소의 영향
 [10] CURRENT LIMITATIONS
 
 발표 문장:
-현재 구조의 한계는 세 가지입니다.
+현재 구조의 한계는 네 가지입니다.
 첫째, HDD 기반 RBD write path는 운영급 성능 개선 검토가 필요합니다.
 둘째, Harbor metadata와 PXC DB data backup은 아직 추가 적용 대상입니다.
 셋째, 특정 버전의 backup으로 실제 복구하는 절차 검증이 부족합니다.
+넷째, RPO·RTO·백업 보관 기간 등 복구 기준에 대한 구체적인 수치 정의가 필요합니다.
 따라서 다음 단계는 성능 개선과 restore rehearsal 검증입니다.
