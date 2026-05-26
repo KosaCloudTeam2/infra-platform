@@ -1,0 +1,178 @@
+[1] PART 2. DATA & STORAGE
+
+발표 문장:
+지금부터 제가 맡은 Data & Storage 영역을 설명드리겠습니다.
+범위는 Ceph storage, 온프레미스 DB, Redis, Harbor storage, backup 정책입니다.
+핵심은 데이터 저장 위치, 접근 경로, 장애와 트래픽 집중 상황에서 줄인 risk입니다.
+
+보충 설명:
+- 담당 범위: Ceph RBD/RGW, PXC/ProxySQL, Redis Sentinel, Harbor storage, backup
+- 제외 범위: 데이터 워크로드 상세, AWS RDS 운영 상세
+- 발표 기준: 기술 나열보다 선택 이유, 구성 이유, 검증 근거
+
+---
+
+[2] DB / REDIS / STORAGE ARCHITECTURE
+
+발표 문장:
+전체 구조는 DB 접근 경로, Redis 상태 경로, Ceph storage backend로 나눠 설명할 수 있습니다.
+온프레미스 앱은 PXC node에 직접 붙지 않고 ProxySQL Service를 통해 DB에 접근합니다.
+ProxySQL 뒤에는 PXC Service와 PXC 3-node DB가 있고, 각 DB Pod는 Ceph RBD PVC를 사용합니다.
+Redis는 단순 cache가 아니라 예매 상태를 여러 앱이 같은 기준으로 빠르게 참조하기 위한 shared state 계층입니다.
+AWS burst app도 예매 상태는 Redis 계층을 바라보고, 예매 외 read-only 데이터는 AWS read-only DB 계층으로 분리합니다.
+
+보충 설명:
+- DB 경로: On-prem App -> ProxySQL Service -> ProxySQL Pod -> PXC Service -> PXC x3
+- Redis 경로: On-prem App / AWS Burst App -> Redis HA area
+- RBD 경로: PXC DB volume, Redis persistence volume, Harbor metadata 등 stateful PVC
+- RGW/S3 경로: Harbor image blob, app image/video object
+- Redis Sentinel: HA/failover 목적, 강한 일관성 보장 구조 아님
+
+---
+
+[3] BACKUP ARCHITECTURE
+
+발표 문장:
+Backup 구조는 Ceph replica와 분리해서 봐야 합니다.
+Ceph replica는 디스크나 노드 장애 시 데이터 가용성 risk를 줄이는 구조입니다.
+Backup은 삭제, 오염, 잘못된 배포 같은 논리 장애에서 특정 시점으로 되돌리기 위한 구조입니다.
+현재 적용된 backup은 etcd snapshot과 S3 object backup입니다.
+Harbor image는 backup이 아니라 AWS burst 상황에서 image pull을 빠르게 하기 위한 Harbor -> ECR image mirror로 분리했습니다.
+
+보충 설명:
+- Applied backup: etcd snapshot, S3 object backup
+- Mirror: Harbor -> ECR image mirror
+- Planned backup: Harbor metadata, PXC DB data
+- 핵심 구분: replica != backup
+- etcd snapshot: Kubernetes control plane 복구 목적, application DB backup 아님
+
+---
+
+[4] WHY THESE TECHNOLOGIES?
+
+발표 문장:
+Ceph를 선택한 이유는 하나의 storage backend에서 RBD와 RGW를 모두 제공할 수 있기 때문입니다.
+DB나 Redis처럼 block volume이 필요한 workload는 RBD로 처리했습니다.
+이미지와 영상처럼 object 성격이 강한 데이터는 RGW/S3로 분리했습니다.
+ProxySQL은 앱이 DB node를 직접 알 필요 없이 하나의 endpoint를 바라보도록 하기 위해 사용했습니다.
+PXC는 운영 DB 가용성과 동기 복제를 위해 3-node 기준으로 구성했습니다.
+Redis Sentinel은 트래픽 집중 시 DB read 부담을 줄이고, 예매 상태를 온프레미스와 AWS burst app이 같은 기준으로 보도록 하기 위해 사용했습니다.
+
+보충 설명:
+- Ceph 효용: RBD/RGW storage backend 통합
+- ProxySQL 효용: endpoint 단순화, writer routing, connection 관리
+- PXC 효용: DB 가용성, 동기 복제, node 장애 risk 감소
+- Redis 효용: DB 부하 감소, 예매 상태 기준점 통일, 빠른 조회
+- Redis 주의: Sentinel은 failover 구조, 강한 일관성 저장소로 표현 금지
+
+---
+
+[5] RBD + RGW ACTUAL USE
+
+발표 문장:
+실제 사용처는 RBD와 RGW로 나눠 설명할 수 있습니다.
+RBD는 Kubernetes PVC와 VM disk 같은 block volume에 사용했습니다.
+PXC DB volume, Redis persistence volume, Harbor metadata, Jenkins, Prometheus, Grafana, Proxmox VM disk가 RBD 계층을 사용합니다.
+ProxySQL은 DB 데이터를 저장하는 계층이 아니라 endpoint와 routing 계층입니다.
+RGW는 S3 호환 object storage로 사용했습니다.
+Harbor image blob과 앱의 이미지, 영상 object는 RGW/S3에 저장합니다.
+
+보충 설명:
+- RBD: stateful workload PVC, VM disk
+- RGW/S3: Harbor image blob, app object
+- Harbor image blob: registry layer, manifest 등 blob 저장 구조 표현
+- ProxySQL 주의: DB data volume처럼 설명 금지
+- Redis: cache + shared reservation state + Sentinel HA
+
+---
+
+[6] BACKUP PROCESS & ALERT
+
+발표 문장:
+이 슬라이드는 backup 흐름과 증빙 방식을 보여주는 슬라이드입니다.
+현재 적용된 backup은 etcd snapshot과 S3 object backup입니다.
+etcd snapshot은 Kubernetes control plane 상태 복구 목적이고, application DB backup은 아닙니다.
+S3 object backup은 Ceph RGW에 저장된 이미지와 영상 object를 AWS S3로 복사하는 목적입니다.
+Backup 작업 후에는 Slack 알림으로 성공 여부를 확인하고, 해당 화면을 증빙으로 사용할 예정입니다.
+
+보충 설명:
+- etcd backup: Kubernetes cluster state 복구 목적
+- S3 object backup: RGW object -> AWS S3
+- copy-only 의미: 원본 삭제가 backup 삭제로 즉시 전파되지 않도록 분리
+- Harbor image mirror: backup과 구분, AWS burst image pull 목적
+- Slack alert: backup 성공 여부 증빙
+
+---
+
+[7] BACKUP POLICY
+
+발표 문장:
+Backup 정책의 핵심은 현재 적용된 범위와 추가 보강 범위를 명확히 나누는 것입니다.
+현재는 etcd snapshot과 S3 object backup이 적용되어 있습니다.
+Harbor image는 Harbor -> ECR image mirror 방식으로 처리 중입니다.
+Harbor metadata와 PXC DB data backup은 추가 적용 대상입니다.
+Backup은 파일 존재만으로 충분하지 않고, 특정 시점으로 복구 가능한지 restore rehearsal까지 검증해야 합니다.
+
+보충 설명:
+- Applied backup: etcd, S3 object
+- Mirror: Harbor -> ECR image mirror
+- Planned backup: Harbor metadata, PXC DB data
+- 검증 기준: backup success, restore success, checksum, recovery log
+- 운영 기준: RPO, RTO, retention 정의 필요
+
+---
+
+[8] PERFORMANCE EVIDENCE
+
+발표 문장:
+이 슬라이드는 성능 수치를 자세히 설명하는 장표가 아니라, 실제 측정 근거를 보여주는 장표입니다.
+성능 검증은 10G network와 RBD write를 분리해서 확인했습니다.
+왼쪽 위에는 Ceph node 간 network 확인 결과를 넣고, 오른쪽 위에는 RBD 4K random write 결과를 넣습니다.
+왼쪽 아래에는 RBD 1M sequential write 결과를 넣습니다.
+발표 중에는 전체 log를 읽지 않고, 각 캡처에서 무엇을 확인했는지만 짚겠습니다.
+
+보충 설명:
+- 10G Network Check: `iperf3` 결과, `[SUM] receiver` 확인
+- RBD 4K Random Write: 작은 DB성 write 패턴 확인
+- RBD 1M Sequential Write: 큰 파일 연속 write 패턴 확인
+- 확인 관점: network 자체와 RBD write path 분리
+- 표현 기준: 현재 RBD PVC 단일 write 테스트 기준
+
+---
+
+[9] PERFORMANCE ANALYSIS
+
+발표 문장:
+앞 슬라이드의 측정 결과는 network와 storage write path를 분리해서 해석해야 합니다.
+10G network가 구성되어 있어도 Ceph write 성능은 디스크와 replica write path의 영향을 받습니다.
+이번 측정은 Ceph 전체 최대 성능을 말하려는 것이 아닙니다.
+현재 Kubernetes RBD PVC에서 write 병목 후보가 어디인지 확인하기 위한 단일 테스트입니다.
+따라서 현재 병목을 단정하기보다는, HDD OSD와 replica write path를 주요 병목 후보로 해석하는 것이 안전합니다.
+운영급 개선은 SSD WAL/DB 분리, NVMe OSD 전환, 실제 service workload 기준 재측정이 우선 검토 대상입니다.
+
+보충 설명:
+- 금지 표현: "10G라서 Ceph도 빠름"
+- 금지 표현: "이 수치가 Ceph 전체 최대 성능"
+- 권장 표현: "10G network와 Ceph write path는 별도 검증 대상"
+- 권장 표현: "현재 구성에서는 RBD write path가 주요 병목 후보"
+- 개선 후보: SSD WAL/DB 분리, NVMe OSD, workload 기준 재측정
+
+---
+
+[10] CURRENT LIMITATIONS
+
+발표 문장:
+현재 구조의 한계는 세 가지입니다.
+첫째, storage network는 10G로 구성되어 있지만 Ceph write는 HDD OSD와 replica write path 영향을 받습니다.
+운영급으로 가려면 SSD WAL/DB 분리 또는 NVMe OSD 전환 후 재측정이 필요합니다.
+둘째, backup 적용 범위가 아직 완전하지 않습니다.
+현재는 etcd와 S3 object가 적용됐고, Harbor metadata와 PXC DB data backup은 추가 대상입니다.
+셋째, 특정 날짜나 버전의 backup으로 실제 복구하는 절차 검증이 부족합니다.
+따라서 restore rehearsal, checksum 확인, 복구 로그 확보가 필요합니다.
+
+보충 설명:
+- 한계 1: HDD 기반 RBD write path
+- 한계 2: Harbor metadata / PXC DB data backup gap
+- 한계 3: versioned restore 검증 부족
+- 운영 보강: RPO/RTO/retention 수치화
+- 마무리: 현재 구조는 시연 가능한 storage/DB/backup 기반, 다음 단계는 성능과 복구 절차의 정량 검증

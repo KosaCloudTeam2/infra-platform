@@ -5,6 +5,7 @@ docs_dir: docs
 use_directory_urls: true
 exclude_docs: |
   **/~$*
+  **/*.pptx
   engineering/**
   operations/**
   architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform/**

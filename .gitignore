@@ -11,6 +11,7 @@
 **/*.tfplan
 **/.terraform.lock.hcl
 **/vpn-customer-gateway-configuration.xml
+**/*.pptx
 
 override.tf
 override.tf.json
@@ -49,6 +50,7 @@ site-project-docs-finals/
 site-learning-path/
 tech-icon-cutouts/_tmp/
 기본세팅/
+docs/presentation/db_storage/assets/
 
 .venv/
 .audit_cache/

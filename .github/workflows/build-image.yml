@@ -1,12 +1,11 @@
 name: Build and Push Image
 
-# Disabled until Docker Hub repository and GitHub Secrets are ready.
+# Manual only until Docker Hub repository and GitHub Secrets are ready.
 # Required secrets:
 # - DOCKERHUB_USERNAME
 # - DOCKERHUB_TOKEN
-on: {}
-#on:
-#  workflow_dispatch:
+on:
+  workflow_dispatch:
 
 permissions:
   contents: read
