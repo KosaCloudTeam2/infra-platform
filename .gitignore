@@ -36,6 +36,7 @@ infra/ansible/group_vars/
 *.pfx
 secrets.*
 *.pdf
+*.zip
 
 # Build/cache
 node_modules/
@@ -47,6 +48,7 @@ site-project-study-latest/
 site-project-docs-finals/
 site-learning-path/
 tech-icon-cutouts/_tmp/
+기본세팅/
 
 .venv/
 .audit_cache/

@@ -4,6 +4,7 @@ repo_name: infra-platform
 docs_dir: docs
 use_directory_urls: true
 exclude_docs: |
+  **/~$*
   engineering/**
   operations/**
   architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/terraform/**
@@ -86,13 +87,19 @@ nav:
       - Ceph Storage: validation/ceph-storage.md
   - Presentation:
       - Outline: presentation/outline.md
-      - Storage Platform A to Z: presentation/storage-platform-a-to-z.md
-      - Storage Platform Evidence: presentation/storage-platform-presentation-evidence.md
-      - Storage Platform Evidence Verification: presentation/storage-platform-evidence-verification-guide.md
-      - Storage Platform Evidence Explainer: presentation/storage-platform-evidence-explainer.md
-      - Storage Platform Slides: presentation/storage-platform-slides.md
-      - Storage Platform Real Slides: presentation/storage-platform-real-slides.md
-      - Storage Platform Real Speaker Notes: presentation/storage-platform-real-speaker-notes.md
+      - Storage Platform A to Z: presentation/db_storage/storage-platform-a-to-z.md
+      - Ceph Current Architecture: presentation/db_storage/ceph-current-architecture.md
+      - Storage Platform 5min Capture Guide: presentation/db_storage/storage-platform-5min-capture-guide.md
+      - Storage Platform 5min Evidence Explainer: presentation/db_storage/storage-platform-5min-evidence-explainer.md
+      - Storage Platform 5min Evidence Index: presentation/db_storage/evidence-5min/evidence-index.md
+      - Storage Platform Confirmed Current Values: presentation/db_storage/storage-platform-confirmed-current-values.md
+      - Storage Platform Verified Architecture Prompt: presentation/db_storage/storage-platform-verified-architecture-image-prompt.md
+      - Storage Platform Evidence: presentation/db_storage/storage-platform-presentation-evidence.md
+      - Storage Platform Evidence Verification: presentation/db_storage/storage-platform-evidence-verification-guide.md
+      - Storage Platform Evidence Explainer: presentation/db_storage/storage-platform-evidence-explainer.md
+      - Storage Platform Slides: presentation/db_storage/archive/storage-platform-slides.md
+      - Storage Platform Real Slides: presentation/db_storage/archive/storage-platform-real-slides.md
+      - Storage Platform Real Speaker Notes: presentation/db_storage/archive/storage-platform-real-speaker-notes.md
       - Slides: presentation/presentation.md
       - Demo Script: presentation/demo_script.md
       - Q&A: presentation/qna.md

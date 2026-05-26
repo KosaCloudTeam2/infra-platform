@@ -1,0 +1,242 @@
+[
+  {
+    "name": "alert",
+    "svg": "svg/alert.svg",
+    "png": "png/alert.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/triangle-alert.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "availability-ha",
+    "svg": "svg/availability-ha.svg",
+    "png": "png/availability-ha.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/repeat-2.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "backup",
+    "svg": "svg/backup.svg",
+    "png": "png/backup.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/archive-restore.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "bucket-object-storage",
+    "svg": "svg/bucket-object-storage.svg",
+    "png": "png/bucket-object-storage.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/package-open.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "certificate",
+    "svg": "svg/certificate.svg",
+    "png": "png/certificate.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/badge-check.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "cloud",
+    "svg": "svg/cloud.svg",
+    "png": "png/cloud.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/cloud.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "desktop-pc",
+    "svg": "svg/desktop-pc.svg",
+    "png": "png/desktop-pc.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/monitor.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "ethernet-port",
+    "svg": "svg/ethernet-port.svg",
+    "png": "png/ethernet-port.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/ethernet-port.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "firewall",
+    "svg": "svg/firewall.svg",
+    "png": "png/firewall.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/brick-wall-fire.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "hard-disk",
+    "svg": "svg/hard-disk.svg",
+    "png": "png/hard-disk.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/hard-drive.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "internet-globe",
+    "svg": "svg/internet-globe.svg",
+    "png": "png/internet-globe.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/globe.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "kubernetes-node",
+    "svg": "svg/kubernetes-node.svg",
+    "png": "png/kubernetes-node.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/box.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "laptop",
+    "svg": "svg/laptop.svg",
+    "png": "png/laptop.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/laptop.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "load-balancer",
+    "svg": "svg/load-balancer.svg",
+    "png": "png/load-balancer.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/git-branch-plus.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "lock",
+    "svg": "svg/lock.svg",
+    "png": "png/lock.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/lock-keyhole.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "monitoring",
+    "svg": "svg/monitoring.svg",
+    "png": "png/monitoring.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chart-no-axes-combined.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "network-cable",
+    "svg": "svg/network-cable.svg",
+    "png": "png/network-cable.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/cable.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "network-node",
+    "svg": "svg/network-node.svg",
+    "png": "png/network-node.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/network.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "network-router",
+    "svg": "svg/network-router.svg",
+    "png": "png/network-router.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/router.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "network-switch",
+    "svg": "svg/network-switch.svg",
+    "png": "png/network-switch.png",
+    "source": "Tabler Icons",
+    "url": "https://raw.githubusercontent.com/tabler/tabler-icons/master/icons/outline/switch-horizontal.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "server",
+    "svg": "svg/server.svg",
+    "png": "png/server.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/server.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "server-rack",
+    "svg": "svg/server-rack.svg",
+    "png": "png/server-rack.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/server-cog.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "shield-security",
+    "svg": "svg/shield-security.svg",
+    "png": "png/shield-security.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shield-check.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "storage-database",
+    "svg": "svg/storage-database.svg",
+    "png": "png/storage-database.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/database.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "terminal-bastion",
+    "svg": "svg/terminal-bastion.svg",
+    "png": "png/terminal-bastion.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/terminal.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "traffic-flow",
+    "svg": "svg/traffic-flow.svg",
+    "png": "png/traffic-flow.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/arrow-right-left.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "user-pc",
+    "svg": "svg/user-pc.svg",
+    "png": "png/user-pc.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/user-round.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "users",
+    "svg": "svg/users.svg",
+    "png": "png/users.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/users-round.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "vm",
+    "svg": "svg/vm.svg",
+    "png": "png/vm.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/boxes.svg",
+    "status": "downloaded"
+  },
+  {
+    "name": "wifi",
+    "svg": "svg/wifi.svg",
+    "png": "png/wifi.png",
+    "source": "Lucide Icons",
+    "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wifi.svg",
+    "status": "downloaded"
+  }
+]
