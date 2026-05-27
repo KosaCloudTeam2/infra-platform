@@ -10,8 +10,8 @@
 
 발표 문장:
 온프레미스 앱은 DB node에 직접 붙지 않고 ProxySQL Service를 통해 PXC로 접근합니다.
-예매 상태처럼 여러 앱이 같은 기준으로 봐야 하는 값은 Redis 계층을 통해 빠르게 참조하도록 분리했습니다.
-Storage는 역할에 따라 block volume과 object storage로 분리했습니다.
+예매 상태처럼 여러 앱이 동일한 기준으로 사용해야 하는 상태 정보는 Redis 계층에서 빠르게 조회할 수 있도록 구성했습니다.
+Storage는 역할에 따라 block storage와 object storage로 분리했습니다.
 
 참고:
 - Redis Sentinel: HA/failover 목적, 강한 일관성 보장 구조로 설명 금지
@@ -22,7 +22,7 @@ Storage는 역할에 따라 block volume과 object storage로 분리했습니다
 [3] BACKUP ARCHITECTURE
 
 발표 문장:
-조금 더 자세한 구조를 보면 Kubernetes PVC 데이터들은 RBD Pool, Harbor 이미지 와 이미지·영상파일과 같은 app object 들은 RGW/S3 기반으로 구성했습니다. Harbor의 metadata는 RBD Pool을 사용했습니다.
+조금 더 자세한 구조를 보면 Kubernetes PVC 데이터들은 RBD Pool 기반으로 구성했고, Harbor 이미지 와 이미지·영상파일과 같은 app object 들은 RGW/S3 기반으로 구성했습니다. Harbor의 metadata는 RBD Pool을 사용했습니다.
 RGW/S3의 데이터는 설정된 주기마다 AWS S3로 backup 되도록 적용했고, 구조도에는 없지만 etcd 데이터도 S3로 backup 되도록 했습니다. Harbor 이미지는 AWS burst 환경에서 이미지를 빠르게 pull할 수 있도록 ECR로 미러링되도록 설정했습니다.
 
 참고:
@@ -34,6 +34,7 @@ RGW/S3의 데이터는 설정된 주기마다 AWS S3로 backup 되도록 적용�
 [4] WHY THESE TECHNOLOGIES?
 
 발표 문장:
+이어서, 각 기술 스택을 선택한 이유를 설명드리겠습니다.
 Ceph는 하나의 storage backend에서 RBD와 RGW를 모두 제공할 수 있어서 선택했습니다.
 PXC는 3-node DB 가용성을 확보하기 위해 사용하였고, ProxySQL은 애플리케이션이 여러 DB Pod를 직접 바라보지 않도록 DB endpoint를 단순화하고, writer routing과 connection 관리를 통해 DB 접근을 안정적으로 제어하기 위해 사용했습니다.
 Redis는 DB 부하를 줄이고, 온프레미스와 AWS burst app이 동일한 예매 상태를 공유하도록 하기 위해 사용했습니다.
@@ -91,11 +92,17 @@ Backup 정책은 현재 적용된 범위와 보강할 범위를 나눠서 설명
 발표 문장:
 성능은 네트워크와 스토리지 write path를 분리해서 확인했습니다.
 이 슬라이드는 수치를 자세히 읽기 위한 장표가 아니라, 실제로 iperf3와 fio로 측정했다는 증빙입니다.
-캡처 이미지는 10G network 확인값과 RBD PVC write 결과입니다.
+캡처에서는 세 가지만 짚겠습니다.
+`write` 줄은 처리량, `clat percentiles`는 write 지연 시간 분포, `Disk stats util`은 RBD 장치가 얼마나 바빴는지 보여줍니다.
+//`p95 latency`는 `clat percentiles`의 `95.00th` 값이고, write 요청 95%가 그 시간 이하로 완료됐다는 의미입니다.
+4K random write는 작은 DB성 write 패턴이고, 1M sequential write는 큰 파일 연속 write 패턴입니다.
+Disk util이 99~100%라면 테스트 중 RBD write path가 거의 계속 바빴다는 근거로 볼 수 있습니다.
 
 참고:
 - 4K random write: 작은 DB성 write 패턴
 - 1M sequential write: 큰 파일 연속 write 패턴
+- p95 latency 근거: fio `clat percentiles`의 `95.00th`
+- `usec` 단위는 1000으로 나누면 ms 기준
 - 표현 기준: 현재 RBD PVC 단일 write 테스트
 
 ---
@@ -122,4 +129,5 @@ Ceph write는 HDD OSD, replica write path, WAL/DB 위치 같은 요소의 영향
 둘째, Harbor metadata와 PXC DB data backup은 아직 추가 적용 대상입니다.
 셋째, 특정 버전의 backup으로 실제 복구하는 절차 검증이 부족합니다.
 넷째, RPO·RTO·백업 보관 기간 등 복구 기준에 대한 구체적인 수치 정의가 필요합니다.
-따라서 다음 단계는 성능 개선과 restore rehearsal 검증입니다.
+
+여기까지 데이터 layer 설계와 성능 검증이었습니다. 다음으로 이 위에서 코드가 어떻게 배포되는지 CI/CD 담당 강재형님이 이어가겠습니다.
