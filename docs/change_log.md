@@ -19,6 +19,15 @@
 
 ---
 
+## 2026-05-27
+
+| ID                 | 유형              | 요약                             | 영향/이유                                                                                                             | 주요 파일                                                                                                                                                            | 검증/상태                                                                                                                                     |
+| :----------------- | :---------------- | :------------------------------- | :-------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| CHANGE-20260527-02 | docs/presentation | 성능 분석 슬라이드 요약형 재구성 | `PERFORMANCE ANALYSIS` 슬라이드를 측정 절차 반복이 아니라 관찰값, 해석, 원인 후보, 개선 방향 중심으로 재작성함        | `docs/presentation/db_storage/db_storage_1.pptx`, `docs/presentation/db_storage/archive/db_storage_1.before-performance-analysis-summary.pptx`, `docs/change_log.md` | PPTX XML 검사 및 9번 슬라이드 PNG 미리보기 확인. `UV_CACHE_DIR=.uv-cache uv run mkdocs build` 통과(기존 validation 시나리오 anchor 경고 있음) |
+| CHANGE-20260527-01 | docs/presentation | 성능 캡처 설명 보강              | 발표자가 fio 캡처의 `write`, `clat percentiles`, `p95 latency`, `Disk stats util` 의미를 짧게 설명할 수 있도록 보강함 | `docs/presentation/db_storage/db_storage_발표자_노트.txt`, `docs/change_log.md`                                                                                      | `UV_CACHE_DIR=.uv-cache uv run mkdocs build` 통과(기존 validation 시나리오 anchor 경고 있음)                                                  |
+
+---
+
 ## 2026-05-26
 
 | ID                 | 유형                 | 요약                                            | 영향/이유                                                                                                                                                                                                        | 주요 파일                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 검증/상태                                                                                                                                                   |
