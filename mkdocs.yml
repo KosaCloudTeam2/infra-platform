@@ -72,6 +72,7 @@ nav:
           - AWS Hybrid Terraform README: architecture/build-up/cloud_network_iac/aws-hybrid-terraform/README.md
           - Thanos Ceph RGW Guide: architecture/build-up/cloud_network_iac/thanos-ceph-rgw-guide.md
           - AWS Cleanup Inventory: architecture/build-up/cloud_network_iac/aws-resource-inventory-before-cleanup.md
+          - AWS Cleanup Result: architecture/build-up/cloud_network_iac/aws-resource-cleanup-result-20260528.md
           - AWS Cleanup Checklist: architecture/build-up/cloud_network_iac/aws-resource-cleanup-checklist.md
       - DB / Storage: architecture/build-up/db_storage/README.md
       - CI/CD / App Runtime: architecture/build-up/cicd_app_runtime/README.md
