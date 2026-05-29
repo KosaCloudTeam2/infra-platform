@@ -19,6 +19,14 @@
 
 ---
 
+## 2026-05-29
+
+| ID                 | 유형             | 요약                                       | 영향/이유                                                                                             | 주요 파일                                                                                                                                                                                                                                                                                                                                                       | 검증/상태                                                                                                                                                                                                                                              |
+| :----------------- | :--------------- | :----------------------------------------- | :---------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CHANGE-20260529-01 | infra/onprem-iac | 온프레 Proxmox Terraform/Ansible 코드 추가 | 실제 Proxmox와 bastion/K8s 상태 조회값을 기준으로 기존 VM import형 Terraform과 Ansible 운영 기준 추가 | `infra/terraform/proxmox/*`, `infra/ansible/inventories/*`, `infra/ansible/playbooks/*`, `infra/ansible/roles/*`, `infra/terraform/README.md`, `infra/ansible/README.md`, `README.md`, `docs/architecture/build-up/cloud_network_iac/onprem-proxmox-iac-guide.md`, `docs/architecture/build-up/cloud_network_iac/README.md`, `mkdocs.yml`, `docs/change_log.md` | Proxmox API, QEMU guest agent, Kubernetes API 조회 완료. `terraform fmt`, `terraform validate`, `terraform plan` 통과(`8 to import, 0 to add/change/destroy`). `UV_CACHE_DIR=.uv-cache uv run mkdocs build` 통과. Ansible 미설치로 syntax/check 미수행 |
+
+---
+
 ## 2026-05-28
 
 | ID                 | 유형             | 요약                           | 영향/이유                                                                                                             | 주요 파일                                                                                                                                                                             | 검증/상태                                                                                    |

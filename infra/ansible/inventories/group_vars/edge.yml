@@ -1,0 +1,17 @@
+---
+haproxy_tls_crt: /etc/haproxy/certs/wildcard.pem
+haproxy_backend_ingress_host: 172.16.23.50
+haproxy_backend_ingress_port: 443
+
+haproxy_frontend_domains:
+  - ticket.kosa.team2
+  - ticket.caffeinism.cloud
+  - grafana.kosa.team2
+  - argocd.kosa.team2
+  - harbor.kosa.team2
+  - jenkins.kosa.team2
+  - admin.kosa.team2
+
+haproxy_stats_enabled: false
+haproxy_stats_user: admin
+haproxy_stats_password: "{{ vault_haproxy_stats_password | default(omit) }}"

@@ -1,0 +1,127 @@
+---
+- name: Bastion Kubernetes API verification
+  hosts: bastion
+  gather_facts: true
+  tasks:
+    - name: Assert bastion OS
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+        fail_msg: "bastion OS mismatch"
+
+    - name: Check kubeconfig
+      ansible.builtin.stat:
+        path: "{{ kubernetes_kubeconfig }}"
+      register: kubeconfig_file
+
+    - name: Assert kubeconfig exists
+      ansible.builtin.assert:
+        that:
+          - kubeconfig_file.stat.exists
+        fail_msg: "kubeconfig missing on bastion"
+
+    - name: Read Kubernetes nodes
+      ansible.builtin.command: kubectl get nodes -o wide
+      environment:
+        KUBECONFIG: "{{ kubernetes_kubeconfig }}"
+      changed_when: false
+      register: kubectl_nodes
+
+    - name: Read StorageClass
+      ansible.builtin.command: kubectl get storageclass {{ kubernetes_default_storage_class }}
+      environment:
+        KUBECONFIG: "{{ kubernetes_kubeconfig }}"
+      changed_when: false
+      register: kubectl_storageclass
+
+    - name: Read MetalLB pool
+      ansible.builtin.command:
+        kubectl -n metallb-system get ipaddresspool {{ kubernetes_metallb_pool }} -o
+        jsonpath='{.spec.addresses}'
+      environment:
+        KUBECONFIG: "{{ kubernetes_kubeconfig }}"
+      changed_when: false
+      register: kubectl_metallb_pool
+
+    - name: Read PXC status
+      ansible.builtin.command: kubectl get pxc -A
+      environment:
+        KUBECONFIG: "{{ kubernetes_kubeconfig }}"
+      changed_when: false
+      register: kubectl_pxc
+
+    - name: Read non-running pods
+      ansible.builtin.shell: |
+        set -o pipefail
+        kubectl get pods -A --no-headers | awk '$4!="Running" && $4!="Completed"{print}'
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ kubernetes_kubeconfig }}"
+      changed_when: false
+      failed_when: false
+      register: kubectl_non_running
+
+    - name: Show cluster summary
+      ansible.builtin.debug:
+        msg:
+          nodes: "{{ kubectl_nodes.stdout_lines }}"
+          storageclass: "{{ kubectl_storageclass.stdout_lines }}"
+          metallb_pool: "{{ kubectl_metallb_pool.stdout }}"
+          pxc: "{{ kubectl_pxc.stdout_lines }}"
+          non_running_pods: "{{ kubectl_non_running.stdout_lines }}"
+
+- name: Kubernetes node runtime verification
+  hosts: k8s_nodes
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Check kubelet version
+      ansible.builtin.command: kubelet --version
+      changed_when: false
+      register: kubelet_version
+
+    - name: Check containerd version
+      ansible.builtin.command: containerd --version
+      changed_when: false
+      register: containerd_version
+
+    - name: Assert runtime state
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+          - ansible_facts.services["kubelet.service"].state == "running"
+          - ansible_facts.services["containerd.service"].state == "running"
+          - expected_kubernetes_version in kubelet_version.stdout
+          - expected_containerd_version in containerd_version.stdout
+        fail_msg: "Kubernetes node baseline mismatch"
+
+- name: Edge HAProxy verification
+  hosts: edge
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Check HAProxy version
+      ansible.builtin.command: haproxy -v
+      changed_when: false
+      register: haproxy_version
+
+    - name: Validate HAProxy config
+      ansible.builtin.command: haproxy -c -f /etc/haproxy/haproxy.cfg
+      changed_when: false
+
+    - name: Assert HAProxy state
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+          - ansible_facts.services["haproxy.service"].state == "running"
+        fail_msg: "edge HAProxy baseline mismatch"

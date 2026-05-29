@@ -1,17 +1,25 @@
-# Ansible Optional Area
+# Ansible Area
 
-EC2 기반 DB, Bastion, 자체 운영 Prometheus/Grafana 같은 선택 확장을 구성할 때 사용하는 영역
+온프레미스 bastion, Kubernetes node, edge HAProxy 운영 자동화 영역.
 
-## 현재 MVP
+## 현재 기준
 
-Terraform은 AWS burst app EC2와 DB용 EC2 골격까지만 만들고, PXC/ProxySQL 설치는 Runbook 또는 선택
-Ansible로 처리함. Day 14 발표 가능 상태가 우선이므로 처음부터 모든 설치를 Ansible 자동화하지 않음.
+- 실행 위치 우선순위: bastion
+- bastion inventory: `inventories/onprem-bastion.ini`
+- operator inventory: `inventories/onprem-operator.ini`
+- 기본 검증: `playbooks/verify.yml`
+- K8s node 기준 설정: `playbooks/bootstrap-k8s-node.yml`
+- edge HAProxy 기준 설정: `playbooks/edge-haproxy.yml`
+- 비밀값 원칙: private key, vault 파일, 비밀번호 저장소 저장 금지
 
-## 선택 확장 예시
+## 실행 예시
 
-- EC2 기반 PXC/ProxySQL 설치
-- Bastion 또는 관리 VM 보안 하드닝
-- CloudWatch Agent 설치
-- Prometheus Node Exporter 설치
-- cloud_network_iac 미검증 플레이북은 docs 경로에서 관리
-  - `docs/architecture/build-up/cloud_network_iac/aws-nlb-ec2-vpn-onprem-automation-draft/ansible/`
+```bash
+ansible-playbook -i infra/ansible/inventories/onprem-bastion.ini infra/ansible/playbooks/verify.yml
+```
+
+## 주의
+
+- `edge-haproxy.yml`: `/etc/haproxy/haproxy.cfg` 변경 대상
+- `bootstrap-k8s-node.yml`: swap, kernel module, sysctl 변경 대상
+- 운영 반영 전 `--check --diff` 우선 실행

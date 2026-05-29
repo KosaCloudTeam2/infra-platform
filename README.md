@@ -38,8 +38,8 @@
 ├── app/                        # 임시 배포 검증용 샘플 앱
 ├── docs/                       # 일정, 역할, 설계, 발표 자료
 ├── infra/
-│   ├── terraform/              # AWS IaC 템플릿
-│   └── ansible/                # EC2 운영 자동화
+│   ├── terraform/              # Proxmox VM IaC, 선택 AWS IaC
+│   └── ansible/                # 온프레 운영 자동화
 ├── k8s/                        # K8s 확장 매니페스트
 ├── scripts/                    # 운영 보조 스크립트
 └── tests/                      # 인프라 검증 체크리스트

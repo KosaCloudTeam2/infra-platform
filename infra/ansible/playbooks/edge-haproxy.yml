@@ -1,0 +1,8 @@
+---
+- name: Edge HAProxy baseline
+  hosts: edge
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - edge_haproxy

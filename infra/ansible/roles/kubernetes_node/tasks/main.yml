@@ -1,0 +1,54 @@
+---
+- name: Disable swap for Kubernetes
+  ansible.builtin.command: swapoff -a
+  changed_when: ansible_swaptotal_mb | int > 0
+  when: ansible_swaptotal_mb | int > 0
+
+- name: Remove active swap entries from fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\sswap\s.*)$'
+    replace: '# \1'
+
+- name: Configure Kubernetes kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      overlay
+      br_netfilter
+
+- name: Load Kubernetes kernel modules
+  ansible.builtin.command: "modprobe {{ item }}"
+  changed_when: false
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Configure Kubernetes sysctl values
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-kubernetes.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      net.bridge.bridge-nf-call-iptables = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward = 1
+  register: kubernetes_sysctl_config
+
+- name: Reload sysctl values
+  ansible.builtin.command: sysctl --system
+  changed_when: kubernetes_sysctl_config.changed
+  when: kubernetes_sysctl_config.changed
+
+- name: Ensure containerd and kubelet are running
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - containerd
+    - kubelet

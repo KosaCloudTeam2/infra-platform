@@ -1,0 +1,17 @@
+---
+expected_ubuntu_pretty_name: "Ubuntu 24.04.4 LTS"
+expected_kubernetes_version: "v1.30.14"
+expected_containerd_version: "2.2.1"
+
+kubernetes_kubeconfig: /home/ubuntu/.kube/config
+kubernetes_default_storage_class: team2-rbd-block
+kubernetes_metallb_pool: lan-pool
+kubernetes_metallb_addresses:
+  - 172.16.23.50-172.16.23.99
+
+common_base_packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - qemu-guest-agent
+  - chrony

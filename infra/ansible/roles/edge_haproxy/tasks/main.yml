@@ -1,0 +1,48 @@
+---
+- name: Install HAProxy
+  ansible.builtin.apt:
+    name: haproxy
+    state: present
+
+- name: Create HAProxy certificate directory
+  ansible.builtin.file:
+    path: "{{ haproxy_tls_crt | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Check TLS certificate
+  ansible.builtin.stat:
+    path: "{{ haproxy_tls_crt }}"
+  register: haproxy_tls_certificate
+
+- name: Assert TLS certificate exists
+  ansible.builtin.assert:
+    that:
+      - haproxy_tls_certificate.stat.exists
+    fail_msg: "HAProxy TLS certificate missing"
+
+- name: Assert HAProxy stats password when stats enabled
+  ansible.builtin.assert:
+    that:
+      - haproxy_stats_password is defined
+      - haproxy_stats_password | length > 0
+    fail_msg: "haproxy_stats_password must be supplied through Ansible Vault"
+  when: haproxy_stats_enabled | bool
+
+- name: Render HAProxy config
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: "0644"
+    validate: haproxy -c -f %s
+  notify: Restart haproxy
+
+- name: Enable HAProxy
+  ansible.builtin.service:
+    name: haproxy
+    state: started
+    enabled: true
