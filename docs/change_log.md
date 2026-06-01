@@ -1,4 +1,4 @@
-# Change Log
+﻿# Change Log
 
 신규 실구축 프로젝트의 주요 설계, 구현, 문서 변경 이력 (Demo Version)
 
@@ -16,6 +16,15 @@
 | ID                 | 유형                   | 요약      | 영향/이유                       | 주요 파일      | 검증/상태                  |
 | :----------------- | :--------------------- | :-------- | :------------------------------ | :------------- | :------------------------- |
 | CHANGE-YYYYMMDD-01 | docs/infra/security/ci | 변경 요약 | 왜 바꿨는지, 어떤 영향이 있는지 | `path/to/file` | 검증 결과 또는 미검증 사유 |
+
+---
+
+## 2026-06-01
+
+| ID                 | 유형           | 요약                               | 영향/이유                                                                                                                        | 주요 파일                                                                                                                                                                                                | 검증/상태                                                                        |
+| :----------------- | :------------- | :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| CHANGE-20260601-01 | docs/infra     | Terraform/Ansible README 요약 보강 | Proxmox VM 코드가 cloud image 직접 사용이 아니라 cloud-init template clone 방식임을 명확히 하고 파일별 역할과 실행 흐름을 정리함 | `infra/terraform/proxmox/README.md`, `infra/ansible/README.md`, `docs/change_log.md`                                                                                                                     | Prettier 통과, `UV_CACHE_DIR=.uv-cache uv run mkdocs build` 통과                 |
+| CHANGE-20260601-02 | infra/security | Proxmox tfvars 샘플/운영 파일 분리 | 실제 운영 IP/MAC/VMID가 들어가는 tfvars 파일을 gitignore 대상으로 분리하고 커밋 가능한 샘플 파일만 유지함                        | `.gitignore`, `infra/terraform/proxmox/env/onprem.tfvars.example`, `infra/terraform/proxmox/README.md`, `docs/architecture/build-up/cloud_network_iac/onprem-proxmox-iac-guide.md`, `docs/change_log.md` | gitignore 확인, Prettier 통과, `UV_CACHE_DIR=.uv-cache uv run mkdocs build` 통과 |
 
 ---
 

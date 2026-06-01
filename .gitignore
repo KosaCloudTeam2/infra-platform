@@ -7,6 +7,10 @@
 **/*.tfvars.local
 **/terraform.tfvars
 **/*.auto.tfvars
+infra/terraform/proxmox/env/onprem.tfvars
+infra/terraform/proxmox/env/onprem.example.tfvars
+infra/terraform/proxmox/env/onprem.*.tfvars
+!infra/terraform/proxmox/env/onprem.tfvars.example
 **/tfplan
 **/*.tfplan
 **/.terraform.lock.hcl

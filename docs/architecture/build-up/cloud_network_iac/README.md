@@ -22,3 +22,4 @@
 | [aws-resource-inventory-before-cleanup.md](./aws-resource-inventory-before-cleanup.md) | Unverified | AWS 삭제 전 리소스 구성 인벤토리                  |
 | [aws-resource-cleanup-result-20260528.md](./aws-resource-cleanup-result-20260528.md)   | Verified   | AWS 리소스 삭제 실행 결과                         |
 | [aws-resource-cleanup-checklist.md](./aws-resource-cleanup-checklist.md)               | Unverified | cloud_network_iac 문서군 AWS 자원 정리 체크리스트 |
+| [onprem-proxmox-iac-guide.md](./onprem-proxmox-iac-guide.md)                           | Unverified | 온프레 Proxmox Terraform/Ansible 코드 기준        |

@@ -4,6 +4,28 @@
 
 실제 Proxmox 클러스터 조회값 기준 VM 관리 코드.
 
+## 구현 방식
+
+- VM 생성 방식: Proxmox cloud-init template clone
+- 기준 템플릿: `ubuntu-2204-template`, VMID `9000`
+- clone 방식: full clone
+- cloud image 직접 사용: 해당 없음
+- cloud image 다운로드/import: 해당 없음
+- cloud-init 역할: user, SSH 공개키, DNS, IP 설정 주입
+- 기존 VM 관리 방식: `imports.tf` import block 기준 state 편입
+- 삭제 보호: `prevent_destroy = true`
+
+## 파일 요약
+
+- `versions.tf`: Terraform 버전, `bpg/proxmox` provider 버전 고정
+- `provider.tf`: Proxmox API endpoint, self-signed TLS 허용 옵션
+- `variables.tf`: Proxmox 접속값, 템플릿, SSH 공개키, VM 정의 schema
+- `main.tf`: VM clone, CPU, memory, disk, network, cloud-init 정의
+- `imports.tf`: 기존 Proxmox VM import 대상 정의
+- `outputs.tf`: Ansible/검증용 VM inventory 출력
+- `env/onprem.tfvars.example`: 커밋 가능한 샘플 변수 파일
+- `env/onprem.tfvars`: 실제 운영값 파일, gitignore 대상
+
 ## 확인 기준
 
 - Proxmox cluster: `team2`
@@ -43,8 +65,18 @@ $env:PROXMOX_VE_USERNAME = "root@pam"
 $env:PROXMOX_VE_PASSWORD = "<local-only>"
 
 terraform -chdir=infra/terraform/proxmox init
-terraform -chdir=infra/terraform/proxmox plan -var-file=env/onprem.example.tfvars
+terraform -chdir=infra/terraform/proxmox plan -var-file=env/onprem.tfvars
 ```
+
+## 실행 흐름
+
+- 1단계: Proxmox 인증 환경변수 설정
+- 2단계: `cp env/onprem.tfvars.example env/onprem.tfvars`
+- 3단계: `env/onprem.tfvars` 실제 운영값 입력
+- 4단계: `terraform init` provider 초기화
+- 5단계: `terraform plan` 기존 VM import 및 drift 확인
+- 6단계: plan 결과 `0 to add, 0 to change, 0 to destroy` 확인
+- 7단계: 담당자 1명만 apply 수행
 
 ## import 기준
 
