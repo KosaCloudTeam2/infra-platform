@@ -1,39 +1,39 @@
 import {
   to = proxmox_virtual_environment_vm.vm["k8s-cp1"]
-  id = "kosa4/210"
+  id = "PROXMOX_NODE_NAME/210"
 }
 
 import {
   to = proxmox_virtual_environment_vm.vm["k8s-cp2"]
-  id = "kosa2/211"
+  id = "PROXMOX_NODE_NAME/211"
 }
 
 import {
   to = proxmox_virtual_environment_vm.vm["k8s-cp3"]
-  id = "kosa3/212"
+  id = "PROXMOX_NODE_NAME/212"
 }
 
 import {
   to = proxmox_virtual_environment_vm.vm["k8s-w1"]
-  id = "kosa3/220"
+  id = "PROXMOX_NODE_NAME/220"
 }
 
 import {
   to = proxmox_virtual_environment_vm.vm["k8s-w2"]
-  id = "kosa4/221"
+  id = "PROXMOX_NODE_NAME/221"
 }
 
 import {
   to = proxmox_virtual_environment_vm.vm["k8s-w3"]
-  id = "kosa2/222"
+  id = "PROXMOX_NODE_NAME/222"
 }
 
 import {
   to = proxmox_virtual_environment_vm.vm["k8s-sys1"]
-  id = "kosa1/223"
+  id = "PROXMOX_NODE_NAME/223"
 }
 
 import {
   to = proxmox_virtual_environment_vm.vm["bastion"]
-  id = "kosa3/230"
+  id = "PROXMOX_NODE_NAME/230"
 }

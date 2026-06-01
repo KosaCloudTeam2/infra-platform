@@ -11,6 +11,7 @@ infra/terraform/proxmox/env/onprem.tfvars
 infra/terraform/proxmox/env/onprem.example.tfvars
 infra/terraform/proxmox/env/onprem.*.tfvars
 !infra/terraform/proxmox/env/onprem.tfvars.example
+infra/terraform/proxmox/imports.tf
 **/tfplan
 **/*.tfplan
 **/.terraform.lock.hcl

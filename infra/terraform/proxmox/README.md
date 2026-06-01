@@ -12,7 +12,7 @@
 - cloud image 직접 사용: 해당 없음
 - cloud image 다운로드/import: 해당 없음
 - cloud-init 역할: user, SSH 공개키, DNS, IP 설정 주입
-- 기존 VM 관리 방식: `imports.tf` import block 기준 state 편입
+- 기존 VM 편입 방식: 기본 미사용, 필요 시 import 예시 복사
 - 삭제 보호: `prevent_destroy = true`
 
 ## 파일 요약
@@ -21,7 +21,7 @@
 - `provider.tf`: Proxmox API endpoint, self-signed TLS 허용 옵션
 - `variables.tf`: Proxmox 접속값, 템플릿, SSH 공개키, VM 정의 schema
 - `main.tf`: VM clone, CPU, memory, disk, network, cloud-init 정의
-- `imports.tf`: 기존 Proxmox VM import 대상 정의
+- `imports.existing.example`: 기존 VM Terraform 편입용 import block 예시
 - `outputs.tf`: Ansible/검증용 VM inventory 출력
 - `env/onprem.tfvars.example`: 커밋 가능한 샘플 변수 파일
 - `env/onprem.tfvars`: 실제 운영값 파일, gitignore 대상
@@ -51,7 +51,8 @@
 
 ## 실행 전제
 
-- 기존 VM import 우선
+- 최초 설치 기준: template clone 기반 VM 신규 생성
+- 기존 VM 편입 기준: `imports.existing.example`을 `imports.tf`로 복사 후 import
 - `terraform apply` 단독 실행 금지
 - `terraform plan` diff 검토 후 담당자 1명 적용
 - Proxmox 비밀번호, API token 저장소 저장 금지
@@ -74,15 +75,19 @@ terraform -chdir=infra/terraform/proxmox plan -var-file=env/onprem.tfvars
 - 2단계: `cp env/onprem.tfvars.example env/onprem.tfvars`
 - 3단계: `env/onprem.tfvars` 실제 운영값 입력
 - 4단계: `terraform init` provider 초기화
-- 5단계: `terraform plan` 기존 VM import 및 drift 확인
-- 6단계: plan 결과 `0 to add, 0 to change, 0 to destroy` 확인
+- 5단계: `terraform plan` VM 생성 계획 확인
+- 6단계: 신규 설치 시 `add` 대상과 VM 설정 확인
 - 7단계: 담당자 1명만 apply 수행
 
-## import 기준
+## 기존 VM 편입 기준
 
-`imports.tf`에 현재 VM import block 포함.
+이미 수동 생성된 VM을 Terraform 관리 대상으로 편입할 때만 사용.
 
-수동 import 필요 시:
+- 목적: 기존 VM 재생성 방지
+- 의미: Proxmox VM과 Terraform state 연결
+- 최초 설치 기본 경로: 해당 없음
+- 사용 방법: `imports.existing.example`을 `imports.tf`로 복사 후 ID 수정
+- 보안 기준: `imports.tf` gitignore 대상
 
 ```powershell
 terraform -chdir=infra/terraform/proxmox import 'proxmox_virtual_environment_vm.vm["k8s-cp1"]' kosa4/210
